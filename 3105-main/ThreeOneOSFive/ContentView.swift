@@ -14,9 +14,17 @@ struct EspConfig: Codable {
     var AimSystemEnabled: Bool = false
     var EspFov: Bool = false
     var NoRecoil: Bool = false
+    var AimTarget: Int = 0 // 0=Head, 1=Neck, 2=Body
+    var FovSize: Float = 0.0
 }
 
 struct ContentView: View {
+    // Environment objects to keep App.swift happy without crashing
+    @Environment(\.appLanguage) private var language
+    @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
+    @EnvironmentObject private var patchStore: PatchProjectStore
+    @EnvironmentObject private var repositoryStore: PackageRepositoryStore
+
     @State private var config = EspConfig()
     @State private var statusMessage = ""
     @State private var isSuccess = false
@@ -36,7 +44,21 @@ struct ContentView: View {
                 Section(header: Text("Aimbot Settings")) {
                     Toggle("Silent Aim", isOn: $config.AimEnabled)
                     Toggle("Aim System", isOn: $config.AimSystemEnabled)
+                    
+                    Picker("Aim Target", selection: $config.AimTarget) {
+                        Text("Head").tag(0)
+                        Text("Neck").tag(1)
+                        Text("Body").tag(2)
+                    }
+                    
                     Toggle("Show FOV Circle", isOn: $config.EspFov)
+                    
+                    VStack {
+                        Text("FOV Size: \(config.FovSize, specifier: "%.1f")")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Slider(value: $config.FovSize, in: 0...360, step: 1.0)
+                    }
+                    
                     Toggle("No Recoil", isOn: $config.NoRecoil)
                 }
 
@@ -149,14 +171,31 @@ struct ContentView: View {
                     return
                 }
                 
-                // Write into app document directory first
-                let fm = FileManager.default
+                // Resolve game container path
+                guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: target) else {
+                    self.statusMessage = "Could not find \(target). Is it installed?"
+                    self.isSuccess = false
+                    return
+                }
+                
+                let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+                let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
+                let configURL = docsURL.appendingPathComponent("localConfig.json")
+                
                 do {
-                    let docsURL = try fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
-                    let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
+                    // Create Documents folder if not exists
+                    let fm = FileManager.default
+                    if !fm.fileExists(atPath: docsURL.path) {
+                        try fm.createDirectory(at: docsURL, withIntermediateDirectories: true)
+                    }
+
+                    // Write patch bytes
                     try data.write(to: bytesURL)
                     
-                    self.statusMessage = "Injected \(target) successfully! (\(data.count) bytes)"
+                    // Write config json
+                    try jsonData.write(to: configURL)
+                    
+                    self.statusMessage = "Done Mod! Injected to \(target)"
                     self.isSuccess = true
                     
                 } catch {
