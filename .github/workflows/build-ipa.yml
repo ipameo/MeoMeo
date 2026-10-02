@@ -12,13 +12,14 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Build and Archive
+    - name: Build
       run: |
-        xcodebuild archive \
+        xcodebuild clean build \
           -project 3105-main/ThreeOneOSFive.xcodeproj \
-          -scheme ThreeOneOSFive \
+          -alltargets \
           -configuration Release \
-          -archivePath $PWD/build/ThreeOneOSFive.xcarchive \
+          -sdk iphoneos \
+          CONFIGURATION_BUILD_DIR=$PWD/build \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO
@@ -26,7 +27,13 @@ jobs:
     - name: Create IPA
       run: |
         mkdir -p Payload
-        cp -r build/ThreeOneOSFive.xcarchive/Products/Applications/ThreeOneOSFive.app Payload/
+        # Find the .app folder in the build directory
+        APP_PATH=$(find build -name "*.app" | head -n 1)
+        if [ -z "$APP_PATH" ]; then
+          echo "App not found"
+          exit 1
+        fi
+        cp -r "$APP_PATH" Payload/
         zip -r 3105-ModMenu.ipa Payload
         
     - name: Upload Artifact
