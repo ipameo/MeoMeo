@@ -87,7 +87,8 @@ struct ContentView: View {
 
                 // ── GAME SELECTOR ─────────────────────────────────────
                 HStack(spacing: 0) {
-                    ForEach([("Free Fire", "ff"), ("Free Fire MAX", "ffmax")], id: \.1) { label, id in
+                    ForEach(["ff", "ffmax"], id: \.self) { id in
+                        let label = (id == "ff") ? "Free Fire" : "Free Fire MAX"
                         Button(action: {
                             gameTab = id
                             if hasInjected { syncConfig() }
@@ -150,7 +151,8 @@ struct ContentView: View {
                                     .foregroundColor(Color(white: 0.45))
 
                                 HStack(spacing: 8) {
-                                    ForEach([(0,"Head"),(1,"Neck"),(2,"Body")], id: \.0) { idx, name in
+                                    ForEach(0..<3, id: \.self) { idx in
+                                        let name = idx == 0 ? "Head" : (idx == 1 ? "Neck" : "Body")
                                         Button(action: { config.AimTarget = idx }) {
                                             Text(name)
                                                 .font(.system(size: 13, weight: .semibold))
@@ -182,7 +184,8 @@ struct ContentView: View {
                                     .foregroundColor(Color(white: 0.45))
 
                                 HStack(spacing: 8) {
-                                    ForEach([(0,"Head"),(1,"Neck"),(2,"Body")], id: \.0) { idx, name in
+                                    ForEach(0..<3, id: \.self) { idx in
+                                        let name = idx == 0 ? "Head" : (idx == 1 ? "Neck" : "Body")
                                         Button(action: { config.AimTarget = idx }) {
                                             Text(name)
                                                 .font(.system(size: 13, weight: .semibold))
@@ -271,7 +274,7 @@ struct ContentView: View {
                         .padding(.top, 20)
                         .frame(maxWidth: .infinity)
                 } else {
-                    ForEach(logs.reversed(), id: \.self) { line in
+                    ForEach(Array(logs.reversed()), id: \.self) { line in
                         Text(line)
                             .font(.system(size: 12, design: .monospaced))
                             .foregroundColor(line.hasPrefix("✅") ? .green : line.hasPrefix("❌") ? .red : Color(white: 0.7))
@@ -390,7 +393,8 @@ struct ContentView: View {
                     }
                     try data.write(to: bytesURL)
                     try jsonData.write(to: configURL)
-                    self.log("✅ Done Mod — launch \(self.gameTab == \"ff\" ? \"Free Fire\" : \"Free Fire MAX\") now!")
+                    let gameName = self.gameTab == "ff" ? "Free Fire" : "Free Fire MAX"
+                    self.log("✅ Done Mod — launch \(gameName) now!")
                     self.hasInjected = true
                     self.topTab = "Menu"
                 } catch {
