@@ -2,9 +2,11 @@ import SwiftUI
 import UIKit
 import Foundation
 
+// MARK: - Config Model
 struct EspConfig: Codable, Equatable {
     var meomeo: String = "20ad475df3de47b1b9b2106f83fcd794"
     var testCodePatch: Bool = true
+    // ESP
     var EspMaster: Bool = false
     var EspBox: Bool = false
     var EspLine: Bool = false
@@ -13,93 +15,35 @@ struct EspConfig: Codable, Equatable {
     var EspDistance: Bool = false
     var EspTracer: Bool = false
     var EspSkeleton: Bool = false
-    var AimEnabled: Bool = false
-    var AimSystemEnabled: Bool = false
+    // Aim
+    var AimEnabled: Bool = false       // Silent Aim
+    var AimSystemEnabled: Bool = false // Aim System
     var EspFov: Bool = false
     var NoRecoil: Bool = false
-    var AimTarget: Int = 0 // 0=Head, 1=Neck, 2=Body
+    var AimTarget: Int = 0             // 0=Head, 1=Neck, 2=Body
     var FovSize: Float = 60.0
-    var HeadshotRate: Float = 60.0 // Added for the UI
+    var HeadshotRate: Float = 60.0
 }
 
-// Minimalist Toggle Style resembling the image (White thumb, grey/white track)
-struct MinimalistToggleStyle: ToggleStyle {
+// MARK: - Custom Toggle Style (matches reference image)
+struct SlimToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
-        HStack {
-            configuration.label
-            Spacer()
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(configuration.isOn ? Color.white : Color.gray.opacity(0.3))
-                .frame(width: 50, height: 30)
-                .overlay(
-                    Circle()
-                        .fill(configuration.isOn ? Color.black : Color.white)
-                        .padding(3)
-                        .offset(x: configuration.isOn ? 10 : -10)
-                )
-                .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isOn)
-                .onTapGesture {
-                    configuration.isOn.toggle()
-                }
+        Button(action: { withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { configuration.isOn.toggle() } }) {
+            ZStack(alignment: configuration.isOn ? .trailing : .leading) {
+                Capsule()
+                    .fill(configuration.isOn ? Color.white : Color(white: 0.25))
+                    .frame(width: 46, height: 26)
+                Circle()
+                    .fill(configuration.isOn ? Color.black : Color.white)
+                    .frame(width: 20, height: 20)
+                    .padding(3)
+            }
         }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
-// Minimalist custom slider
-struct MinimalistSlider: View {
-    var title: String
-    @Binding var value: Float
-    var range: ClosedRange<Float>
-    var isPercentage: Bool
-    
-    var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Text(title)
-                    .font(.system(size: 14, weight: .regular, design: .rounded))
-                    .foregroundColor(Color(white: 0.6))
-                
-                Spacer()
-                
-                Text(isPercentage ? "\(Int(value))%" : "\(Int(value))")
-                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-            }
-            
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Rectangle()
-                        .fill(Color(white: 0.2))
-                        .frame(height: 4)
-                        .cornerRadius(2)
-                    
-                    let width = CGFloat((value - range.lowerBound) / (range.upperBound - range.lowerBound)) * geometry.size.width
-                    
-                    Rectangle()
-                        .fill(Color.white)
-                        .frame(width: width, height: 4)
-                        .cornerRadius(2)
-                    
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 16, height: 16)
-                        .shadow(radius: 2)
-                        .offset(x: width - 8)
-                        .gesture(
-                            DragGesture()
-                                .onChanged { gesture in
-                                    let percentage = min(max(0, gesture.location.x / geometry.size.width), 1)
-                                    let newValue = Float(percentage) * (range.upperBound - range.lowerBound) + range.lowerBound
-                                    value = newValue
-                                }
-                        )
-                }
-            }
-            .frame(height: 20)
-        }
-    }
-}
-
+// MARK: - Main View
 struct ContentView: View {
     @Environment(\.appLanguage) private var language
     @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
@@ -107,204 +51,247 @@ struct ContentView: View {
     @EnvironmentObject private var repositoryStore: PackageRepositoryStore
 
     @State private var config = EspConfig()
-    @State private var statusMessage = ""
-    @State private var isSuccess = false
     @State private var isInjecting = false
-    
-    @AppStorage("selectedTarget") private var selectedTarget = "com.dts.freefireth"
-    @AppStorage("hasInjected") private var hasInjected = false
+    @State private var hasInjected = false
+    @State private var topTab: String = "Menu"   // "Menu" | "Log"
+    @State private var gameTab: String = "ff"    // "ff" | "ffmax"
+    @State private var logs: [String] = []
 
-    @State private var activeTab = "Menu"
+    private var selectedBundleID: String {
+        gameTab == "ff" ? "com.dts.freefireth" : "com.dts.freefiremax"
+    }
 
     var body: some View {
-        HStack(spacing: 0) {
-            // LEFT SIDEBAR (Tabs)
-            VStack(spacing: 30) {
-                Spacer()
-                
-                // Rotated Log Tab
-                Button(action: { activeTab = "Log" }) {
-                    Text("Log")
-                        .font(.system(size: 15, weight: activeTab == "Log" ? .bold : .medium))
-                        .foregroundColor(activeTab == "Log" ? .white : Color(white: 0.5))
-                        .frame(width: 80)
-                }
-                .rotationEffect(.degrees(-90))
-                .frame(width: 40, height: 80)
-                
-                // Rotated Menu Tab
-                Button(action: { activeTab = "Menu" }) {
-                    Text("Menu")
-                        .font(.system(size: 15, weight: activeTab == "Menu" ? .bold : .medium))
-                        .foregroundColor(activeTab == "Menu" ? .white : Color(white: 0.5))
-                        .frame(width: 80)
-                }
-                .rotationEffect(.degrees(-90))
-                .frame(width: 40, height: 80)
-                
-                Spacer()
-            }
-            .frame(width: 60)
-            .background(Color(red: 0.1, green: 0.1, blue: 0.12))
-            
-            // GAME SELECTION COLUMN (or just top bar in a VStack)
+        ZStack {
+            Color(red: 0.06, green: 0.06, blue: 0.07).ignoresSafeArea()
+
             VStack(spacing: 0) {
-                // GAMES TABS
-                HStack(spacing: 10) {
-                    GameTab(title: "Free Fire", isSelected: selectedTarget == "com.dts.freefireth") {
-                        selectedTarget = "com.dts.freefireth"
+                // ── TOP TAB BAR ──────────────────────────────────────
+                HStack(spacing: 0) {
+                    ForEach(["Menu", "Log"], id: \.self) { tab in
+                        Button(action: { withAnimation { topTab = tab } }) {
+                            Text(tab)
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundColor(topTab == tab ? .black : Color(white: 0.5))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 42)
+                                .background(topTab == tab ? Color.white : Color.clear)
+                        }
                     }
-                    GameTab(title: "Free Fire MAX", isSelected: selectedTarget == "com.dts.freefiremax") {
-                        selectedTarget = "com.dts.freefiremax"
-                    }
-                    Spacer()
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 20)
-                
-                // MAIN CONTENT
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 25) {
-                        
-                        // AIMING SECTION
-                        SectionHeader(title: "AIMING")
-                        
-                        VStack(spacing: 20) {
-                            // Top Row: Icon + Texts + Toggle
-                            HStack(spacing: 15) {
-                                // Icon Box
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(white: 0.9))
-                                    .frame(width: 48, height: 48)
-                                    .overlay(
-                                        Image(systemName: "wind")
-                                            .foregroundColor(.black)
-                                            .font(.system(size: 20, weight: .bold))
-                                    )
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Aim Silent")
-                                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                                        .foregroundColor(.white)
-                                    Text("Silent aim with headshot rate and FOV")
-                                        .font(.system(size: 12, weight: .regular))
-                                        .foregroundColor(Color(white: 0.5))
-                                }
-                                
-                                Spacer()
-                                
-                                Toggle("", isOn: $config.AimEnabled)
-                                    .toggleStyle(MinimalistToggleStyle())
-                                    .labelsHidden()
-                            }
-                            
-                            Divider().background(Color(white: 0.2))
-                            
-                            // Sliders
-                            MinimalistSlider(title: "Silent FOV", value: $config.FovSize, range: 0...360, isPercentage: false)
-                            MinimalistSlider(title: "Headshot", value: $config.HeadshotRate, range: 0...100, isPercentage: true)
-                        }
-                        .padding(20)
-                        .background(Color(red: 0.11, green: 0.11, blue: 0.12))
-                        .cornerRadius(16)
-                        
-                        // VISUALS SECTION
-                        SectionHeader(title: "VISUALS")
-                        
-                        VStack(spacing: 20) {
-                            VisualToggleRow(icon: "eye", title: "Enable ESP", desc: "Master switch for all visuals", isOn: $config.EspMaster)
-                            Divider().background(Color(white: 0.2))
-                            VisualToggleRow(icon: "person.crop.square", title: "Show Box", desc: "Draw box around players", isOn: $config.EspBox)
-                            Divider().background(Color(white: 0.2))
-                            VisualToggleRow(icon: "lines.measurement.horizontal", title: "Show Line", desc: "Draw line to players", isOn: $config.EspLine)
-                            Divider().background(Color(white: 0.2))
-                            VisualToggleRow(icon: "heart.fill", title: "Show Health", desc: "Display player HP", isOn: $config.EspHealth)
-                            Divider().background(Color(white: 0.2))
-                            VisualToggleRow(icon: "textformat", title: "Show Name", desc: "Display player name above box", isOn: $config.EspName)
-                        }
-                        .padding(20)
-                        .background(Color(red: 0.11, green: 0.11, blue: 0.12))
-                        .cornerRadius(16)
+                .background(Color(white: 0.1))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 10)
 
-                        // ENEMY COUNT SECTION
-                        SectionHeader(title: "ENEMY COUNTER")
-
-                        HStack(spacing: 0) {
-                            Image(systemName: "person.3.fill")
-                                .foregroundColor(Color(white: 0.5))
-                                .font(.system(size: 18))
-                                .padding(.trailing, 12)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("Enemy Count")
-                                    .font(.system(size: 15, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.white)
-                                Text("MeoMeo iOS counter shown in-game")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(Color(white: 0.45))
-                            }
-                            Spacer()
-                            Text("IN-GAME")
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                .foregroundColor(.black)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 5)
-                                .background(Color.white)
-                                .cornerRadius(6)
+                // ── GAME SELECTOR ─────────────────────────────────────
+                HStack(spacing: 0) {
+                    ForEach([("Free Fire", "ff"), ("Free Fire MAX", "ffmax")], id: \.1) { label, id in
+                        Button(action: {
+                            gameTab = id
+                            if hasInjected { syncConfig() }
+                        }) {
+                            Text(label)
+                                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                .foregroundColor(gameTab == id ? .black : Color(white: 0.5))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 40)
+                                .background(gameTab == id ? Color.white : Color.clear)
                         }
-                        .padding(20)
-                        .background(Color(red: 0.11, green: 0.11, blue: 0.12))
-                        .cornerRadius(16)
-                        
-                        // INJECT/UNINSTALL BUTTON
-                        VStack {
-                            if !hasInjected {
-                                Button(action: { injectGame(target: selectedTarget) }) {
-                                    Text(isInjecting ? "INJECTING..." : "INJECT MOD")
-                                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                                        .foregroundColor(.black)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 54)
-                                        .background(Color.white)
-                                        .cornerRadius(12)
-                                }
-                                .disabled(isInjecting)
-                            } else {
-                                Button(action: { uninstallMod(target: selectedTarget) }) {
-                                    Text("UNINSTALL MOD")
-                                        .font(.system(size: 16, weight: .bold, design: .rounded))
-                                        .foregroundColor(.white)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 54)
-                                        .background(Color.red.opacity(0.8))
-                                        .cornerRadius(12)
-                                }
-                            }
-                            
-                            if !statusMessage.isEmpty {
-                                Text(statusMessage)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(isSuccess ? .green : .red)
-                                    .padding(.top, 10)
-                            }
-                        }
-                        .padding(.top, 10)
-                        .padding(.bottom, 40)
                     }
-                    .padding(20)
+                }
+                .background(Color(white: 0.12))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+
+                // ── CONTENT AREA ──────────────────────────────────────
+                if topTab == "Menu" {
+                    menuView
+                } else {
+                    logView
                 }
             }
-            .background(Color(red: 0.05, green: 0.05, blue: 0.06))
         }
-        .edgesIgnoringSafeArea(.all)
         .onAppear(perform: loadConfig)
         .onChange(of: config) { _ in
-            if hasInjected {
-                syncConfigToGame(target: selectedTarget)
-            }
+            if hasInjected { syncConfig() }
         }
-        .colorScheme(.dark)
     }
-    
+
+    // MARK: - Menu Tab
+    var menuView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 14) {
+
+                // ── SILENT AIM ─────────────────────────────────────────
+                CardView(title: "SILENT AIM", icon: "scope") {
+                    VStack(spacing: 14) {
+                        // Master toggle
+                        ToggleRow(label: "Silent Aim", icon: "wind", on: $config.AimEnabled)
+
+                        if config.AimEnabled {
+                            Divider().background(Color(white: 0.2))
+
+                            // FOV toggle
+                            ToggleRow(label: "Show FOV Circle", icon: "circle.dashed", on: $config.EspFov)
+
+                            // FOV Slider
+                            SliderRow(label: "Silent FOV", value: $config.FovSize, range: 30...400, isPercent: false)
+
+                            // Headshot Rate Slider
+                            SliderRow(label: "Headshot Rate", value: $config.HeadshotRate, range: 0...100, isPercent: true)
+
+                            // AimTarget picker
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Target Bone")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(Color(white: 0.45))
+
+                                HStack(spacing: 8) {
+                                    ForEach([(0,"Head"),(1,"Neck"),(2,"Body")], id: \.0) { idx, name in
+                                        Button(action: { config.AimTarget = idx }) {
+                                            Text(name)
+                                                .font(.system(size: 13, weight: .semibold))
+                                                .foregroundColor(config.AimTarget == idx ? .black : Color(white: 0.7))
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 36)
+                                                .background(config.AimTarget == idx ? Color.white : Color(white: 0.15))
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ── AIM SYSTEM ─────────────────────────────────────────
+                CardView(title: "AIM SYSTEM", icon: "target") {
+                    VStack(spacing: 14) {
+                        ToggleRow(label: "Aim System", icon: "flame", on: $config.AimSystemEnabled)
+
+                        if config.AimSystemEnabled {
+                            Divider().background(Color(white: 0.2))
+
+                            // AimTarget picker (shared with silent aim)
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Target Bone")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(Color(white: 0.45))
+
+                                HStack(spacing: 8) {
+                                    ForEach([(0,"Head"),(1,"Neck"),(2,"Body")], id: \.0) { idx, name in
+                                        Button(action: { config.AimTarget = idx }) {
+                                            Text(name)
+                                                .font(.system(size: 13, weight: .semibold))
+                                                .foregroundColor(config.AimTarget == idx ? .black : Color(white: 0.7))
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 36)
+                                                .background(config.AimTarget == idx ? Color.white : Color(white: 0.15))
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        }
+                                    }
+                                }
+                            }
+
+                            ToggleRow(label: "No Recoil", icon: "minus.circle", on: $config.NoRecoil)
+                        }
+                    }
+                }
+
+                // ── VISUALS ────────────────────────────────────────────
+                CardView(title: "VISUALS (ESP)", icon: "eye") {
+                    VStack(spacing: 14) {
+                        ToggleRow(label: "Enable ESP", icon: "eye.fill", on: $config.EspMaster)
+                        Divider().background(Color(white: 0.2))
+                        ToggleRow(label: "Show Box", icon: "person.crop.square", on: $config.EspBox)
+                        Divider().background(Color(white: 0.2))
+                        ToggleRow(label: "Show Line / Tracer", icon: "line.diagonal", on: $config.EspLine)
+                        Divider().background(Color(white: 0.2))
+                        ToggleRow(label: "Show Name", icon: "textformat", on: $config.EspName)
+                        Divider().background(Color(white: 0.2))
+                        ToggleRow(label: "Show Health", icon: "heart.fill", on: $config.EspHealth)
+                        Divider().background(Color(white: 0.2))
+                        ToggleRow(label: "Show Distance", icon: "ruler", on: $config.EspDistance)
+                        Divider().background(Color(white: 0.2))
+                        ToggleRow(label: "Show Skeleton", icon: "figure.walk", on: $config.EspSkeleton)
+                    }
+                }
+
+                // ── INJECT / UNINSTALL ─────────────────────────────────
+                if !hasInjected {
+                    Button(action: { injectGame() }) {
+                        HStack {
+                            if isInjecting {
+                                ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .black))
+                            } else {
+                                Image(systemName: "bolt.fill")
+                                    .foregroundColor(.black)
+                                Text("INJECT MOD")
+                                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                                    .foregroundColor(.black)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                    .disabled(isInjecting)
+                } else {
+                    Button(action: { uninstallMod() }) {
+                        HStack {
+                            Image(systemName: "trash.fill").foregroundColor(.white)
+                            Text("UNINSTALL MOD")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .foregroundColor(.white)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(Color.red.opacity(0.8))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 40)
+        }
+    }
+
+    // MARK: - Log Tab
+    var logView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 8) {
+                if logs.isEmpty {
+                    Text("No logs yet. Inject to start.")
+                        .font(.system(size: 13, design: .monospaced))
+                        .foregroundColor(Color(white: 0.4))
+                        .padding(.top, 20)
+                        .frame(maxWidth: .infinity)
+                } else {
+                    ForEach(logs.reversed(), id: \.self) { line in
+                        Text(line)
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundColor(line.hasPrefix("✅") ? .green : line.hasPrefix("❌") ? .red : Color(white: 0.7))
+                            .padding(.horizontal, 4)
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .background(Color(white: 0.05))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, 16)
+    }
+
+    // MARK: - Logic
+    private func log(_ msg: String) {
+        let ts = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
+        logs.append("[\(ts)] \(msg)")
+    }
+
     private func loadConfig() {
         do {
             let fm = FileManager.default
@@ -313,8 +300,9 @@ struct ContentView: View {
             if fm.fileExists(atPath: configURL.path) {
                 let data = try Data(contentsOf: configURL)
                 config = try JSONDecoder().decode(EspConfig.self, from: data)
+                log("✅ Loaded config from Documents")
             }
-        } catch { }
+        } catch { log("❌ Load config failed: \(error)") }
     }
 
     private func saveConfigLocally() -> Data? {
@@ -324,196 +312,159 @@ struct ContentView: View {
             let data = try encoder.encode(config)
             let fm = FileManager.default
             let docsURL = try fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
-            let configURL = docsURL.appendingPathComponent("localConfig.json")
-            try data.write(to: configURL)
+            try data.write(to: docsURL.appendingPathComponent("localConfig.json"))
             return data
-        } catch {
-            return nil
-        }
+        } catch { return nil }
     }
 
-    private func syncConfigToGame(target: String) {
+    private func syncConfig() {
         guard let jsonData = saveConfigLocally() else { return }
-        guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: target) else {
-            hasInjected = false
-            return
-        }
+        guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) else { return }
         let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
         let configURL = docsURL.appendingPathComponent("localConfig.json")
-        do {
-            if FileManager.default.fileExists(atPath: docsURL.path) {
-                try jsonData.write(to: configURL)
-            }
-        } catch { }
+        try? jsonData.write(to: configURL)
+        log("✅ Config synced to game")
     }
 
-    private func uninstallMod(target: String) {
-        guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: target) else {
-            statusMessage = "Cannot find game container."
-            isSuccess = false
+    private func uninstallMod() {
+        guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) else {
+            log("❌ Cannot find game container")
             hasInjected = false
             return
         }
         let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+        let fm = FileManager.default
         let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
         let configURL = docsURL.appendingPathComponent("localConfig.json")
-        
         do {
-            let fm = FileManager.default
             if fm.fileExists(atPath: bytesURL.path) { try fm.removeItem(at: bytesURL) }
             if fm.fileExists(atPath: configURL.path) { try fm.removeItem(at: configURL) }
-            
-            statusMessage = "Uninstall Mod Done!"
-            isSuccess = true
+            log("✅ Uninstalled mod")
             hasInjected = false
         } catch {
-            statusMessage = "Uninstall Error: \(error.localizedDescription)"
-            isSuccess = false
+            log("❌ Uninstall error: \(error)")
         }
     }
 
-    private func injectGame(target: String) {
-        // ALWAYS SYNC config.AimEnabled to config.EspFov if they want the circle!
-        if config.AimEnabled {
-            config.EspFov = true
-        }
-        
+    private func injectGame() {
         guard let jsonData = saveConfigLocally() else {
-            statusMessage = "Error saving config"
-            isSuccess = false
+            log("❌ Error saving config")
             return
         }
-        
         isInjecting = true
-        statusMessage = "Downloading payload from GitHub..."
-        isSuccess = true
-        
+        log("⏳ Downloading payload from GitHub...")
+        topTab = "Log"
+
         let token = "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"
         let urlStr = "https://raw.githubusercontent.com/xuantrun/vipmof/main/Assembly-CSharp-patch.bytes"
-        
         guard let url = URL(string: urlStr) else {
-            self.statusMessage = "Invalid URL"
-            self.isSuccess = false
-            self.isInjecting = false
-            return
+            log("❌ Invalid URL"); isInjecting = false; return
         }
-        
         var request = URLRequest(url: url)
         request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
-        
+
         URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 self.isInjecting = false
                 if let error = error {
-                    self.statusMessage = "Download Error: \(error.localizedDescription)"
-                    self.isSuccess = false
-                    return
+                    self.log("❌ Download error: \(error.localizedDescription)"); return
                 }
-                
-                if let httpResp = response as? HTTPURLResponse, httpResp.statusCode != 200 {
-                    self.statusMessage = "GitHub API Error: \(httpResp.statusCode)"
-                    self.isSuccess = false
-                    return
+                if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                    self.log("❌ HTTP \(http.statusCode)"); return
                 }
-                
                 guard let data = data else {
-                    self.statusMessage = "No data received"
-                    self.isSuccess = false
-                    return
+                    self.log("❌ No data received"); return
                 }
-                
-                guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: target) else {
-                    self.statusMessage = "Could not find \(target)."
-                    self.isSuccess = false
-                    return
+                self.log("✅ Downloaded \(data.count) bytes")
+
+                guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) else {
+                    self.log("❌ Game not found: \(self.selectedBundleID)"); return
                 }
-                
                 let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
                 let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
                 let configURL = docsURL.appendingPathComponent("localConfig.json")
-                
                 do {
                     let fm = FileManager.default
                     if !fm.fileExists(atPath: docsURL.path) {
                         try fm.createDirectory(at: docsURL, withIntermediateDirectories: true)
                     }
-
                     try data.write(to: bytesURL)
                     try jsonData.write(to: configURL)
-                    
-                    self.statusMessage = "Done Mod"
-                    self.isSuccess = true
+                    self.log("✅ Done Mod — launch \(self.gameTab == \"ff\" ? \"Free Fire\" : \"Free Fire MAX\") now!")
                     self.hasInjected = true
+                    self.topTab = "Menu"
                 } catch {
-                    self.statusMessage = "File Write Error: \(error.localizedDescription)"
-                    self.isSuccess = false
+                    self.log("❌ Write error: \(error)")
                 }
             }
         }.resume()
     }
 }
 
-struct SectionHeader: View {
+// MARK: - Reusable Components
+struct CardView<Content: View>: View {
     var title: String
+    var icon: String
+    var content: Content
+    init(title: String, icon: String, @ViewBuilder content: () -> Content) {
+        self.title = title; self.icon = icon; self.content = content()
+    }
     var body: some View {
-        Text(title)
-            .font(.system(size: 13, weight: .bold, design: .rounded))
-            .foregroundColor(Color(white: 0.4))
-            .padding(.leading, 5)
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .foregroundColor(Color(white: 0.6))
+                    .font(.system(size: 13, weight: .bold))
+                Text(title)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(Color(white: 0.4))
+                    .tracking(1.5)
+            }
+            content
+        }
+        .padding(16)
+        .background(Color(red: 0.11, green: 0.11, blue: 0.13))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }
 
-struct GameTab: View {
-    var title: String
-    var isSelected: Bool
-    var action: () -> Void
-    
+struct ToggleRow: View {
+    var label: String
+    var icon: String
+    @Binding var on: Bool
     var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: 15, weight: isSelected ? .bold : .medium, design: .rounded))
-                .foregroundColor(isSelected ? .black : .white)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 12)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(isSelected ? Color.white : Color(white: 0.15))
-                )
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(Color(white: 0.5))
+                .frame(width: 20)
+            Text(label)
+                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .foregroundColor(.white)
+            Spacer()
+            Toggle("", isOn: $on).toggleStyle(SlimToggleStyle()).labelsHidden()
         }
     }
 }
 
-struct VisualToggleRow: View {
-    var icon: String
-    var title: String
-    var desc: String
-    @Binding var isOn: Bool
-    
+struct SliderRow: View {
+    var label: String
+    @Binding var value: Float
+    var range: ClosedRange<Float>
+    var isPercent: Bool
     var body: some View {
-        HStack(spacing: 15) {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color(white: 0.15))
-                .frame(width: 48, height: 48)
-                .overlay(
-                    Image(systemName: icon)
-                        .foregroundColor(.white)
-                        .font(.system(size: 18))
-                )
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(title)
-                    .font(.system(size: 16, weight: .semibold, design: .rounded))
+        VStack(spacing: 6) {
+            HStack {
+                Text(label)
+                    .font(.system(size: 13, weight: .medium, design: .rounded))
+                    .foregroundColor(Color(white: 0.6))
+                Spacer()
+                Text(isPercent ? "\(Int(value))%" : "\(Int(value))")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
-                Text(desc)
-                    .font(.system(size: 12, weight: .regular))
-                    .foregroundColor(Color(white: 0.5))
+                    .monospacedDigit()
             }
-            
-            Spacer()
-            
-            Toggle("", isOn: $isOn)
-                .toggleStyle(MinimalistToggleStyle())
-                .labelsHidden()
+            Slider(value: $value, in: range, step: 1)
+                .accentColor(.white)
         }
     }
 }
