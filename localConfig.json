@@ -1,0 +1,13 @@
+{
+  "meomeo": "20ad475df3de47b1b9b2106f83fcd794",
+  "testCodePatch": true,
+  "EspMaster": true,
+  "EspBox": true,
+  "EspSkeleton": true,
+  "EspHealth": true,
+  "EspTracer": true,
+  "EspFov": true,
+  "AimEnabled": true,
+  "AimSystemEnabled": true,
+  "NoRecoil": true
+}

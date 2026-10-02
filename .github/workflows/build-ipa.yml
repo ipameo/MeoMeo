@@ -1,0 +1,36 @@
+name: Build IPA
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Build and Archive
+      run: |
+        xcodebuild archive \
+          -project 3105-main/ThreeOneOSFive.xcodeproj \
+          -scheme ThreeOneOSFive \
+          -configuration Release \
+          -archivePath $PWD/build/ThreeOneOSFive.xcarchive \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+
+    - name: Create IPA
+      run: |
+        mkdir -p Payload
+        cp -r build/ThreeOneOSFive.xcarchive/Products/Applications/ThreeOneOSFive.app Payload/
+        zip -r 3105-ModMenu.ipa Payload
+        
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: 3105-ModMenu-IPA
+        path: 3105-ModMenu.ipa
