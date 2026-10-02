@@ -152,6 +152,8 @@ struct ContentView: View {
                 onOpenSettings: openSettings,
                 onOpenLogs: openLogs
             )
+        case .modMenu:
+            ModMenuView()
         }
     }
 
@@ -227,6 +229,7 @@ private extension AppSection {
         case .installed: return "tab.installed"
         case .files: return "tab.files"
         case .search: return "tab.search"
+        case .modMenu: return "tab.modmenu"
         }
     }
 
@@ -238,6 +241,7 @@ private extension AppSection {
         case .installed: return "tray.full.fill"
         case .files: return "folder.fill"
         case .search: return "magnifyingglass"
+        case .modMenu: return "gear"
         }
     }
 }
