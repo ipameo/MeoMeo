@@ -10,7 +10,7 @@ jobs:
     runs-on: macos-latest
     
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Build and Archive
       run: |
@@ -30,7 +30,7 @@ jobs:
         zip -r 3105-ModMenu.ipa Payload
         
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: 3105-ModMenu-IPA
         path: 3105-ModMenu.ipa
