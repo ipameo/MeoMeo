@@ -1,10 +1,10 @@
 import SwiftUI
 
 private enum OnboardingStep: Int, CaseIterable {
-    case language = 0, welcome, versions, install
+    case welcome = 0
 
-    var next: OnboardingStep? { Self(rawValue: rawValue + 1) }
-    var prev: OnboardingStep? { Self(rawValue: rawValue - 1) }
+    var next: OnboardingStep? { nil }
+    var prev: OnboardingStep? { nil }
 }
 
 private enum OnboardingNavigationDirection {
@@ -15,7 +15,7 @@ private enum OnboardingNavigationDirection {
 struct OnboardingView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage(AppLanguage.storageKey) private var languageCode = AppLanguage.english.rawValue
-    @State private var step: OnboardingStep = .language
+    @State private var step: OnboardingStep = .welcome
     @State private var navigationDirection: OnboardingNavigationDirection = .forward
     var onComplete: () -> Void
 
@@ -41,24 +41,13 @@ struct OnboardingView: View {
     }
 
     private var header: some View {
-        VStack(spacing: 10) {
-            HStack(spacing: 6) {
-                ForEach(OnboardingStep.allCases, id: \.rawValue) { s in
-                    Capsule()
-                        .fill(s.rawValue <= step.rawValue ? AppTheme.accent : Color.secondary.opacity(0.22))
-                        .frame(height: 4)
-                        .frame(maxWidth: s == step ? 28 : 18)
-                        .animation(motionAnimation, value: step)
-                        .accessibilityHidden(true)
-                }
-            }
-            .frame(maxWidth: 560)
-            .padding(.horizontal, 20)
-
-            Text(language.text("onboarding.step", "\(step.rawValue + 1)", "\(OnboardingStep.allCases.count)"))
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
-                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+        HStack(spacing: 8) {
+            Image(systemName: "pawprint.fill")
+                .foregroundColor(AppTheme.accent)
+                .font(.system(size: 18))
+            Text("MeoMeo iOS")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(.white)
         }
         .padding(.top, 16)
         .padding(.bottom, 8)
@@ -68,44 +57,19 @@ struct OnboardingView: View {
 
     @ViewBuilder
     private var pageContent: some View {
-        ZStack {
-            ForEach(OnboardingStep.allCases, id: \.rawValue) { s in
-                if s == step {
-                    ScrollView(.vertical, showsIndicators: false) {
-                        page(for: s)
-                            .frame(maxWidth: 560)
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 20)
-                            .padding(.top, 12)
-                            .padding(.bottom, 28)
-                    }
-                    .transition(pageTransition)
-                    .id(s.rawValue)
-                }
-            }
+        ScrollView(.vertical, showsIndicators: false) {
+            welcomePage
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 20)
+                .padding(.top, 12)
+                .padding(.bottom, 28)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .clipped()
-    }
-
-    private var pageTransition: AnyTransition {
-        guard !reduceMotion else { return .opacity }
-        let insertionEdge: Edge = navigationDirection == .forward ? .trailing : .leading
-        let removalEdge: Edge = navigationDirection == .forward ? .leading : .trailing
-        return .asymmetric(
-            insertion: .move(edge: insertionEdge).combined(with: .opacity),
-            removal: .move(edge: removalEdge).combined(with: .opacity)
-        )
     }
 
     @ViewBuilder
     private func page(for s: OnboardingStep) -> some View {
-        switch s {
-        case .language: languagePage
-        case .welcome: welcomePage
-        case .versions: versionsPage
-        case .install: installPage
-        }
+        welcomePage
     }
 
     private var languagePage: some View {
@@ -174,34 +138,65 @@ struct OnboardingView: View {
     }
 
     private var welcomePage: some View {
-        VStack(spacing: 20) {
-            featureIcon(systemName: "sparkles", color: AppTheme.accent)
+        VStack(spacing: 24) {
+            ZStack {
+                Circle()
+                    .fill(AppTheme.accent.opacity(0.12))
+                    .frame(width: 92, height: 92)
+                Image(systemName: "pawprint.fill")
+                    .font(.system(size: 44))
+                    .foregroundColor(AppTheme.accent)
+            }
+            .padding(.top, 20)
 
-            VStack(spacing: 10) {
-                Text(language.text("onboarding.welcome_title"))
-                    .font(.title2.weight(.bold))
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(language.text("onboarding.welcome_message"))
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: 8) {
+                Text("MeoMeo iOS")
+                    .font(.system(size: 30, weight: .black, design: .rounded))
+                    .foregroundColor(.white)
+                Text("Free Fire VIP Mod Launcher")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .foregroundColor(AppTheme.accent)
+                Text("Phiên bản iOS: \(UIDevice.current.systemVersion) (\(UIDevice.current.model))")
+                    .font(.caption.monospaced())
+                    .foregroundColor(.secondary)
             }
 
-            Label(language.text("onboarding.welcome_badge"), systemImage: "checkmark.seal.fill")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(AppTheme.accent)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(
-                    Color(uiColor: .secondarySystemBackground),
-                    in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-                )
+            VStack(spacing: 12) {
+                welcomeFeatureRow(icon: "eye.fill", title: "ESP Người Chơi", subtitle: "Hiện Box, Khung Xương, Tên, Máu & Khoảng Cách")
+                welcomeFeatureRow(icon: "scope", title: "Aimbot Chuẩn Xác", subtitle: "Tâm ngắm mượt mà, hỗ trợ Headshot")
+                welcomeFeatureRow(icon: "bolt.shield.fill", title: "Bảo Mật Live Sync", subtitle: "Chạy ngầm liên tục, tự động đồng bộ từ Server")
+            }
+            .padding(.top, 10)
         }
         .frame(maxWidth: .infinity, alignment: .top)
+    }
+
+    private func welcomeFeatureRow(icon: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .fill(AppTheme.accent.opacity(0.12))
+                    .frame(width: 42, height: 42)
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(AppTheme.accent)
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                Text(subtitle)
+                    .font(.system(size: 12))
+                    .foregroundColor(.secondary)
+            }
+            Spacer()
+        }
+        .padding(14)
+        .background(Color(red: 0.04, green: 0.14, blue: 0.20), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(AppTheme.accent.opacity(0.25), lineWidth: 1)
+        )
     }
 
     private var versionsPage: some View {
@@ -367,66 +362,29 @@ struct OnboardingView: View {
 
     private var controls: some View {
         VStack(spacing: 12) {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 12) {
-                    controlButtons
+            Button {
+                onComplete()
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: "pawprint.fill")
+                    Text("TIẾP TỤC VÀO MENU")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                    Image(systemName: "chevron.right")
                 }
-                VStack(spacing: 10) {
-                    controlButtons
-                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .foregroundColor(Color(red: 0.02, green: 0.07, blue: 0.10))
+                .background(AppTheme.accent)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .shadow(color: AppTheme.accent.opacity(0.35), radius: 8, x: 0, y: 3)
             }
             .frame(maxWidth: 560)
             .padding(.horizontal, 20)
         }
         .padding(.top, 12)
-        .padding(.bottom, 10)
+        .padding(.bottom, 16)
         .frame(maxWidth: .infinity)
-        .background(.bar)
-        .overlay(alignment: .top) {
-            Divider()
-        }
-    }
-
-    @ViewBuilder
-    private var controlButtons: some View {
-        if step != .language {
-            Button {
-                guard let previousStep = step.prev else { return }
-                navigate(to: previousStep, direction: .backward)
-            } label: {
-                Label(language.text("common.back"), systemImage: "chevron.left")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .controlSize(.large)
-        }
-
-        Button {
-            if let nextStep = step.next {
-                navigate(to: nextStep, direction: .forward)
-            } else {
-                onComplete()
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Text(language.text(step == .install ? "common.finish" : "common.next"))
-                if step != .install {
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .accessibilityHidden(true)
-                }
-            }
-            .frame(maxWidth: .infinity)
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-    }
-
-    private func navigate(to destination: OnboardingStep, direction: OnboardingNavigationDirection) {
-        withAnimation(motionAnimation) {
-            navigationDirection = direction
-            step = destination
-        }
+        .background(AppTheme.pageBackground)
     }
 }
 

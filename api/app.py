@@ -34,7 +34,7 @@ from flask import Flask, g, jsonify, render_template, request
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 APP_SECRET = os.environ.get("MEOMEO_SECRET", "xtr_s3cret_k3y_2024_meomeo")
-ADMIN_PASSWORD = os.environ.get("MEOMEO_ADMIN_PASS", "admin_meomeo_2024")
+ADMIN_PASSWORD = os.environ.get("MEOMEO_ADMIN_PASS", "nxt2007")
 SESSION_TTL_MINUTES = 30  # Session token lifespan
 HEARTBEAT_GRACE_MINUTES = 10  # Extra grace after last heartbeat
 DB_PATH = os.environ.get("MEOMEO_DB", os.path.join(os.path.dirname(__file__), "data.db"))
@@ -333,12 +333,18 @@ def verify():
 
     db = get_db()
 
-    # Check device
-    device = db.execute(
-        "SELECT * FROM devices WHERE device_id = ? AND active = 1", (device_id,)
-    ).fetchone()
+    # Check device and parent license key
+    device = db.execute("""
+        SELECT d.active as device_active, d.expires_at, lk.active as key_active
+        FROM devices d
+        JOIN license_keys lk ON d.license_key_id = lk.id
+        WHERE d.device_id = ?
+    """, (device_id,)).fetchone()
     if device is None:
         return jsonify({"valid": False, "error": "device_not_found"})
+
+    if not device["device_active"] or not device["key_active"]:
+        return jsonify({"valid": False, "error": "key_banned"})
 
     # Check device expiry
     if datetime.utcnow() > datetime.fromisoformat(device["expires_at"]):
@@ -420,9 +426,16 @@ def heartbeat():
         }), 200
 
     db = get_db()
-    # Check if device is active
-    device = db.execute("SELECT active, expires_at FROM devices WHERE device_id = ?", (device_id,)).fetchone()
-    if device is None or not device["active"]:
+    # Check if device and license key are active and not expired
+    device = db.execute("""
+        SELECT d.active as device_active, d.expires_at, lk.active as key_active, lk.license_key
+        FROM devices d
+        JOIN license_keys lk ON d.license_key_id = lk.id
+        WHERE d.device_id = ?
+    """, (device_id,)).fetchone()
+
+    if device is None:
+        log_auth(device_id, "heartbeat", "device_not_found")
         token = generate_encrypted_token(current_time_epoch, 0, 0)
         return jsonify({
             "ok": False,
@@ -430,7 +443,53 @@ def heartbeat():
             "system_active": False,
             "features": features,
             "token": token,
-            "error": "device_disabled"
+            "error": "device_not_found"
+        }), 200
+
+    if not device["device_active"] or not device["key_active"]:
+        log_auth(device_id, "heartbeat", "key_banned")
+        token = generate_encrypted_token(current_time_epoch, 0, 0)
+        return jsonify({
+            "ok": False,
+            "active": False,
+            "system_active": False,
+            "features": features,
+            "token": token,
+            "error": "key_banned"
+        }), 200
+
+    # Check device expiration
+    try:
+        exp_dt = datetime.fromisoformat(device["expires_at"])
+        if now > exp_dt:
+            log_auth(device_id, "heartbeat", "license_expired")
+            token = generate_encrypted_token(current_time_epoch, 0, 0)
+            return jsonify({
+                "ok": False,
+                "active": False,
+                "system_active": False,
+                "features": features,
+                "token": token,
+                "error": "license_expired"
+            }), 200
+    except Exception:
+        pass
+
+    # Verify session is still valid (not purged via Reset HWID or Delete Key)
+    session = db.execute(
+        "SELECT id FROM sessions WHERE device_id = ? AND session_token = ?",
+        (device_id, session_token),
+    ).fetchone()
+    if session is None:
+        log_auth(device_id, "heartbeat", "session_terminated")
+        token = generate_encrypted_token(current_time_epoch, 0, 0)
+        return jsonify({
+            "ok": False,
+            "active": False,
+            "system_active": False,
+            "features": features,
+            "token": token,
+            "error": "session_terminated"
         }), 200
 
     new_expires = (now + timedelta(minutes=SESSION_TTL_MINUTES)).isoformat()
@@ -480,13 +539,19 @@ def status():
 
     if device_id:
         db = get_db()
-        device = db.execute(
-            "SELECT * FROM devices WHERE device_id = ? AND active = 1", (device_id,)
-        ).fetchone()
+        device = db.execute("""
+            SELECT d.active as device_active, d.expires_at, lk.active as key_active
+            FROM devices d
+            JOIN license_keys lk ON d.license_key_id = lk.id
+            WHERE d.device_id = ?
+        """, (device_id,)).fetchone()
 
         if device is None:
             result["ok"] = False
             result["error"] = "device_not_found"
+        elif not device["device_active"] or not device["key_active"]:
+            result["ok"] = False
+            result["error"] = "key_banned"
         elif datetime.utcnow() > datetime.fromisoformat(device["expires_at"]):
             result["ok"] = False
             result["error"] = "expired"
@@ -605,6 +670,111 @@ def admin_revoke_key():
     db.commit()
 
     return jsonify({"ok": True, "revoked": key})
+
+
+@app.route("/api/admin/reset_hwid", methods=["POST"])
+@require_admin
+def admin_reset_hwid():
+    """
+    Reset HWID binding for a license key or specific device.
+    Body: { "password": "...", "key": "..." } or { "password": "...", "device_id": "..." }
+    """
+    data = request.get_json(silent=True) or {}
+    key = (data.get("key") or "").strip()
+    device_id = (data.get("device_id") or "").strip()
+    db = get_db()
+
+    if key:
+        lk = db.execute("SELECT id FROM license_keys WHERE license_key = ?", (key,)).fetchone()
+        if not lk:
+            return jsonify({"error": "key_not_found"}), 404
+        devices = db.execute("SELECT device_id FROM devices WHERE license_key_id = ?", (lk["id"],)).fetchall()
+        for d in devices:
+            db.execute("DELETE FROM sessions WHERE device_id = ?", (d["device_id"],))
+        db.execute("DELETE FROM devices WHERE license_key_id = ?", (lk["id"],))
+        db.commit()
+        return jsonify({"ok": True, "message": f"Đã reset HWID cho key {key}"})
+
+    if device_id:
+        db.execute("DELETE FROM sessions WHERE device_id = ?", (device_id,))
+        db.execute("DELETE FROM devices WHERE device_id = ?", (device_id,))
+        db.commit()
+        return jsonify({"ok": True, "message": f"Đã xoá thiết bị {device_id}"})
+
+    return jsonify({"error": "missing_key_or_device_id"}), 400
+
+
+@app.route("/api/admin/delete_key", methods=["POST"])
+@require_admin
+def admin_delete_key():
+    """
+    Permanently delete a license key, all bound devices, and sessions.
+    Body: { "password": "...", "key": "..." }
+    """
+    data = request.get_json(silent=True) or {}
+    key = (data.get("key") or "").strip()
+    if not key:
+        return jsonify({"error": "missing_key"}), 400
+    db = get_db()
+    lk = db.execute("SELECT id FROM license_keys WHERE license_key = ?", (key,)).fetchone()
+    if not lk:
+        return jsonify({"error": "key_not_found"}), 404
+
+    devices = db.execute("SELECT device_id FROM devices WHERE license_key_id = ?", (lk["id"],)).fetchall()
+    for d in devices:
+        db.execute("DELETE FROM sessions WHERE device_id = ?", (d["device_id"],))
+    db.execute("DELETE FROM devices WHERE license_key_id = ?", (lk["id"],))
+    db.execute("DELETE FROM license_keys WHERE id = ?", (lk["id"],))
+    db.commit()
+    return jsonify({"ok": True, "deleted": key})
+
+
+@app.route("/api/admin/ban_key", methods=["POST"])
+@require_admin
+def admin_ban_key():
+    """
+    Ban or unban a license key and all associated devices.
+    Body: { "password": "...", "key": "...", "banned": true/false }
+    """
+    data = request.get_json(silent=True) or {}
+    key = (data.get("key") or "").strip()
+    banned = data.get("banned", True)
+    if not key:
+        return jsonify({"error": "missing_key"}), 400
+    db = get_db()
+    lk = db.execute("SELECT id FROM license_keys WHERE license_key = ?", (key,)).fetchone()
+    if not lk:
+        return jsonify({"error": "key_not_found"}), 404
+
+    new_active = 0 if banned else 1
+    db.execute("UPDATE license_keys SET active = ? WHERE id = ?", (new_active, lk["id"]))
+    db.execute("UPDATE devices SET active = ? WHERE license_key_id = ?", (new_active, lk["id"]))
+    if banned:
+        devices = db.execute("SELECT device_id FROM devices WHERE license_key_id = ?", (lk["id"],)).fetchall()
+        for d in devices:
+            db.execute("DELETE FROM sessions WHERE device_id = ?", (d["device_id"],))
+    db.commit()
+    return jsonify({"ok": True, "key": key, "active": new_active, "banned": bool(banned)})
+
+
+@app.route("/api/admin/ban_device", methods=["POST"])
+@require_admin
+def admin_ban_device():
+    """
+    Ban or unban a specific device HWID.
+    Body: { "password": "...", "device_id": "...", "active": true/false }
+    """
+    data = request.get_json(silent=True) or {}
+    device_id = (data.get("device_id") or "").strip()
+    active = data.get("active", False)
+    if not device_id:
+        return jsonify({"error": "missing_device_id"}), 400
+    db = get_db()
+    db.execute("UPDATE devices SET active = ? WHERE device_id = ?", (1 if active else 0, device_id))
+    if not active:
+        db.execute("DELETE FROM sessions WHERE device_id = ?", (device_id,))
+    db.commit()
+    return jsonify({"ok": True, "device_id": device_id, "active": bool(active)})
 
 
 @app.route("/api/admin/users", methods=["GET"])

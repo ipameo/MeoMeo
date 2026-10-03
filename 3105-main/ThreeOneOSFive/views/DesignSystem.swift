@@ -1,15 +1,11 @@
 import SwiftUI
 
 enum AppTheme {
-    static let accent = Color(
-        uiColor: UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? UIColor(red: 1.00, green: 0.64, blue: 0.42, alpha: 1.00)
-                : UIColor(red: 0.85, green: 0.42, blue: 0.20, alpha: 1.00)
-        }
-    )
-    static let pageBackground = Color(uiColor: .systemBackground)
-    static let consoleBackground = Color(uiColor: .secondarySystemBackground)
+    // Exact Mod GUI cyan accent: rgb(0, 217, 250)
+    static let accent = Color(red: 0.00, green: 0.85, blue: 0.98)
+    // Deep dark sea-teal gaming background matching Mod GUI
+    static let pageBackground = Color(red: 0.02, green: 0.07, blue: 0.10)
+    static let consoleBackground = Color(red: 0.04, green: 0.14, blue: 0.20)
     static let pageInset: CGFloat = 16
     static let rowIconSize: CGFloat = 17
     static let rowIconFrame: CGFloat = 28
