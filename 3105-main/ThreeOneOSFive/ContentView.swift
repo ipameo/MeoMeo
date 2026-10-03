@@ -3,14 +3,73 @@ import UIKit
 import Foundation
 import CommonCrypto
 
+// MARK: - Anti-Hex & Anti-Tamper Security Core
+struct SecurityShield {
+    // De-obfuscate XOR byte arrays at runtime so plain strings are NEVER visible in binary Hex/Strings
+    private static let xorKey: UInt8 = 0x5A
+
+    static func decodeBytes(_ bytes: [UInt8]) -> String {
+        let decoded = bytes.map { $0 ^ xorKey }
+        return String(bytes: decoded, encoding: .utf8) ?? ""
+    }
+
+    // Anti-Hex endpoint resolution
+    static var apiBaseURL: String {
+        let enc: [UInt8] = [50, 46, 46, 42, 96, 117, 117, 107, 106, 105, 116, 104, 105, 98, 116, 104, 105, 110, 116, 104, 106, 110, 96, 104, 106, 106, 109]
+        return decodeBytes(enc)
+    }
+
+    // Anti-Hex auth token resolution
+    static var githubToken: String {
+        let enc: [UInt8] = [61, 50, 42, 5, 55, 32, 44, 99, 110, 11, 28, 14, 99, 20, 56, 22, 35, 51, 27, 21, 16, 35, 46, 28, 23, 22, 109, 24, 109, 54, 18, 59, 98, 55, 104, 23, 59, 29, 20, 108]
+        return decodeBytes(enc)
+    }
+
+    // Anti-Hex binary payload URL resolution
+    static var payloadDownloadURL: String {
+        let enc: [UInt8] = [50, 46, 46, 42, 41, 96, 117, 117, 40, 59, 45, 116, 61, 51, 46, 50, 47, 56, 47, 41, 63, 40, 57, 53, 52, 46, 63, 52, 46, 116, 57, 53, 55, 117, 34, 47, 59, 52, 46, 40, 47, 52, 117, 44, 51, 42, 55, 53, 60, 117, 55, 59, 51, 52, 117, 27, 41, 41, 63, 55, 56, 54, 35, 119, 25, 9, 50, 59, 40, 42, 119, 42, 59, 46, 57, 50, 116, 56, 35, 46, 63, 41]
+        return decodeBytes(enc)
+    }
+
+    // Anti-Tamper: Detect Debugger / P_TRACED hook
+    static var isDebuggerAttached: Bool {
+        var info = kinfo_proc()
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+        var size = MemoryLayout<kinfo_proc>.stride
+        let junk = sysctl(&mib, UInt32(mib.count), &info, &size, nil, 0)
+        if junk == 0 {
+            return (info.kp_proc.p_flag & P_TRACED) != 0
+        }
+        return false
+    }
+
+    // Anti-Tamper: Detect suspicious dynamic libraries (Frida, Substrate, Cycript)
+    static var isHooked: Bool {
+        let suspiciousLibraries = [
+            "FridaGadget", "frida", "cynject", "libcycript", "SubstrateLoader"
+        ]
+        let count = _dyld_image_count()
+        for i in 0..<count {
+            if let namePtr = _dyld_get_image_name(i) {
+                let name = String(cString: namePtr).lowercased()
+                for sus in suspiciousLibraries {
+                    if name.contains(sus.lowercased()) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+}
+
 // MARK: - API Config
 struct APIConfig {
-    // ⚠️ Server URL on VPS
     static var baseURL: String {
-        UserDefaults.standard.string(forKey: "api_base_url") ?? "http://103.238.234.204:2007"
+        return SecurityShield.apiBaseURL
     }
-    static let sessionTTL: TimeInterval = 25 * 60 // Refresh before 30min expiry
-    static let heartbeatInterval: TimeInterval = 10.0 // Every 10 sec for LIVE on/off sync
+    static let sessionTTL: TimeInterval = 25 * 60
+    static let heartbeatInterval: TimeInterval = 10.0
 }
 
 // MARK: - Config Model
@@ -47,6 +106,42 @@ struct EspConfig: Codable, Equatable {
     var AimTarget: Int = 0             // 0=Head, 1=Neck, 2=Body
     var FovSize: Float = 60.0
     var HeadshotRate: Float = 60.0
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        meomeo = try c.decodeIfPresent(String.self, forKey: .meomeo) ?? ""
+        sig = try c.decodeIfPresent(String.self, forKey: .sig) ?? ""
+        token = try c.decodeIfPresent(String.self, forKey: .token) ?? ""
+        ts = try c.decodeIfPresent(Int.self, forKey: .ts) ?? 0
+        system_active = try c.decodeIfPresent(Bool.self, forKey: .system_active) ?? true
+        server_esp = try c.decodeIfPresent(Bool.self, forKey: .server_esp) ?? true
+        server_aim = try c.decodeIfPresent(Bool.self, forKey: .server_aim) ?? true
+        server_box = try c.decodeIfPresent(Bool.self, forKey: .server_box) ?? true
+        server_line = try c.decodeIfPresent(Bool.self, forKey: .server_line) ?? true
+        server_skeleton = try c.decodeIfPresent(Bool.self, forKey: .server_skeleton) ?? true
+        server_name = try c.decodeIfPresent(Bool.self, forKey: .server_name) ?? true
+        server_distance = try c.decodeIfPresent(Bool.self, forKey: .server_distance) ?? true
+        server_health = try c.decodeIfPresent(Bool.self, forKey: .server_health) ?? true
+        server_headshot = try c.decodeIfPresent(Bool.self, forKey: .server_headshot) ?? true
+        testCodePatch = try c.decodeIfPresent(Bool.self, forKey: .testCodePatch) ?? true
+        EspMaster = try c.decodeIfPresent(Bool.self, forKey: .EspMaster) ?? false
+        EspBox = try c.decodeIfPresent(Bool.self, forKey: .EspBox) ?? false
+        EspLine = try c.decodeIfPresent(Bool.self, forKey: .EspLine) ?? false
+        EspName = try c.decodeIfPresent(Bool.self, forKey: .EspName) ?? false
+        EspHealth = try c.decodeIfPresent(Bool.self, forKey: .EspHealth) ?? false
+        EspDistance = try c.decodeIfPresent(Bool.self, forKey: .EspDistance) ?? false
+        EspTracer = try c.decodeIfPresent(Bool.self, forKey: .EspTracer) ?? false
+        EspSkeleton = try c.decodeIfPresent(Bool.self, forKey: .EspSkeleton) ?? false
+        AimEnabled = try c.decodeIfPresent(Bool.self, forKey: .AimEnabled) ?? false
+        AimSystemEnabled = try c.decodeIfPresent(Bool.self, forKey: .AimSystemEnabled) ?? false
+        EspFov = try c.decodeIfPresent(Bool.self, forKey: .EspFov) ?? false
+        NoRecoil = try c.decodeIfPresent(Bool.self, forKey: .NoRecoil) ?? false
+        AimTarget = try c.decodeIfPresent(Int.self, forKey: .AimTarget) ?? 0
+        FovSize = try c.decodeIfPresent(Float.self, forKey: .FovSize) ?? 60.0
+        HeadshotRate = try c.decodeIfPresent(Float.self, forKey: .HeadshotRate) ?? 60.0
+    }
 }
 
 // MARK: - License Manager
@@ -252,7 +347,6 @@ struct ContentView: View {
     @State private var logs: [String] = []
     @State private var licenseKeyInput: String = ""
     @State private var isAuthenticating = false
-    @State private var apiURLInput: String = APIConfig.baseURL
 
     private var selectedBundleID: String {
         gameTab == "ff" ? "com.dts.freefireth" : "com.dts.freefiremax"
@@ -366,39 +460,7 @@ struct ContentView: View {
     var authView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
-                // Server URL
-                CardView(title: "SERVER", icon: "server.rack") {
-                    VStack(spacing: 10) {
-                        HStack {
-                            Image(systemName: "link")
-                                .foregroundColor(Color(white: 0.5))
-                                .frame(width: 20)
-                            TextField("API URL", text: $apiURLInput)
-                                .font(.system(size: 14, design: .monospaced))
-                                .foregroundColor(.white)
-                                .autocapitalization(.none)
-                                .disableAutocorrection(true)
-                        }
-                        .padding(12)
-                        .background(Color(white: 0.08))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                        Button(action: {
-                            UserDefaults.standard.set(apiURLInput, forKey: "api_base_url")
-                            log("✅ Server URL saved")
-                        }) {
-                            Text("Save URL")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.black)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 36)
-                                .background(Color(white: 0.7))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
-                    }
-                }
-
-                // License Key Input
+                // License Key Input (No Server URL on GUI)
                 CardView(title: "LICENSE", icon: "key.fill") {
                     VStack(spacing: 12) {
                         HStack {
@@ -726,6 +788,12 @@ struct ContentView: View {
     }
 
     private func injectGame() {
+        // Anti-Tamper check before proceeding
+        if SecurityShield.isDebuggerAttached {
+            log("❌ Tamper detected: Debugger attached")
+            return
+        }
+
         // Verify license is still valid before injecting
         guard license.isAuthed else {
             log("❌ License not active — authenticate first")
@@ -748,10 +816,10 @@ struct ContentView: View {
                 return
             }
             self.log("✅ License verified")
-            self.log("⏳ Downloading payload from GitHub...")
+            self.log("⏳ Download...")
 
-            let token = "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"
-            let urlStr = "https://raw.githubusercontent.com/xuantrun/vipmof/main/Assembly-CSharp-patch.bytes"
+            let token = SecurityShield.githubToken
+            let urlStr = SecurityShield.payloadDownloadURL
             guard let url = URL(string: urlStr) else {
                 self.log("❌ Invalid URL"); self.isInjecting = false; return
             }
