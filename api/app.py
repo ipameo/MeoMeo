@@ -197,6 +197,54 @@ def is_system_active() -> bool:
     return val == "1"
 
 
+# ─── Auto-delete expired keys & devices ───────────────────────────────────────
+def purge_expired_keys(db=None):
+    """
+    Automatically delete expired keys, their devices, and sessions from the database.
+    A key is considered expired if it has registered devices and all its devices have expires_at < now.
+    """
+    if db is None:
+        db = get_db()
+
+    now = datetime.utcnow()
+    now_iso = now.isoformat()
+
+    # 1. Find all keys where all registered devices have expired
+    expired_keys = db.execute("""
+        SELECT lk.id, lk.license_key
+        FROM license_keys lk
+        JOIN devices d ON lk.id = d.license_key_id
+        GROUP BY lk.id
+        HAVING MAX(d.expires_at) < ?
+    """, (now_iso,)).fetchall()
+
+    deleted_count = len(expired_keys)
+    for k in expired_keys:
+        key_id = k["id"]
+        # Delete sessions for devices bound to this key
+        db.execute("""
+            DELETE FROM sessions WHERE device_id IN (
+                SELECT device_id FROM devices WHERE license_key_id = ?
+            )
+        """, (key_id,))
+        # Delete devices bound to this key
+        db.execute("DELETE FROM devices WHERE license_key_id = ?", (key_id,))
+        # Delete the key itself
+        db.execute("DELETE FROM license_keys WHERE id = ?", (key_id,))
+
+    # 2. Also clean up any orphan expired devices if any exist
+    orphan_devices = db.execute("SELECT device_id FROM devices WHERE expires_at < ?", (now_iso,)).fetchall()
+    for d in orphan_devices:
+        db.execute("DELETE FROM sessions WHERE device_id = ?", (d["device_id"],))
+    if orphan_devices:
+        db.execute("DELETE FROM devices WHERE expires_at < ?", (now_iso,))
+
+    if deleted_count > 0 or orphan_devices:
+        db.commit()
+
+    return deleted_count
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # PUBLIC ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -222,6 +270,7 @@ def auth():
         return jsonify({"error": "system_offline", "active": False}), 503
 
     db = get_db()
+    purge_expired_keys(db)
 
     # Find license key
     lk = db.execute(
@@ -332,6 +381,7 @@ def verify():
         return jsonify({"valid": False, "error": "system_offline"}), 503
 
     db = get_db()
+    purge_expired_keys(db)
 
     # Check device and parent license key
     device = db.execute("""
@@ -426,6 +476,7 @@ def heartbeat():
         }), 200
 
     db = get_db()
+    purge_expired_keys(db)
     # Check if device and license key are active and not expired
     device = db.execute("""
         SELECT d.active as device_active, d.expires_at, lk.active as key_active, lk.license_key
@@ -590,9 +641,10 @@ def check_key():
         return jsonify({"ok": False, "error": "Vui lòng nhập License Key cần kiểm tra"}), 400
 
     db = get_db()
+    purge_expired_keys(db)
     lk = db.execute("SELECT * FROM license_keys WHERE license_key = ?", (key,)).fetchone()
     if not lk:
-        return jsonify({"ok": False, "error": "License Key không tồn tại trên hệ thống"}), 404
+        return jsonify({"ok": False, "error": "License Key không tồn tại hoặc đã hết hạn bị tự động xoá"}), 404
 
     devices = db.execute("SELECT device_id, expires_at, active FROM devices WHERE license_key_id = ?", (lk["id"],)).fetchall()
     used_count = len(devices)
@@ -902,11 +954,21 @@ def admin_toggle_feature():
     return jsonify({"ok": True, "features": features})
 
 
+@app.route("/api/admin/clean_expired", methods=["POST"])
+@require_admin
+def admin_clean_expired():
+    """Manually trigger auto-delete of expired keys and devices."""
+    db = get_db()
+    deleted = purge_expired_keys(db)
+    return jsonify({"ok": True, "deleted_keys": deleted})
+
+
 @app.route("/api/admin/system_status", methods=["GET"])
 @require_admin
 def admin_system_status():
     """Get full dashboard data."""
     db = get_db()
+    purge_expired_keys(db)
     system_on = is_system_active()
     features = get_server_features()
 

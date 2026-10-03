@@ -918,9 +918,15 @@
             <!-- KEY MANAGEMENT TABLE -->
             <div class="card">
                 <div class="card-header">
-                    <h2>Danh Sách License Key</h2>
-                    <input type="text" id="searchKeyInput" oninput="filterKeys()" placeholder="Tìm kiếm key..."
-                        style="background: #080808; border: 1px solid var(--border-color); color: #ffffff; padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 160px;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <h2>Danh Sách License Key</h2>
+                        <span class="badge-status badge-active" style="font-size: 10px; padding: 2px 6px;" title="Key hết hạn sẽ tự động xoá vĩnh viễn">Tự Xoá Hết Hạn: ON</span>
+                    </div>
+                    <div style="display: flex; gap: 6px; align-items: center;">
+                        <button class="btn btn-secondary btn-sm" onclick="cleanExpiredKeys()" title="Quét và xoá ngay các key/thiết bị đã hết hạn">🗑️ Dọn Key Hết Hạn</button>
+                        <input type="text" id="searchKeyInput" oninput="filterKeys()" placeholder="Tìm kiếm key..."
+                            style="background: #080808; border: 1px solid var(--border-color); color: #ffffff; padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 150px;">
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -948,6 +954,8 @@
             <div class="card">
                 <div class="card-header">
                     <h2>Danh Sách Thiết Bị (HWID)</h2>
+                    <input type="text" id="searchDeviceInput" oninput="filterDevices()" placeholder="Tìm kiếm HWID / Key..."
+                        style="background: #080808; border: 1px solid var(--border-color); color: #ffffff; padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 180px;">
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -1269,9 +1277,18 @@
 
             renderFeatures(data.features || {});
             cachedKeys = data.keys || [];
-            renderKeysTable(cachedKeys);
+            if (document.getElementById("searchKeyInput") && document.getElementById("searchKeyInput").value.trim()) {
+                filterKeys();
+            } else {
+                renderKeysTable(cachedKeys);
+            }
+
             cachedDevices = data.devices || [];
-            renderDevicesTable(cachedDevices);
+            if (document.getElementById("searchDeviceInput") && document.getElementById("searchDeviceInput").value.trim()) {
+                filterDevices();
+            } else {
+                renderDevicesTable(cachedDevices);
+            }
 
             document.getElementById("statTotalKeys").innerText = cachedKeys.length;
             const activeCount = cachedKeys.filter(k => k.active === 1).length;
@@ -1423,10 +1440,27 @@
             }
         }
 
+        async function cleanExpiredKeys() {
+            const res = await fetchAPI("/api/admin/clean_expired", "POST");
+            if (res && res.ok) {
+                showToast(res.deleted_keys > 0 ? `Đã tự động xoá ${res.deleted_keys} key hết hạn!` : "Không có key nào hết hạn.");
+                refreshData();
+            }
+        }
+
         function filterKeys() {
-            const query = document.getElementById("searchKeyInput").value.toLowerCase();
+            const query = document.getElementById("searchKeyInput").value.toLowerCase().trim();
             const filtered = cachedKeys.filter(k => k.license_key.toLowerCase().includes(query));
             renderKeysTable(filtered);
+        }
+
+        function filterDevices() {
+            const query = (document.getElementById("searchDeviceInput").value || "").toLowerCase().trim();
+            const filtered = cachedDevices.filter(d =>
+                (d.device_id && d.device_id.toLowerCase().includes(query)) ||
+                (d.license_key && d.license_key.toLowerCase().includes(query))
+            );
+            renderDevicesTable(filtered);
         }
 
         function renderKeysTable(keys) {
