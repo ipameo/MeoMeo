@@ -354,7 +354,8 @@ BOOL openApplicationForBundleID(NSString *bundleID) {
     return ((BOOL (*)(id, SEL, id))objc_msgSend)(workspace, openSelector, bundleID);
 }
 
-static UIBackgroundTaskIdentifier sBgTask = UIBackgroundTaskInvalid;
+static UIBackgroundTaskIdentifier sBgTask = 0;
+static BOOL sBgTaskRunning = NO;
 static id sSilentPlayer = nil;
 
 void startBackgroundKeepAlive(void) {
@@ -372,13 +373,17 @@ void startBackgroundKeepAlive(void) {
     }
 
     // Request background task
-    if (sBgTask == UIBackgroundTaskInvalid) {
+    if (!sBgTaskRunning) {
         sBgTask = [[UIApplication sharedApplication] beginBackgroundTaskWithName:@"MeoMeoHeartbeat" expirationHandler:^{
-            if (sBgTask != UIBackgroundTaskInvalid) {
+            if (sBgTaskRunning) {
                 [[UIApplication sharedApplication] endBackgroundTask:sBgTask];
-                sBgTask = UIBackgroundTaskInvalid;
+                sBgTask = 0;
+                sBgTaskRunning = NO;
             }
         }];
+        if (sBgTask != UIBackgroundTaskInvalid) {
+            sBgTaskRunning = YES;
+        }
     }
 
     // Configure Audio Session for background playback
@@ -462,9 +467,10 @@ void stopBackgroundKeepAlive(void) {
         }
         sSilentPlayer = nil;
     }
-    if (sBgTask != UIBackgroundTaskInvalid) {
+    if (sBgTaskRunning) {
         [[UIApplication sharedApplication] endBackgroundTask:sBgTask];
-        sBgTask = UIBackgroundTaskInvalid;
+        sBgTask = 0;
+        sBgTaskRunning = NO;
     }
 }
 
