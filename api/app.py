@@ -577,9 +577,65 @@ def status():
     return jsonify(result)
 
 
+@app.route("/api/check_key", methods=["GET", "POST"])
+def check_key():
+    """Kiểm tra thông tin một license key công khai cho người dùng tra cứu an toàn."""
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        key = (data.get("key") or "").strip()
+    else:
+        key = request.args.get("key", "").strip()
+
+    if not key:
+        return jsonify({"ok": False, "error": "Vui lòng nhập License Key cần kiểm tra"}), 400
+
+    db = get_db()
+    lk = db.execute("SELECT * FROM license_keys WHERE license_key = ?", (key,)).fetchone()
+    if not lk:
+        return jsonify({"ok": False, "error": "License Key không tồn tại trên hệ thống"}), 404
+
+    devices = db.execute("SELECT device_id, expires_at, active FROM devices WHERE license_key_id = ?", (lk["id"],)).fetchall()
+    used_count = len(devices)
+
+    now = datetime.utcnow()
+    is_banned = (lk["active"] == 0)
+
+    expires_str = "Chưa kích hoạt trên máy"
+    is_expired = False
+    if devices:
+        exp_dt_raw = devices[0]["expires_at"]
+        try:
+            exp_dt = datetime.fromisoformat(exp_dt_raw)
+            expires_str = exp_dt.strftime("%d/%m/%Y %H:%M:%S")
+            if now > exp_dt:
+                is_expired = True
+        except Exception:
+            expires_str = str(exp_dt_raw)
+
+    status_label = "Hoạt động"
+    if is_banned:
+        status_label = "Bị khóa (Banned)"
+    elif is_expired:
+        status_label = "Đã hết hạn"
+
+    return jsonify({
+        "ok": True,
+        "key": lk["license_key"],
+        "duration_days": lk["duration_days"],
+        "duration_text": "Vĩnh viễn" if lk["duration_days"] >= 9999 else f"{lk['duration_days']} ngày",
+        "max_devices": lk["max_devices"],
+        "used_devices": used_count,
+        "status": status_label,
+        "active": (not is_banned) and (not is_expired),
+        "expires_at": expires_str,
+        "created_at": lk["created_at"]
+    })
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # ADMIN ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════════════
+
 
 
 @app.route("/api/admin/toggle", methods=["POST"])
