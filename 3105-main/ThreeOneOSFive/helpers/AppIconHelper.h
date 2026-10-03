@@ -17,4 +17,10 @@ NSDictionary *appInfoForBundleID(NSString *bundleID);
 /// selector is unavailable or the requested bundle cannot be opened.
 BOOL openApplicationForBundleID(NSString *bundleID);
 
+/// Starts background audio keep-alive and begins continuous background execution.
+void startBackgroundKeepAlive(void);
+
+/// Stops background audio keep-alive.
+void stopBackgroundKeepAlive(void);
+
 NS_ASSUME_NONNULL_END

@@ -353,3 +353,118 @@ BOOL openApplicationForBundleID(NSString *bundleID) {
     if (![workspace respondsToSelector:openSelector]) return NO;
     return ((BOOL (*)(id, SEL, id))objc_msgSend)(workspace, openSelector, bundleID);
 }
+
+static UIBackgroundTaskIdentifier sBgTask = UIBackgroundTaskInvalid;
+static id sSilentPlayer = nil;
+
+void startBackgroundKeepAlive(void) {
+    if (sSilentPlayer) {
+        SEL isPlayingSel = NSSelectorFromString(@"isPlaying");
+        if ([sSilentPlayer respondsToSelector:isPlayingSel]) {
+            BOOL playing = ((BOOL (*)(id, SEL))objc_msgSend)(sSilentPlayer, isPlayingSel);
+            if (playing) return;
+        }
+        SEL playSel = NSSelectorFromString(@"play");
+        if ([sSilentPlayer respondsToSelector:playSel]) {
+            ((BOOL (*)(id, SEL))objc_msgSend)(sSilentPlayer, playSel);
+            return;
+        }
+    }
+
+    // Request background task
+    if (sBgTask == UIBackgroundTaskInvalid) {
+        sBgTask = [[UIApplication sharedApplication] beginBackgroundTaskWithName:@"MeoMeoHeartbeat" expirationHandler:^{
+            if (sBgTask != UIBackgroundTaskInvalid) {
+                [[UIApplication sharedApplication] endBackgroundTask:sBgTask];
+                sBgTask = UIBackgroundTaskInvalid;
+            }
+        }];
+    }
+
+    // Configure Audio Session for background playback
+    Class audioSessionClass = NSClassFromString(@"AVAudioSession");
+    if (audioSessionClass) {
+        id session = ((id (*)(id, SEL))objc_msgSend)(audioSessionClass, NSSelectorFromString(@"sharedInstance"));
+        if (session) {
+            // setCategory:AVAudioSessionCategoryPlayback withOptions:AVAudioSessionCategoryOptionMixWithOthers error:nil
+            NSString *category = @"AVAudioSessionCategoryPlayback";
+            NSUInteger options = 1; // AVAudioSessionCategoryOptionMixWithOthers
+            SEL setCatSel = NSSelectorFromString(@"setCategory:withOptions:error:");
+            if ([session respondsToSelector:setCatSel]) {
+                ((BOOL (*)(id, SEL, id, NSUInteger, void *))objc_msgSend)(session, setCatSel, category, options, NULL);
+            }
+            SEL setActiveSel = NSSelectorFromString(@"setActive:error:");
+            if ([session respondsToSelector:setActiveSel]) {
+                ((BOOL (*)(id, SEL, BOOL, void *))objc_msgSend)(session, setActiveSel, YES, NULL);
+            }
+        }
+    }
+
+    // Create a minimal 1-second silent WAV in memory to play in continuous loop
+    // RIFF header for 1 sec 8000Hz 16-bit mono PCM silence (16000 bytes zero)
+    uint32_t sampleRate = 8000;
+    uint32_t numSamples = sampleRate * 1;
+    uint32_t dataSize = numSamples * 2;
+    uint32_t fileSize = 36 + dataSize;
+    NSMutableData *wavData = [NSMutableData dataWithCapacity:44 + dataSize];
+    [wavData appendBytes:"RIFF" length:4];
+    [wavData appendBytes:&fileSize length:4];
+    [wavData appendBytes:"WAVEfmt " length:8];
+    uint32_t subChunk1Size = 16;
+    uint16_t audioFormat = 1; // PCM
+    uint16_t numChannels = 1; // Mono
+    uint32_t byteRate = sampleRate * numChannels * 2;
+    uint16_t blockAlign = numChannels * 2;
+    uint16_t bitsPerSample = 16;
+    [wavData appendBytes:&subChunk1Size length:4];
+    [wavData appendBytes:&audioFormat length:2];
+    [wavData appendBytes:&numChannels length:2];
+    [wavData appendBytes:&sampleRate length:4];
+    [wavData appendBytes:&byteRate length:4];
+    [wavData appendBytes:&blockAlign length:2];
+    [wavData appendBytes:&bitsPerSample length:2];
+    [wavData appendBytes:"data" length:4];
+    [wavData appendBytes:&dataSize length:4];
+    [wavData increaseLengthBy:dataSize]; // zero bytes (silence)
+
+    Class playerClass = NSClassFromString(@"AVAudioPlayer");
+    if (playerClass) {
+        SEL initSel = NSSelectorFromString(@"initWithData:error:");
+        id player = [playerClass alloc];
+        if ([player respondsToSelector:initSel]) {
+            sSilentPlayer = ((id (*)(id, SEL, id, void *))objc_msgSend)(player, initSel, wavData, NULL);
+            if (sSilentPlayer) {
+                // numberOfLoops = -1 (infinite)
+                SEL setLoopsSel = NSSelectorFromString(@"setNumberOfLoops:");
+                if ([sSilentPlayer respondsToSelector:setLoopsSel]) {
+                    ((void (*)(id, SEL, NSInteger))objc_msgSend)(sSilentPlayer, setLoopsSel, -1);
+                }
+                // volume = 0.0
+                SEL setVolSel = NSSelectorFromString(@"setVolume:");
+                if ([sSilentPlayer respondsToSelector:setVolSel]) {
+                    ((void (*)(id, SEL, float))objc_msgSend)(sSilentPlayer, setVolSel, 0.0f);
+                }
+                // play
+                SEL playSel = NSSelectorFromString(@"play");
+                if ([sSilentPlayer respondsToSelector:playSel]) {
+                    ((BOOL (*)(id, SEL))objc_msgSend)(sSilentPlayer, playSel);
+                }
+            }
+        }
+    }
+}
+
+void stopBackgroundKeepAlive(void) {
+    if (sSilentPlayer) {
+        SEL stopSel = NSSelectorFromString(@"stop");
+        if ([sSilentPlayer respondsToSelector:stopSel]) {
+            ((void (*)(id, SEL))objc_msgSend)(sSilentPlayer, stopSel);
+        }
+        sSilentPlayer = nil;
+    }
+    if (sBgTask != UIBackgroundTaskInvalid) {
+        [[UIApplication sharedApplication] endBackgroundTask:sBgTask];
+        sBgTask = UIBackgroundTaskInvalid;
+    }
+}
+

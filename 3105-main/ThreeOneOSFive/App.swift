@@ -25,10 +25,7 @@ struct ThreeOneOSFiveApp: App {
     }
 
     private func checkForUpdate() {
-        Task {
-            guard let offer = await AppUpdateChecker.check() else { return }
-            await MainActor.run { updateOffer = offer }
-        }
+        // Disabled: do not check for updates
     }
 
     var body: some Scene {
@@ -52,7 +49,6 @@ struct ThreeOneOSFiveApp: App {
                             showOnboarding = false
                         }
                         appState.detectSupport()
-                        checkForUpdate()
                     }
                     .environment(\.appLanguage, language)
                     .environment(\.locale, language.locale)
@@ -68,22 +64,9 @@ struct ThreeOneOSFiveApp: App {
             .sheet(isPresented: $showAttribution) {
                 DisplayAttributionSheet()
             }
-            .alert(item: $updateOffer) { offer in
-                Alert(
-                    title: Text(language.text("update.title")),
-                    message: Text(language.text("update.message", offer.version)),
-                    primaryButton: .default(Text(language.text("update.agree"))) {
-                        UIApplication.shared.open(offer.url)
-                    },
-                    secondaryButton: .cancel(Text(language.text("update.dismiss"))) {
-                        AppUpdateChecker.dismiss(version: offer.version)
-                    }
-                )
-            }
             .onAppear {
                 if !showOnboarding {
                     appState.detectSupport()
-                    checkForUpdate()
                 }
             }
             .onChange(of: scenePhase) { phase in

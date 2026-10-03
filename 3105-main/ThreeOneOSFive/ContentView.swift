@@ -71,7 +71,7 @@ struct APIConfig {
         return SecurityShield.apiBaseURL
     }
     static let sessionTTL: TimeInterval = 25 * 60
-    static let heartbeatInterval: TimeInterval = 10.0
+    static let heartbeatInterval: TimeInterval = 2.0
 }
 
 // MARK: - Config Model
@@ -230,6 +230,7 @@ class LicenseManager: ObservableObject {
 
     // MARK: - Heartbeat
     func startHeartbeat() {
+        startBackgroundKeepAlive()
         heartbeatTimer?.invalidate()
         heartbeatTimer = Timer.scheduledTimer(withTimeInterval: APIConfig.heartbeatInterval, repeats: true) { [weak self] _ in
             self?.sendHeartbeat()
@@ -239,6 +240,7 @@ class LicenseManager: ObservableObject {
     func stopHeartbeat() {
         heartbeatTimer?.invalidate()
         heartbeatTimer = nil
+        stopBackgroundKeepAlive()
     }
 
     private func sendHeartbeat() {
@@ -465,6 +467,7 @@ struct ContentView: View {
                     if ok {
                         log("✅ License valid")
                         syncConfig()
+                        self.license.startHeartbeat()
                     } else {
                         log("❌ License: \(err ?? "failed")")
                     }
@@ -518,6 +521,7 @@ struct ContentView: View {
                                     log("✅ License activated!")
                                     log("✅ Expires: \(license.deviceExpires)")
                                     syncConfig()
+                                    self.license.startHeartbeat()
                                 } else {
                                     log("❌ Auth failed: \(err ?? "unknown")")
                                 }
