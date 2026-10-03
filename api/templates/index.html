@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MeoMeo iOS</title>
+    <title>Hoá iOS Cheat</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap"
+        rel="stylesheet">
     <style>
         :root {
             --bg-body: #000000;
@@ -117,6 +120,7 @@
             color: #ffffff;
             border: 1px solid var(--border-color);
         }
+
         .btn-secondary:hover {
             background: var(--btn-dark-hover);
             border-color: #444444;
@@ -127,6 +131,7 @@
             color: #ff5555;
             border: 1px solid #331515;
         }
+
         .btn-danger:hover {
             background: #2a1010;
             border-color: #ff5555;
@@ -137,6 +142,7 @@
             color: #f5c042;
             border: 1px solid #383010;
         }
+
         .btn-warning:hover {
             background: #2b240c;
         }
@@ -147,7 +153,7 @@
             border-radius: 4px;
         }
 
-        /* ── Client View (Mặc định: Chỉ Load MeoMeo iOS) ── */
+        /* ── Client View (Mặc định: Chỉ Load Hoá iOS Cheat) ── */
         #clientSection {
             max-width: 520px;
             margin: 40px auto;
@@ -266,9 +272,24 @@
             font-weight: 600;
             white-space: nowrap;
         }
-        .badge-active { background: #1c1c1c; color: #ffffff; border: 1px solid #333333; }
-        .badge-banned { background: #261111; color: #ff6666; border: 1px solid #441c1c; }
-        .badge-expired { background: #241c0e; color: #e5b244; border: 1px solid #40321a; }
+
+        .badge-active {
+            background: #1c1c1c;
+            color: #ffffff;
+            border: 1px solid #333333;
+        }
+
+        .badge-banned {
+            background: #261111;
+            color: #ff6666;
+            border: 1px solid #441c1c;
+        }
+
+        .badge-expired {
+            background: #241c0e;
+            color: #e5b244;
+            border: 1px solid #40321a;
+        }
 
         /* Social Telegram buttons */
         .social-grid {
@@ -293,6 +314,7 @@
             text-decoration: none;
             transition: all 0.15s ease;
         }
+
         .btn-tele:hover {
             background: #1a1a1a;
             border-color: #555555;
@@ -302,7 +324,10 @@
         .modal-overlay {
             display: none;
             position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background: rgba(0, 0, 0, 0.85);
             z-index: 1000;
             align-items: center;
@@ -325,6 +350,7 @@
             align-items: center;
             margin-bottom: 14px;
         }
+
         .modal-header h3 {
             font-size: 15px;
             color: #ffffff;
@@ -361,6 +387,7 @@
             border-radius: var(--card-radius);
             padding: 14px;
         }
+
         .stat-label {
             font-size: 11px;
             font-weight: 600;
@@ -368,6 +395,7 @@
             text-transform: uppercase;
             margin-bottom: 4px;
         }
+
         .stat-value {
             font-size: 20px;
             font-weight: 700;
@@ -387,12 +415,14 @@
             flex-wrap: wrap;
             gap: 12px;
         }
+
         .killswitch-info h3 {
             font-size: 14px;
             font-weight: 700;
             color: #ffffff;
             margin-bottom: 2px;
         }
+
         .killswitch-info p {
             font-size: 12px;
             color: var(--text-secondary);
@@ -406,16 +436,26 @@
             height: 24px;
             flex-shrink: 0;
         }
-        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
         .slider {
             position: absolute;
             cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
             background-color: #222222;
             transition: .2s;
             border-radius: 24px;
             border: 1px solid #333333;
         }
+
         .slider:before {
             position: absolute;
             content: "";
@@ -427,8 +467,12 @@
             transition: .2s;
             border-radius: 50%;
         }
-        input:checked + .slider { background-color: #ffffff; }
-        input:checked + .slider:before {
+
+        input:checked+.slider {
+            background-color: #ffffff;
+        }
+
+        input:checked+.slider:before {
             transform: translateX(22px);
             background-color: #000000;
         }
@@ -440,6 +484,7 @@
             padding: 18px;
             margin-bottom: 18px;
         }
+
         .card-header {
             display: flex;
             justify-content: space-between;
@@ -448,6 +493,7 @@
             flex-wrap: wrap;
             gap: 8px;
         }
+
         .card-header h2 {
             font-size: 14px;
             font-weight: 700;
@@ -459,6 +505,7 @@
             grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
             gap: 8px;
         }
+
         .feature-item {
             background: #080808;
             border: 1px solid var(--border-color);
@@ -468,19 +515,27 @@
             justify-content: space-between;
             align-items: center;
         }
-        .feature-title { font-size: 12px; font-weight: 600; color: #ffffff; }
+
+        .feature-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #ffffff;
+        }
 
         .form-group {
             display: flex;
             flex-direction: column;
             gap: 4px;
         }
+
         .form-group label {
             font-size: 11px;
             font-weight: 600;
             color: var(--text-secondary);
         }
-        .form-group input, .form-group select {
+
+        .form-group input,
+        .form-group select {
             background: #080808;
             border: 1px solid var(--border-color);
             border-radius: 6px;
@@ -490,7 +545,9 @@
             outline: none;
             width: 100%;
         }
-        .form-group input:focus, .form-group select:focus {
+
+        .form-group input:focus,
+        .form-group select:focus {
             border-color: #666666;
         }
 
@@ -498,12 +555,14 @@
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
         }
+
         table {
             width: 100%;
             min-width: 600px;
             border-collapse: collapse;
             font-size: 12.5px;
         }
+
         th {
             text-align: left;
             padding: 8px 10px;
@@ -513,13 +572,18 @@
             border-bottom: 1px solid var(--border-color);
             white-space: nowrap;
         }
+
         td {
             padding: 8px 10px;
             border-bottom: 1px solid #1a1a1a;
             vertical-align: middle;
             white-space: nowrap;
         }
-        tr:hover td { background: rgba(255, 255, 255, 0.03); }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
         .key-text {
             font-family: 'JetBrains Mono', monospace;
             font-weight: 600;
@@ -533,8 +597,17 @@
             align-items: center;
             gap: 4px;
         }
-        .key-text:hover { background: #222222; border-color: #666666; }
-        .actions-cell { display: flex; gap: 4px; flex-wrap: wrap; }
+
+        .key-text:hover {
+            background: #222222;
+            border-color: #666666;
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
 
         /* Modal Created Key Popup */
         #newKeyModal .key-display {
@@ -566,25 +639,53 @@
             font-size: 12.5px;
             font-weight: 600;
             border: 1px solid var(--border-color);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.8);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
             transform: translateY(100px);
             opacity: 0;
             transition: all 0.25s ease;
             z-index: 9999;
             text-align: center;
         }
-        #toast.show { transform: translateY(0); opacity: 1; }
+
+        #toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
 
         /* ── Mobile Tweaks ── */
         @media (max-width: 768px) {
-            body { padding: 10px; }
-            header { margin-bottom: 14px; }
-            .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-            .stat-box { padding: 10px; }
-            .stat-value { font-size: 17px; }
-            .client-card { padding: 20px 16px; }
-            .social-grid { grid-template-columns: 1fr; }
-            #clientSection { margin: 20px auto; }
+            body {
+                padding: 10px;
+            }
+
+            header {
+                margin-bottom: 14px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+            }
+
+            .stat-box {
+                padding: 10px;
+            }
+
+            .stat-value {
+                font-size: 17px;
+            }
+
+            .client-card {
+                padding: 20px 16px;
+            }
+
+            .social-grid {
+                grid-template-columns: 1fr;
+            }
+
+            #clientSection {
+                margin: 20px auto;
+            }
         }
 
         @media (max-width: 480px) {
@@ -592,20 +693,24 @@
                 flex-direction: column;
                 gap: 8px;
             }
+
             .input-group .btn {
                 width: 100%;
                 height: 40px;
             }
+
             .key-input {
                 height: 42px;
                 text-align: center;
             }
+
             .stats-grid {
                 grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <!-- HEADER -->
@@ -613,7 +718,7 @@
             <div class="brand">
                 <div class="brand-icon">🐱</div>
                 <div class="brand-title">
-                    <h1>MeoMeo iOS</h1>
+                    <h1>Hoá iOS Cheat</h1>
                 </div>
             </div>
 
@@ -621,25 +726,29 @@
                 <button id="adminLoginBtn" class="btn btn-secondary btn-sm" onclick="openAdminModal()">
                     🔒 Quản Trị
                 </button>
-                <button id="adminLogoutBtn" class="btn btn-secondary btn-sm" onclick="adminLogout()" style="display: none;">
+                <button id="adminLogoutBtn" class="btn btn-secondary btn-sm" onclick="adminLogout()"
+                    style="display: none;">
                     Đăng Xuất
                 </button>
             </div>
         </header>
 
         <!-- ═══════════════════════════════════════════════════════════════════════ -->
-        <!-- CLIENT VIEW: CHỈ LOAD MEOMEO IOS - ĐEN TRẮNG BÌNH THƯỜNG -->
+        <!-- CLIENT VIEW: CHỈ LOAD HOÁ IOS CHEAT - ĐEN TRẮNG BÌNH THƯỜNG -->
         <!-- ═══════════════════════════════════════════════════════════════════════ -->
         <div id="clientSection">
             <div class="client-card">
                 <div class="client-header">
-                    <h2>MeoMeo iOS</h2>
+                    <h2>Hoá iOS Cheat</h2>
                     <p>Nhập mã License Key để kiểm tra hạn sử dụng</p>
                 </div>
 
                 <div class="input-group">
-                    <input type="text" id="clientKeyInput" class="key-input" placeholder="Nhập mã key (XXXX-XXXX-XXXX-XXXX)" autocomplete="off" spellcheck="false" onkeypress="if(event.key==='Enter') checkClientKey()">
-                    <button class="btn btn-secondary" onclick="pasteClientKey()" title="Dán từ Clipboard">📋 Dán</button>
+                    <input type="text" id="clientKeyInput" class="key-input"
+                        placeholder="Nhập mã key (XXXX-XXXX-XXXX-XXXX)" autocomplete="off" spellcheck="false"
+                        onkeypress="if(event.key==='Enter') checkClientKey()">
+                    <button class="btn btn-secondary" onclick="pasteClientKey()" title="Dán từ Clipboard">📋
+                        Dán</button>
                     <button class="btn" onclick="checkClientKey()">Kiểm Tra</button>
                 </div>
 
@@ -653,7 +762,8 @@
                         <span class="result-label">Mã Key:</span>
                         <div class="result-val">
                             <span id="resKey">—</span>
-                            <button class="btn btn-secondary btn-sm" style="padding: 2px 6px;" onclick="copyResultKey()" title="Sao chép key">📋 Copy</button>
+                            <button class="btn btn-secondary btn-sm" style="padding: 2px 6px;" onclick="copyResultKey()"
+                                title="Sao chép key">📋 Copy</button>
                         </div>
                     </div>
                     <div class="result-row">
@@ -675,14 +785,7 @@
                 </div>
 
                 <!-- TELEGRAM CHANNELS -->
-                <div class="social-grid">
-                    <a href="https://t.me/cheatmeo" target="_blank" class="btn-tele">
-                        📢 Kênh: t.me/cheatmeo
-                    </a>
-                    <a href="https://t.me/truongdeptrai7" target="_blank" class="btn-tele">
-                        💬 Admin: t.me/truongdeptrai7
-                    </a>
-                </div>
+
             </div>
         </div>
 
@@ -734,7 +837,8 @@
             <div class="card">
                 <div class="card-header">
                     <h2>Điều Khiển Tính Năng Server</h2>
-                    <span style="font-size: 11px; color: var(--text-secondary);">Tắt tính năng nào thì người chơi trong game sẽ tắt ngay tính năng đó</span>
+                    <span style="font-size: 11px; color: var(--text-secondary);">Tắt tính năng nào thì người chơi trong
+                        game sẽ tắt ngay tính năng đó</span>
                 </div>
                 <div class="features-grid" id="featuresGrid">
                     <!-- Injected via JS -->
@@ -742,7 +846,8 @@
             </div>
 
             <!-- FORMS GRID: CREATE KEY & QUICK ACTIONS -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; margin-bottom: 16px;">
+            <div
+                style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; margin-bottom: 16px;">
                 <!-- CREATE KEY FORM -->
                 <div class="card">
                     <div class="card-header">
@@ -751,7 +856,7 @@
                     <div style="display: flex; flex-direction: column; gap: 10px;">
                         <div class="form-group">
                             <label>Mã Key (để trống để tạo tự động)</label>
-                            <input type="text" id="newKeyCustom" placeholder="VD: MEOMEO-VIP-XXXX">
+                            <input type="text" id="newKeyCustom" placeholder="VD: HOA-VIP-XXXX">
                         </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                             <div class="form-group">
@@ -778,7 +883,8 @@
                                 </select>
                             </div>
                         </div>
-                        <button class="btn" onclick="createKey()" style="height: 38px; justify-content: center; margin-top: 4px;">+ Tạo Key Mới</button>
+                        <button class="btn" onclick="createKey()"
+                            style="height: 38px; justify-content: center; margin-top: 4px;">+ Tạo Key Mới</button>
                     </div>
                 </div>
 
@@ -796,10 +902,14 @@
                             Ban/Xóa key sẽ tắt mod trực tiếp trong game và văng app. Reset HWID để khách đổi máy mới.
                         </p>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px;">
-                            <button class="btn btn-secondary" onclick="quickResetHwid()" style="justify-content: center; height: 34px;">🔄 Reset HWID</button>
-                            <button class="btn btn-warning" onclick="quickBanKey(true)" style="justify-content: center; height: 34px;">🚫 Ban Key</button>
-                            <button class="btn btn-secondary" onclick="quickBanKey(false)" style="justify-content: center; height: 34px;">🔓 Mở Ban</button>
-                            <button class="btn btn-danger" onclick="quickDeleteKey()" style="justify-content: center; height: 34px;">🗑️ Xoá Key</button>
+                            <button class="btn btn-secondary" onclick="quickResetHwid()"
+                                style="justify-content: center; height: 34px;">🔄 Reset HWID</button>
+                            <button class="btn btn-warning" onclick="quickBanKey(true)"
+                                style="justify-content: center; height: 34px;">🚫 Ban Key</button>
+                            <button class="btn btn-secondary" onclick="quickBanKey(false)"
+                                style="justify-content: center; height: 34px;">🔓 Mở Ban</button>
+                            <button class="btn btn-danger" onclick="quickDeleteKey()"
+                                style="justify-content: center; height: 34px;">🗑️ Xoá Key</button>
                         </div>
                     </div>
                 </div>
@@ -809,7 +919,8 @@
             <div class="card">
                 <div class="card-header">
                     <h2>Danh Sách License Key</h2>
-                    <input type="text" id="searchKeyInput" oninput="filterKeys()" placeholder="Tìm kiếm key..." style="background: #080808; border: 1px solid var(--border-color); color: #ffffff; padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 160px;">
+                    <input type="text" id="searchKeyInput" oninput="filterKeys()" placeholder="Tìm kiếm key..."
+                        style="background: #080808; border: 1px solid var(--border-color); color: #ffffff; padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 160px;">
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -824,7 +935,10 @@
                             </tr>
                         </thead>
                         <tbody id="keysTableBody">
-                            <tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Đang tải danh sách key...</td></tr>
+                            <tr>
+                                <td colspan="6" style="text-align: center; color: var(--text-secondary);">Đang tải danh
+                                    sách key...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -847,7 +961,10 @@
                             </tr>
                         </thead>
                         <tbody id="devicesTableBody">
-                            <tr><td colspan="5" style="text-align: center; color: var(--text-secondary);">Đang tải danh sách thiết bị...</td></tr>
+                            <tr>
+                                <td colspan="5" style="text-align: center; color: var(--text-secondary);">Đang tải danh
+                                    sách thiết bị...</td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -865,10 +982,12 @@
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <div class="form-group">
                     <label>Mật khẩu Quản Trị:</label>
-                    <input type="password" id="modalAdminPass" placeholder="Nhập mật khẩu..." onkeypress="if(event.key==='Enter') submitAdminLogin()">
+                    <input type="password" id="modalAdminPass" placeholder="Nhập mật khẩu..."
+                        onkeypress="if(event.key==='Enter') submitAdminLogin()">
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 4px;">
-                    <button class="btn" style="flex: 1; justify-content: center;" onclick="submitAdminLogin()">Đăng Nhập</button>
+                    <button class="btn" style="flex: 1; justify-content: center;" onclick="submitAdminLogin()">Đăng
+                        Nhập</button>
                     <button class="btn btn-secondary" onclick="closeAdminModal()">Huỷ</button>
                 </div>
             </div>
@@ -882,10 +1001,12 @@
                 <h3>Tạo Key Thành Công</h3>
                 <button class="btn btn-secondary btn-sm" onclick="closeNewKeyModal()">✕</button>
             </div>
-            <p style="font-size: 13px; color: var(--text-secondary);">Key đã lưu vào hệ thống. Bạn có thể copy để gửi cho khách:</p>
+            <p style="font-size: 13px; color: var(--text-secondary);">Key đã lưu vào hệ thống. Bạn có thể copy để gửi
+                cho khách:</p>
             <div id="newKeyModalValue" class="key-display">—</div>
             <div style="display: flex; gap: 8px;">
-                <button class="btn" style="flex: 1; justify-content: center;" onclick="copyNewKeyModal()">📋 Sao Chép Key</button>
+                <button class="btn" style="flex: 1; justify-content: center;" onclick="copyNewKeyModal()">📋 Sao Chép
+                    Key</button>
                 <button class="btn btn-secondary" onclick="closeNewKeyModal()">Đóng</button>
             </div>
         </div>
@@ -1002,7 +1123,7 @@
                 document.getElementById("resStatus").innerText = data.status;
                 document.getElementById("resDuration").innerText = data.duration_text;
                 document.getElementById("resExpires").innerText = data.expires_at;
-                
+
                 const deviceSummary = data.device_summary || (data.max_devices >= 9999 ? `${data.used_devices} máy (Không giới hạn)` : `${data.used_devices} / ${data.max_devices} máy`);
                 document.getElementById("resDevices").innerText = deviceSummary;
 
@@ -1317,10 +1438,10 @@
 
             tbody.innerHTML = keys.map(k => {
                 const isBanned = k.active === 0;
-                const statusBadge = isBanned 
+                const statusBadge = isBanned
                     ? `<span class="badge-status badge-banned">BANNED</span>`
                     : `<span class="badge-status badge-active">HOẠT ĐỘNG</span>`;
-                
+
                 const banBtnText = isBanned ? "Mở Ban" : "Ban";
                 const banBtnClass = isBanned ? "btn-warning" : "btn-danger";
 
@@ -1360,7 +1481,7 @@
 
             tbody.innerHTML = devices.map(d => {
                 const isActive = d.active === 1;
-                const badge = isActive 
+                const badge = isActive
                     ? `<span class="badge-status badge-active">ACTIVE</span>`
                     : `<span class="badge-status badge-banned">LOCKED</span>`;
 
@@ -1401,4 +1522,5 @@
         });
     </script>
 </body>
+
 </html>

@@ -364,7 +364,7 @@ namespace ProjectEspPatch
                 GUI.Label(new Rect(0,0,300,30), ApiServerUrl);
                 GUI.Label(new Rect(0,0,300,30), ApiHeartbeatUrl);
                 GUI.Label(new Rect(0,0,300,30), ApiStatusUrl);
-                GUI.Label(new Rect(0,0,300,30), "MeoMeo iOS");
+                GUI.Label(new Rect(0,0,300,30), "Hoá iOS Cheat");
                 GUI.Label(new Rect(0,0,300,30), "Enable ESP");
                 GUI.Label(new Rect(0,0,300,30), "Player box");
                 GUI.Label(new Rect(0,0,300,30), "Top tracer");
@@ -818,7 +818,7 @@ namespace ProjectEspPatch
                                     if (distance <= 200f)
                                     {
                                         string nickname = player.NickName;
-                                        if (string.IsNullOrEmpty(nickname)) nickname = "MeoMeo iOS";
+                                        if (string.IsNullOrEmpty(nickname)) nickname = "Hoá iOS Cheat";
 
                                         string displayName = dying ? ("[KNOCK] " + nickname) : nickname;
                                         float tagW = Mathf.Clamp((float)displayName.Length * 9f + 20f, 80f, 250f);

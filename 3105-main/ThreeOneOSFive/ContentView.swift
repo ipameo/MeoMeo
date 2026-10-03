@@ -384,13 +384,13 @@ struct ContentView: View {
             Color.black.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // ── HEADER: Chỉ hiển thị MeoMeo iOS sạch sẽ, không live gì cả ──
+                // ── HEADER: Chỉ hiển thị Hoá iOS Cheat sạch sẽ, không live gì cả ──
                 VStack(spacing: 2) {
                     HStack(spacing: 8) {
                         Image(systemName: "pawprint.fill")
                             .font(.system(size: 19, weight: .bold))
                             .foregroundColor(.white)
-                        Text("MeoMeo iOS")
+                        Text("Hoá iOS Cheat")
                             .font(.system(size: 21, weight: .black, design: .rounded))
                             .foregroundColor(.white)
                     }
@@ -844,7 +844,7 @@ struct ContentView: View {
                 CardView(title: "KÊNH LIÊN HỆ & HỖ TRỢ", icon: "paperplane.fill") {
                     VStack(spacing: 12) {
                         Button(action: {
-                            if let url = URL(string: "https://t.me/cheatmeo") {
+                            if let url = URL(string: "https://t.me/aehoaios") {
                                 UIApplication.shared.open(url)
                             }
                         }) {
@@ -859,7 +859,7 @@ struct ContentView: View {
                                     Text("Channel Telegram")
                                         .font(.system(size: 14, weight: .bold, design: .rounded))
                                         .foregroundColor(.white)
-                                    Text("t.me/cheatmeo")
+                                    Text("t.me/aehoaios")
                                         .font(.system(size: 12, weight: .medium, design: .monospaced))
                                         .foregroundColor(Color(white: 0.70))
                                 }
@@ -877,7 +877,7 @@ struct ContentView: View {
                         }
 
                         Button(action: {
-                            if let url = URL(string: "https://t.me/truongdeptrai7") {
+                            if let url = URL(string: "https://t.me/ng_thanhhoa") {
                                 UIApplication.shared.open(url)
                             }
                         }) {
@@ -892,7 +892,7 @@ struct ContentView: View {
                                     Text("Admin Hỗ Trợ")
                                         .font(.system(size: 14, weight: .bold, design: .rounded))
                                         .foregroundColor(.white)
-                                    Text("t.me/truongdeptrai7")
+                                    Text("t.me/ng_thanhhoa")
                                         .font(.system(size: 12, weight: .medium, design: .monospaced))
                                         .foregroundColor(Color(white: 0.70))
                                 }
