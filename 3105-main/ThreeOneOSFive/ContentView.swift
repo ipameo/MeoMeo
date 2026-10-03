@@ -2,6 +2,8 @@ import SwiftUI
 import UIKit
 import Foundation
 import CommonCrypto
+import MachO
+import Darwin
 
 // MARK: - Anti-Hex & Anti-Tamper Security Core
 struct SecurityShield {
