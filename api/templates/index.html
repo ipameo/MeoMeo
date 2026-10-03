@@ -3,27 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MeoMeo — Hệ Thống License</title>
+    <title>MeoMeo iOS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-body: #0d1117;
-            --bg-card: #161b22;
-            --bg-card-hover: #1c2128;
-            --bg-input: #0d1117;
-            --border-color: #30363d;
-            --border-focus: #58a6ff;
-            --text-primary: #f0f6fc;
-            --text-secondary: #8b949e;
-            --btn-primary: #238636;
-            --btn-primary-hover: #2ea043;
-            --btn-blue: #1f6feb;
-            --btn-blue-hover: #388bfd;
-            --btn-danger: #da3633;
-            --btn-danger-hover: #f85149;
-            --btn-secondary: #21262d;
-            --btn-secondary-hover: #30363d;
+            --bg-body: #000000;
+            --bg-card: #0d0d0d;
+            --bg-card-hover: #141414;
+            --bg-input: #050505;
+            --border-color: #222222;
+            --border-focus: #555555;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --btn-white: #ffffff;
+            --btn-white-text: #000000;
+            --btn-white-hover: #e5e5e5;
+            --btn-dark: #161616;
+            --btn-dark-hover: #222222;
             --card-radius: 8px;
         }
 
@@ -43,18 +40,18 @@
         }
 
         .container {
-            max-width: 1080px;
+            max-width: 960px;
             margin: 0 auto;
             width: 100%;
         }
 
-        /* ── Header Gọn Gàng (PC & Mobi) ── */
+        /* ── Header Đen Trắng Tối Giản ── */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
+            margin-bottom: 24px;
+            padding-bottom: 14px;
             border-bottom: 1px solid var(--border-color);
             gap: 10px;
         }
@@ -66,28 +63,23 @@
         }
 
         .brand-icon {
-            width: 36px;
-            height: 36px;
-            background: #21262d;
+            width: 34px;
+            height: 34px;
+            background: #141414;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 16px;
             flex-shrink: 0;
         }
 
         .brand-title h1 {
-            font-size: 17px;
+            font-size: 16px;
             font-weight: 700;
-            color: #fff;
-            line-height: 1.2;
-        }
-
-        .brand-title p {
-            font-size: 12px;
-            color: var(--text-secondary);
+            color: #ffffff;
+            letter-spacing: -0.3px;
         }
 
         .header-actions {
@@ -97,11 +89,11 @@
             flex-shrink: 0;
         }
 
-        /* ── Nút Bấm Cơ Bản ── */
+        /* ── Nút Bấm Đen Trắng Chuẩn ── */
         .btn {
-            background: var(--btn-blue);
-            color: #fff;
-            border: 1px solid rgba(240, 246, 252, 0.1);
+            background: var(--btn-white);
+            color: var(--btn-white-text);
+            border: 1px solid #ffffff;
             padding: 8px 14px;
             border-radius: 6px;
             font-size: 13px;
@@ -112,29 +104,53 @@
             justify-content: center;
             gap: 6px;
             text-decoration: none;
-            transition: background 0.15s ease;
+            transition: all 0.15s ease;
             white-space: nowrap;
         }
 
-        .btn:hover { background: var(--btn-blue-hover); }
-        .btn-success { background: var(--btn-primary); }
-        .btn-success:hover { background: var(--btn-primary-hover); }
+        .btn:hover {
+            background: var(--btn-white-hover);
+        }
+
         .btn-secondary {
-            background: var(--btn-secondary);
-            color: var(--text-primary);
+            background: var(--btn-dark);
+            color: #ffffff;
             border: 1px solid var(--border-color);
         }
-        .btn-secondary:hover { background: var(--btn-secondary-hover); }
-        .btn-danger { background: var(--btn-danger); }
-        .btn-danger:hover { background: var(--btn-danger-hover); }
-        .btn-warning { background: #d29922; color: #fff; }
-        .btn-warning:hover { background: #e3b341; }
-        .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 4px; }
+        .btn-secondary:hover {
+            background: var(--btn-dark-hover);
+            border-color: #444444;
+        }
 
-        /* ── Client View (Form Nhập Key - Tương Thích Mobile / PC) ── */
+        .btn-danger {
+            background: #1a0a0a;
+            color: #ff5555;
+            border: 1px solid #331515;
+        }
+        .btn-danger:hover {
+            background: #2a1010;
+            border-color: #ff5555;
+        }
+
+        .btn-warning {
+            background: #1c1808;
+            color: #f5c042;
+            border: 1px solid #383010;
+        }
+        .btn-warning:hover {
+            background: #2b240c;
+        }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        /* ── Client View (Mặc định: Chỉ Load MeoMeo iOS) ── */
         #clientSection {
-            max-width: 580px;
-            margin: 20px auto;
+            max-width: 520px;
+            margin: 40px auto;
             width: 100%;
         }
 
@@ -142,25 +158,25 @@
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: var(--card-radius);
-            padding: 24px;
+            padding: 28px 24px;
         }
 
         .client-header {
-            margin-bottom: 18px;
+            margin-bottom: 22px;
             text-align: center;
         }
 
         .client-header h2 {
-            font-size: 19px;
+            font-size: 20px;
             font-weight: 700;
-            color: #fff;
+            color: #ffffff;
+            letter-spacing: -0.4px;
             margin-bottom: 6px;
         }
 
         .client-header p {
             font-size: 13px;
             color: var(--text-secondary);
-            line-height: 1.4;
         }
 
         .input-group {
@@ -175,24 +191,31 @@
             background: var(--bg-input);
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 10px 12px;
+            padding: 10px 14px;
             font-size: 14px;
             font-family: 'JetBrains Mono', monospace;
-            color: #fff;
+            color: #ffffff;
             outline: none;
+            transition: border-color 0.15s ease;
         }
 
-        .key-input:focus { border-color: var(--border-focus); }
-        .key-input::placeholder { color: #484f58; font-size: 13px; }
+        .key-input:focus {
+            border-color: #888888;
+        }
 
-        /* ── Result Box ── */
+        .key-input::placeholder {
+            color: #444444;
+            font-size: 13px;
+        }
+
+        /* ── Result Box Đen Trắng ── */
         .result-box {
             display: none;
-            background: #0d1117;
+            background: #050505;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 14px;
-            margin-top: 14px;
+            padding: 16px;
+            margin-top: 16px;
         }
 
         .result-header {
@@ -216,7 +239,7 @@
         }
 
         .result-row:not(:last-child) {
-            border-bottom: 1px solid #161b22;
+            border-bottom: 1px solid #141414;
         }
 
         .result-label {
@@ -226,7 +249,7 @@
 
         .result-val {
             font-weight: 600;
-            color: #fff;
+            color: #ffffff;
             font-family: 'JetBrains Mono', monospace;
             display: flex;
             align-items: center;
@@ -243,22 +266,22 @@
             font-weight: 600;
             white-space: nowrap;
         }
-        .badge-active { background: #1f6f32; color: #fff; }
-        .badge-banned { background: #da3633; color: #fff; }
-        .badge-expired { background: #9e6a03; color: #fff; }
+        .badge-active { background: #1c1c1c; color: #ffffff; border: 1px solid #333333; }
+        .badge-banned { background: #261111; color: #ff6666; border: 1px solid #441c1c; }
+        .badge-expired { background: #241c0e; color: #e5b244; border: 1px solid #40321a; }
 
-        /* Social buttons */
+        /* Social Telegram buttons */
         .social-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
-            margin-top: 18px;
+            margin-top: 20px;
         }
 
         .btn-tele {
-            background: var(--bg-card);
+            background: #0f0f0f;
             border: 1px solid var(--border-color);
-            color: var(--text-primary);
+            color: #ffffff;
             padding: 10px;
             border-radius: 6px;
             font-size: 12px;
@@ -268,20 +291,19 @@
             justify-content: center;
             gap: 6px;
             text-decoration: none;
-            transition: background 0.15s ease;
+            transition: all 0.15s ease;
         }
         .btn-tele:hover {
-            background: #21262d;
-            border-color: #58a6ff;
-            color: #58a6ff;
+            background: #1a1a1a;
+            border-color: #555555;
         }
 
-        /* ── Modal Đăng Nhập Admin ── */
+        /* ── Modal Đăng Nhập ── */
         .modal-overlay {
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.75);
+            background: rgba(0, 0, 0, 0.85);
             z-index: 1000;
             align-items: center;
             justify-content: center;
@@ -292,8 +314,8 @@
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: var(--card-radius);
-            padding: 20px;
-            max-width: 380px;
+            padding: 22px;
+            max-width: 360px;
             width: 100%;
         }
 
@@ -305,10 +327,10 @@
         }
         .modal-header h3 {
             font-size: 15px;
-            color: #fff;
+            color: #ffffff;
         }
 
-        /* ── Admin Dashboard ── */
+        /* ── Admin Dashboard (Mặc Định ẨN) ── */
         #adminDashboard {
             display: none;
         }
@@ -319,38 +341,25 @@
             align-items: center;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            padding: 10px 14px;
+            padding: 10px 16px;
             border-radius: var(--card-radius);
-            margin-bottom: 16px;
+            margin-bottom: 18px;
             flex-wrap: wrap;
             gap: 10px;
         }
 
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 600;
-            background: #1f6f32;
-            color: #fff;
-        }
-        .status-badge.offline { background: #da3633; }
-
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 10px;
-            margin-bottom: 16px;
+            margin-bottom: 18px;
         }
 
         .stat-box {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: var(--card-radius);
-            padding: 12px 14px;
+            padding: 14px;
         }
         .stat-label {
             font-size: 11px;
@@ -360,9 +369,9 @@
             margin-bottom: 4px;
         }
         .stat-value {
-            font-size: 19px;
+            font-size: 20px;
             font-weight: 700;
-            color: #fff;
+            color: #ffffff;
             font-family: 'JetBrains Mono', monospace;
         }
 
@@ -370,18 +379,18 @@
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: var(--card-radius);
-            padding: 14px 16px;
+            padding: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 18px;
             flex-wrap: wrap;
             gap: 12px;
         }
         .killswitch-info h3 {
             font-size: 14px;
             font-weight: 700;
-            color: #fff;
+            color: #ffffff;
             margin-bottom: 2px;
         }
         .killswitch-info p {
@@ -393,7 +402,7 @@
         .toggle-switch {
             position: relative;
             display: inline-block;
-            width: 48px;
+            width: 46px;
             height: 24px;
             flex-shrink: 0;
         }
@@ -402,43 +411,47 @@
             position: absolute;
             cursor: pointer;
             top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #30363d;
+            background-color: #222222;
             transition: .2s;
             border-radius: 24px;
+            border: 1px solid #333333;
         }
         .slider:before {
             position: absolute;
             content: "";
             height: 18px;
             width: 18px;
-            left: 3px;
-            bottom: 3px;
-            background-color: white;
+            left: 2px;
+            bottom: 2px;
+            background-color: #ffffff;
             transition: .2s;
             border-radius: 50%;
         }
-        input:checked + .slider { background-color: #238636; }
-        input:checked + .slider:before { transform: translateX(24px); }
+        input:checked + .slider { background-color: #ffffff; }
+        input:checked + .slider:before {
+            transform: translateX(22px);
+            background-color: #000000;
+        }
 
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: var(--card-radius);
-            padding: 16px;
-            margin-bottom: 16px;
+            padding: 18px;
+            margin-bottom: 18px;
         }
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 12px;
+            margin-bottom: 14px;
             flex-wrap: wrap;
             gap: 8px;
         }
         .card-header h2 {
             font-size: 14px;
             font-weight: 700;
-            color: #fff;
+            color: #ffffff;
         }
 
         .features-grid {
@@ -447,7 +460,7 @@
             gap: 8px;
         }
         .feature-item {
-            background: #0d1117;
+            background: #080808;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             padding: 8px 12px;
@@ -455,7 +468,7 @@
             justify-content: space-between;
             align-items: center;
         }
-        .feature-title { font-size: 12px; font-weight: 600; color: #fff; }
+        .feature-title { font-size: 12px; font-weight: 600; color: #ffffff; }
 
         .form-group {
             display: flex;
@@ -468,17 +481,17 @@
             color: var(--text-secondary);
         }
         .form-group input, .form-group select {
-            background: #0d1117;
+            background: #080808;
             border: 1px solid var(--border-color);
             border-radius: 6px;
             padding: 8px 10px;
-            color: #fff;
+            color: #ffffff;
             font-size: 13px;
             outline: none;
             width: 100%;
         }
         .form-group input:focus, .form-group select:focus {
-            border-color: var(--border-focus);
+            border-color: #666666;
         }
 
         .table-responsive {
@@ -502,38 +515,38 @@
         }
         td {
             padding: 8px 10px;
-            border-bottom: 1px solid #21262d;
+            border-bottom: 1px solid #1a1a1a;
             vertical-align: middle;
             white-space: nowrap;
         }
-        tr:hover td { background: rgba(255, 255, 255, 0.02); }
+        tr:hover td { background: rgba(255, 255, 255, 0.03); }
         .key-text {
             font-family: 'JetBrains Mono', monospace;
             font-weight: 600;
-            color: #58a6ff;
+            color: #ffffff;
             cursor: pointer;
-            padding: 2px 4px;
+            padding: 2px 5px;
             border-radius: 4px;
-            background: #0d1117;
+            background: #141414;
             border: 1px solid var(--border-color);
             display: inline-flex;
             align-items: center;
             gap: 4px;
         }
-        .key-text:hover { background: #21262d; border-color: #58a6ff; }
+        .key-text:hover { background: #222222; border-color: #666666; }
         .actions-cell { display: flex; gap: 4px; flex-wrap: wrap; }
 
         /* Modal Created Key Popup */
         #newKeyModal .key-display {
-            background: #0d1117;
-            border: 1px dashed #58a6ff;
+            background: #050505;
+            border: 1px dashed #555555;
             border-radius: 6px;
             padding: 12px;
             text-align: center;
             font-family: 'JetBrains Mono', monospace;
             font-size: 15px;
             font-weight: 700;
-            color: #58a6ff;
+            color: #ffffff;
             margin: 12px 0;
             word-break: break-all;
         }
@@ -544,16 +557,16 @@
             bottom: 16px;
             right: 16px;
             left: 16px;
-            max-width: 380px;
+            max-width: 360px;
             margin: 0 auto;
             padding: 10px 14px;
             border-radius: 6px;
-            background: #161b22;
-            color: #fff;
+            background: #141414;
+            color: #ffffff;
             font-size: 12.5px;
             font-weight: 600;
             border: 1px solid var(--border-color);
-            box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.8);
             transform: translateY(100px);
             opacity: 0;
             transition: all 0.25s ease;
@@ -562,19 +575,16 @@
         }
         #toast.show { transform: translateY(0); opacity: 1; }
 
-        /* ── RESPONSIVE MOBILE TWEAKS (MOBI & TABLET) ── */
+        /* ── Mobile Tweaks ── */
         @media (max-width: 768px) {
             body { padding: 10px; }
             header { margin-bottom: 14px; }
-            .brand-title h1 { font-size: 15px; }
-            .brand-title p { font-size: 11px; }
-            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
             .stat-box { padding: 10px; }
             .stat-value { font-size: 17px; }
-            .client-card { padding: 16px; }
+            .client-card { padding: 20px 16px; }
             .social-grid { grid-template-columns: 1fr; }
-            .killswitch-card { padding: 12px 14px; }
-            .card { padding: 14px; }
+            #clientSection { margin: 20px auto; }
         }
 
         @media (max-width: 480px) {
@@ -591,7 +601,7 @@
                 text-align: center;
             }
             .stats-grid {
-                grid-template-columns: 1fr 1fr;
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -604,7 +614,6 @@
                 <div class="brand-icon">🐱</div>
                 <div class="brand-title">
                     <h1>MeoMeo iOS</h1>
-                    <p>Tra cứu License & Quản Trị</p>
                 </div>
             </div>
 
@@ -612,26 +621,26 @@
                 <button id="adminLoginBtn" class="btn btn-secondary btn-sm" onclick="openAdminModal()">
                     🔒 Quản Trị
                 </button>
-                <button id="adminLogoutBtn" class="btn btn-danger btn-sm" onclick="adminLogout()" style="display: none;">
+                <button id="adminLogoutBtn" class="btn btn-secondary btn-sm" onclick="adminLogout()" style="display: none;">
                     Đăng Xuất
                 </button>
             </div>
         </header>
 
         <!-- ═══════════════════════════════════════════════════════════════════════ -->
-        <!-- CLIENT VIEW: CHỈ HIỆN NHẬP KEY - GIAO DIỆN BÌNH THƯỜNG MOBI & PC -->
+        <!-- CLIENT VIEW: CHỈ LOAD MEOMEO IOS - ĐEN TRẮNG BÌNH THƯỜNG -->
         <!-- ═══════════════════════════════════════════════════════════════════════ -->
         <div id="clientSection">
             <div class="client-card">
                 <div class="client-header">
-                    <h2>Kiểm Tra License Key</h2>
-                    <p>Nhập mã key để xem trạng thái kích hoạt, thời hạn và số thiết bị.</p>
+                    <h2>MeoMeo iOS</h2>
+                    <p>Nhập mã License Key để kiểm tra hạn sử dụng</p>
                 </div>
 
                 <div class="input-group">
                     <input type="text" id="clientKeyInput" class="key-input" placeholder="Nhập mã key (XXXX-XXXX-XXXX-XXXX)" autocomplete="off" spellcheck="false" onkeypress="if(event.key==='Enter') checkClientKey()">
                     <button class="btn btn-secondary" onclick="pasteClientKey()" title="Dán từ Clipboard">📋 Dán</button>
-                    <button class="btn btn-success" onclick="checkClientKey()">Kiểm Tra</button>
+                    <button class="btn" onclick="checkClientKey()">Kiểm Tra</button>
                 </div>
 
                 <!-- KẾT QUẢ TRA CỨU -->
@@ -684,13 +693,9 @@
             <!-- ADMIN TOP BAR -->
             <div class="admin-top-bar">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-weight: 700; color: #fff; font-size: 13px;">Bảng Quản Trị</span>
-                    <span style="color: var(--text-secondary); font-size: 12px;">(Live Control)</span>
+                    <span style="font-weight: 700; color: #ffffff; font-size: 13px;">Bảng Quản Trị</span>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <div id="liveBadge" class="status-badge">
-                        <span id="liveBadgeText">ONLINE</span>
-                    </div>
                     <button class="btn btn-danger btn-sm" onclick="adminLogout()">Đăng Xuất</button>
                 </div>
             </div>
@@ -698,19 +703,15 @@
             <!-- STATS ROW -->
             <div class="stats-grid">
                 <div class="stat-box">
-                    <div class="stat-label">Server Status</div>
-                    <div class="stat-value" id="statServerStatus" style="color: #3fb950;">ONLINE</div>
-                </div>
-                <div class="stat-box">
                     <div class="stat-label">Tổng Key</div>
                     <div class="stat-value" id="statTotalKeys">0</div>
                 </div>
                 <div class="stat-box">
                     <div class="stat-label">Key Hoạt Động</div>
-                    <div class="stat-value" id="statActiveKeys" style="color: #3fb950;">0</div>
+                    <div class="stat-value" id="statActiveKeys">0</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">Thiết Bị Dùng</div>
+                    <div class="stat-label">Thiết Bị Đang Dùng</div>
                     <div class="stat-value" id="statUsedDevices">0</div>
                 </div>
             </div>
@@ -718,7 +719,7 @@
             <!-- MASTER KILLSWITCH -->
             <div class="killswitch-card">
                 <div class="killswitch-info">
-                    <h3>Bật / Tắt Toàn Bộ Chức Năng (Master Killswitch)</h3>
+                    <h3>Bật / Tắt Toàn Bộ Chức Năng (Master Switch)</h3>
                     <p>Khi TẮT: Tất cả người dùng trong Game sẽ lập tức bị tắt toàn bộ tính năng.</p>
                 </div>
                 <div>
@@ -732,7 +733,7 @@
             <!-- SERVER FEATURE CONTROLS -->
             <div class="card">
                 <div class="card-header">
-                    <h2>Điều Khiển Tính Năng Server (Live Sync)</h2>
+                    <h2>Điều Khiển Tính Năng Server</h2>
                     <span style="font-size: 11px; color: var(--text-secondary);">Tắt tính năng nào thì người chơi trong game sẽ tắt ngay tính năng đó</span>
                 </div>
                 <div class="features-grid" id="featuresGrid">
@@ -777,7 +778,7 @@
                                 </select>
                             </div>
                         </div>
-                        <button class="btn btn-success" onclick="createKey()" style="height: 38px; justify-content: center; margin-top: 4px;">+ Tạo Key Mới</button>
+                        <button class="btn" onclick="createKey()" style="height: 38px; justify-content: center; margin-top: 4px;">+ Tạo Key Mới</button>
                     </div>
                 </div>
 
@@ -797,7 +798,7 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 4px;">
                             <button class="btn btn-secondary" onclick="quickResetHwid()" style="justify-content: center; height: 34px;">🔄 Reset HWID</button>
                             <button class="btn btn-warning" onclick="quickBanKey(true)" style="justify-content: center; height: 34px;">🚫 Ban Key</button>
-                            <button class="btn btn-success" onclick="quickBanKey(false)" style="justify-content: center; height: 34px;">🔓 Mở Ban</button>
+                            <button class="btn btn-secondary" onclick="quickBanKey(false)" style="justify-content: center; height: 34px;">🔓 Mở Ban</button>
                             <button class="btn btn-danger" onclick="quickDeleteKey()" style="justify-content: center; height: 34px;">🗑️ Xoá Key</button>
                         </div>
                     </div>
@@ -808,7 +809,7 @@
             <div class="card">
                 <div class="card-header">
                     <h2>Danh Sách License Key</h2>
-                    <input type="text" id="searchKeyInput" oninput="filterKeys()" placeholder="Tìm kiếm key..." style="background: #0d1117; border: 1px solid var(--border-color); color: #fff; padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 160px;">
+                    <input type="text" id="searchKeyInput" oninput="filterKeys()" placeholder="Tìm kiếm key..." style="background: #080808; border: 1px solid var(--border-color); color: #ffffff; padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 160px;">
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -832,7 +833,7 @@
             <!-- DEVICE MANAGEMENT TABLE -->
             <div class="card">
                 <div class="card-header">
-                    <h2>Danh Sách Thiết Bị Kết Nối (HWID Live)</h2>
+                    <h2>Danh Sách Thiết Bị (HWID)</h2>
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -867,7 +868,7 @@
                     <input type="password" id="modalAdminPass" placeholder="Nhập mật khẩu..." onkeypress="if(event.key==='Enter') submitAdminLogin()">
                 </div>
                 <div style="display: flex; gap: 8px; margin-top: 4px;">
-                    <button class="btn btn-primary" style="flex: 1; justify-content: center;" onclick="submitAdminLogin()">Đăng Nhập</button>
+                    <button class="btn" style="flex: 1; justify-content: center;" onclick="submitAdminLogin()">Đăng Nhập</button>
                     <button class="btn btn-secondary" onclick="closeAdminModal()">Huỷ</button>
                 </div>
             </div>
@@ -878,13 +879,13 @@
     <div id="newKeyModal" class="modal-overlay">
         <div class="modal-card">
             <div class="modal-header">
-                <h3>🎉 Tạo Key Thành Công!</h3>
+                <h3>Tạo Key Thành Công</h3>
                 <button class="btn btn-secondary btn-sm" onclick="closeNewKeyModal()">✕</button>
             </div>
             <p style="font-size: 13px; color: var(--text-secondary);">Key đã lưu vào hệ thống. Bạn có thể copy để gửi cho khách:</p>
             <div id="newKeyModalValue" class="key-display">—</div>
             <div style="display: flex; gap: 8px;">
-                <button class="btn btn-success" style="flex: 1; justify-content: center;" onclick="copyNewKeyModal()">📋 Sao Chép Key</button>
+                <button class="btn" style="flex: 1; justify-content: center;" onclick="copyNewKeyModal()">📋 Sao Chép Key</button>
                 <button class="btn btn-secondary" onclick="closeNewKeyModal()">Đóng</button>
             </div>
         </div>
@@ -916,7 +917,7 @@
             const toast = document.getElementById("toast");
             toast.innerText = msg;
             toast.classList.add("show");
-            setTimeout(() => toast.classList.remove("show"), 2600);
+            setTimeout(() => toast.classList.remove("show"), 2400);
         }
 
         function copyToClipboard(text, successMsg = "Đã copy vào clipboard!") {
@@ -1144,21 +1145,6 @@
         function applyAdminData(data) {
             const isSysOn = data.system_active;
             document.getElementById("masterToggle").checked = isSysOn;
-            const liveBadge = document.getElementById("liveBadge");
-            const liveBadgeText = document.getElementById("liveBadgeText");
-            const statServerStatus = document.getElementById("statServerStatus");
-
-            if (isSysOn) {
-                liveBadge.className = "status-badge";
-                liveBadgeText.innerText = "ONLINE";
-                statServerStatus.innerText = "ONLINE";
-                statServerStatus.style.color = "#3fb950";
-            } else {
-                liveBadge.className = "status-badge offline";
-                liveBadgeText.innerText = "OFFLINE (KILLSWITCH)";
-                statServerStatus.innerText = "OFFLINE";
-                statServerStatus.style.color = "#f85149";
-            }
 
             renderFeatures(data.features || {});
             cachedKeys = data.keys || [];
@@ -1193,7 +1179,7 @@
         async function toggleMaster(active) {
             const res = await fetchAPI("/api/admin/toggle", "POST", { active });
             if (res && res.ok) {
-                showToast(active ? "Đã BẬT hệ thống!" : "Đã KÍCH HOẠT KILLSWITCH (TẮT MOD)!");
+                showToast(active ? "Đã BẬT hệ thống!" : "Đã TẮT toàn bộ hệ thống!");
                 refreshData();
             }
         }
@@ -1380,7 +1366,7 @@
 
                 return `
                     <tr>
-                        <td style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #58a6ff;">${d.device_id}</td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #ffffff;">${d.device_id}</td>
                         <td>
                             <span class="key-text" onclick="copyToClipboard('${d.license_key || ""}', 'Đã copy: ${d.license_key}')">
                                 ${d.license_key || "—"} 📋
