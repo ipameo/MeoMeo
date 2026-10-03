@@ -43,7 +43,7 @@ struct OnboardingView: View {
     private var header: some View {
         HStack(spacing: 8) {
             Image(systemName: "pawprint.fill")
-                .foregroundColor(AppTheme.accent)
+                .foregroundColor(.white)
                 .font(.system(size: 18))
             Text("MeoMeo iOS")
                 .font(.system(size: 18, weight: .bold, design: .rounded))
@@ -52,7 +52,7 @@ struct OnboardingView: View {
         .padding(.top, 16)
         .padding(.bottom, 8)
         .frame(maxWidth: .infinity)
-        .background(AppTheme.pageBackground)
+        .background(Color.black)
     }
 
     @ViewBuilder
@@ -141,11 +141,11 @@ struct OnboardingView: View {
         VStack(spacing: 24) {
             ZStack {
                 Circle()
-                    .fill(AppTheme.accent.opacity(0.12))
+                    .fill(Color(white: 0.12))
                     .frame(width: 92, height: 92)
                 Image(systemName: "pawprint.fill")
                     .font(.system(size: 44))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(.white)
             }
             .padding(.top, 20)
 
@@ -155,16 +155,16 @@ struct OnboardingView: View {
                     .foregroundColor(.white)
                 Text("Free Fire VIP Mod Launcher")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(Color(white: 0.70))
                 Text("Phiên bản iOS: \(UIDevice.current.systemVersion) (\(UIDevice.current.model))")
                     .font(.caption.monospaced())
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(white: 0.45))
             }
 
             VStack(spacing: 12) {
                 welcomeFeatureRow(icon: "eye.fill", title: "ESP Người Chơi", subtitle: "Hiện Box, Khung Xương, Tên, Máu & Khoảng Cách")
                 welcomeFeatureRow(icon: "scope", title: "Aimbot Chuẩn Xác", subtitle: "Tâm ngắm mượt mà, hỗ trợ Headshot")
-                welcomeFeatureRow(icon: "bolt.shield.fill", title: "Bảo Mật Live Sync", subtitle: "Chạy ngầm liên tục, tự động đồng bộ từ Server")
+                welcomeFeatureRow(icon: "bolt.shield.fill", title: "Bảo Mật Tối Ưu", subtitle: "Tự động đồng bộ cấu hình an toàn")
             }
             .padding(.top, 10)
         }
@@ -175,11 +175,11 @@ struct OnboardingView: View {
         HStack(spacing: 14) {
             ZStack {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(AppTheme.accent.opacity(0.12))
+                    .fill(Color(white: 0.18))
                     .frame(width: 42, height: 42)
                 Image(systemName: icon)
                     .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(AppTheme.accent)
+                    .foregroundColor(.white)
             }
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
@@ -187,15 +187,15 @@ struct OnboardingView: View {
                     .foregroundColor(.white)
                 Text(subtitle)
                     .font(.system(size: 12))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(white: 0.65))
             }
             Spacer()
         }
         .padding(14)
-        .background(Color(red: 0.04, green: 0.14, blue: 0.20), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .background(Color(white: 0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(AppTheme.accent.opacity(0.25), lineWidth: 1)
+                .stroke(Color(white: 0.22), lineWidth: 1)
         )
     }
 
@@ -372,11 +372,10 @@ struct OnboardingView: View {
                     Image(systemName: "chevron.right")
                 }
                 .frame(maxWidth: .infinity)
-                .frame(height: 52)
-                .foregroundColor(Color(red: 0.02, green: 0.07, blue: 0.10))
-                .background(AppTheme.accent)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .shadow(color: AppTheme.accent.opacity(0.35), radius: 8, x: 0, y: 3)
+                .frame(height: 50)
+                .foregroundColor(Color.black)
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .frame(maxWidth: 560)
             .padding(.horizontal, 20)
@@ -384,7 +383,7 @@ struct OnboardingView: View {
         .padding(.top, 12)
         .padding(.bottom, 16)
         .frame(maxWidth: .infinity)
-        .background(AppTheme.pageBackground)
+        .background(Color.black)
     }
 }
 

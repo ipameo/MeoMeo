@@ -337,22 +337,21 @@ class LicenseManager: ObservableObject {
     }
 }
 
-// MARK: - Custom Toggle Style (matches Mod GUI theme)
+// MARK: - Custom Toggle Style (Black & White Minimalist)
 struct SlimToggleStyle: ToggleStyle {
     func makeBody(configuration: Configuration) -> some View {
         Button(action: { withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { configuration.isOn.toggle() } }) {
             ZStack(alignment: configuration.isOn ? .trailing : .leading) {
                 Capsule()
-                    .fill(configuration.isOn ? Color(red: 0.10, green: 0.78, blue: 0.92) : Color(red: 0.05, green: 0.18, blue: 0.24))
-                    .frame(width: 48, height: 26)
+                    .fill(configuration.isOn ? Color.white : Color(white: 0.18))
+                    .frame(width: 46, height: 24)
                     .overlay(
-                        Capsule().stroke(configuration.isOn ? Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.8) : Color.white.opacity(0.12), lineWidth: 1)
+                        Capsule().stroke(Color(white: 0.35), lineWidth: 1)
                     )
                 Circle()
-                    .fill(configuration.isOn ? Color.white : Color(red: 0.60, green: 0.70, blue: 0.75))
-                    .frame(width: 20, height: 20)
+                    .fill(configuration.isOn ? Color.black : Color(white: 0.55))
+                    .frame(width: 18, height: 18)
                     .padding(3)
-                    .shadow(color: configuration.isOn ? Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.6) : Color.clear, radius: 4)
             }
         }
         .buttonStyle(PlainButtonStyle())
@@ -382,25 +381,22 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            Color(red: 0.01, green: 0.05, blue: 0.08).ignoresSafeArea()
+            Color.black.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // ── HEADER: MeoMeo Cheat & iOS Version ────────────────
-                VStack(spacing: 4) {
+                // ── HEADER: Chỉ hiển thị MeoMeo iOS sạch sẽ, không live gì cả ──
+                VStack(spacing: 2) {
                     HStack(spacing: 8) {
                         Image(systemName: "pawprint.fill")
-                            .font(.system(size: 20))
-                            .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
-                        Text("MeoMeo Cheat")
-                            .font(.system(size: 22, weight: .black, design: .rounded))
-                            .foregroundColor(Color(red: 0.45, green: 0.95, blue: 1.00))
+                            .font(.system(size: 19, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("MeoMeo iOS")
+                            .font(.system(size: 21, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
                     }
-                    Text("Phiên bản iOS: \(UIDevice.current.systemVersion) (\(UIDevice.current.model))")
-                        .font(.system(size: 12, weight: .medium, design: .monospaced))
-                        .foregroundColor(Color(red: 0.55, green: 0.75, blue: 0.85))
                 }
                 .padding(.top, 14)
-                .padding(.bottom, 6)
+                .padding(.bottom, 8)
 
                 // ── TOP TAB BAR (Menu | Profile) ──────────────────────
                 HStack(spacing: 0) {
@@ -408,22 +404,22 @@ struct ContentView: View {
                         Button(action: { withAnimation { topTab = tab } }) {
                             Text(tab)
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
-                                .foregroundColor(topTab == tab ? Color(red: 0.02, green: 0.07, blue: 0.10) : Color(red: 0.55, green: 0.87, blue: 0.95))
+                                .foregroundColor(topTab == tab ? Color.black : Color(white: 0.65))
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 42)
-                                .background(topTab == tab ? Color(red: 0.00, green: 0.85, blue: 0.98) : Color.clear)
+                                .frame(height: 40)
+                                .background(topTab == tab ? Color.white : Color.clear)
                         }
                     }
                 }
-                .background(Color(red: 0.03, green: 0.13, blue: 0.18))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .background(Color(white: 0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.3), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(white: 0.25), lineWidth: 1)
                 )
                 .padding(.horizontal, 16)
-                .padding(.top, 8)
-                .padding(.bottom, 10)
+                .padding(.top, 4)
+                .padding(.bottom, 8)
 
                 // ── GAME SELECTOR ─────────────────────────────────────
                 HStack(spacing: 0) {
@@ -435,18 +431,18 @@ struct ContentView: View {
                         }) {
                             Text(label)
                                 .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(gameTab == id ? Color(red: 0.02, green: 0.07, blue: 0.10) : Color(red: 0.55, green: 0.87, blue: 0.95))
+                                .foregroundColor(gameTab == id ? Color.black : Color(white: 0.65))
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 38)
-                                .background(gameTab == id ? Color(red: 0.00, green: 0.85, blue: 0.98) : Color.clear)
+                                .frame(height: 36)
+                                .background(gameTab == id ? Color.white : Color.clear)
                         }
                     }
                 }
-                .background(Color(red: 0.03, green: 0.13, blue: 0.18))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .background(Color(white: 0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.2), lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(white: 0.25), lineWidth: 1)
                 )
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
@@ -470,23 +466,16 @@ struct ContentView: View {
                 let patchURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents/Assembly-CSharp-patch.bytes")
                 if FileManager.default.fileExists(atPath: patchURL.path) {
                     hasInjected = true
-                    log("⚡ Mod detected in game container")
                 }
             }
-            // Setup live server listener
+            // Setup server listener
             license.onLiveStateChanged = { active in
                 self.syncConfig()
-                if active {
-                    self.log("⚡ Server ONLINE: Đã phục hồi chức năng!")
-                } else {
-                    self.log("⛔ Server OFFLINE: Đã khoá tất cả chức năng!")
-                }
             }
             license.onTokenRefreshed = {
                 self.syncConfig()
             }
             license.onLicenseTerminated = { reason in
-                // Tắt sạch mọi chức năng cheat lập tức vào game container
                 self.config.system_active = false
                 self.config.EspMaster = false
                 self.config.AimEnabled = false
@@ -494,8 +483,6 @@ struct ContentView: View {
                 self.config.server_esp = false
                 self.config.server_aim = false
                 self.syncConfig()
-                self.log("⛔ LICENSE TERMINATED: \(reason) -> Tắt cheat và thoát app")
-                // Văng App ngay lập tức khi hết hạn / bị ban / xoá key
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     exit(0)
                 }
@@ -507,11 +494,9 @@ struct ContentView: View {
                 license.authenticate(key: license.storedKey) { ok, err in
                     isAuthenticating = false
                     if ok {
-                        log("✅ License valid")
                         syncConfig()
                         self.license.startHeartbeat()
                     } else {
-                        log("❌ License: \(err ?? "failed")")
                         self.config.system_active = false
                         self.config.EspMaster = false
                         self.config.AimEnabled = false
@@ -533,16 +518,15 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Auth View
+    // MARK: - Auth View (Đen Trắng Tối Giản)
     var authView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
-                // License Key Input (No Server URL on GUI)
                 CardView(title: "KÍCH HOẠT BẢN QUYỀN", icon: "key.fill") {
                     VStack(spacing: 12) {
                         HStack {
                             Image(systemName: "key")
-                                .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                                .foregroundColor(.white)
                                 .frame(width: 20)
                             TextField("XXXX-XXXX-XXXX-XXXX", text: $licenseKeyInput)
                                 .font(.system(size: 15, weight: .bold, design: .monospaced))
@@ -551,11 +535,11 @@ struct ContentView: View {
                                 .disableAutocorrection(true)
                         }
                         .padding(12)
-                        .background(Color(red: 0.02, green: 0.08, blue: 0.12))
+                        .background(Color(white: 0.05))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.3), lineWidth: 1)
+                                .stroke(Color(white: 0.25), lineWidth: 1)
                         )
 
                         if let err = license.authError {
@@ -572,35 +556,29 @@ struct ContentView: View {
                             let key = licenseKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !key.isEmpty else { return }
                             isAuthenticating = true
-                            log("⏳ Authenticating...")
                             license.authenticate(key: key) { ok, err in
                                 isAuthenticating = false
                                 if ok {
-                                    log("✅ License activated!")
-                                    log("✅ Expires: \(license.deviceExpires)")
                                     syncConfig()
                                     self.license.startHeartbeat()
-                                } else {
-                                    log("❌ Auth failed: \(err ?? "unknown")")
                                 }
                             }
                         }) {
                             HStack {
                                 if isAuthenticating {
-                                    ProgressView().progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.02, green: 0.07, blue: 0.10)))
+                                    ProgressView().progressViewStyle(CircularProgressViewStyle(tint: Color.black))
                                 } else {
                                     Image(systemName: "checkmark.shield.fill")
-                                        .foregroundColor(Color(red: 0.02, green: 0.07, blue: 0.10))
+                                        .foregroundColor(Color.black)
                                     Text("KÍCH HOẠT LICENSE")
-                                        .font(.system(size: 15, weight: .bold, design: .rounded))
-                                        .foregroundColor(Color(red: 0.02, green: 0.07, blue: 0.10))
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .foregroundColor(Color.black)
                                 }
                             }
                             .frame(maxWidth: .infinity)
-                            .frame(height: 48)
-                            .background(Color(red: 0.00, green: 0.85, blue: 0.98))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                            .shadow(color: Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.4), radius: 8, x: 0, y: 3)
+                            .frame(height: 46)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
                         .disabled(isAuthenticating || licenseKeyInput.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
@@ -612,11 +590,11 @@ struct ContentView: View {
                         HStack {
                             Text("MÃ HWID")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color(red: 0.55, green: 0.75, blue: 0.85))
+                                .foregroundColor(Color(white: 0.65))
                             Spacer()
                             Text(license.deviceId.prefix(20) + "...")
                                 .font(.system(size: 11, design: .monospaced))
-                                .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                                .foregroundColor(.white)
                         }
                     }
                 }
@@ -626,7 +604,7 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Menu Tab
+    // MARK: - Menu Tab (Đen Trắng)
     var menuView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 14) {
@@ -634,26 +612,18 @@ struct ContentView: View {
                 // ── SILENT AIM ─────────────────────────────────────────
                 CardView(title: "SILENT AIM", icon: "scope") {
                     VStack(spacing: 14) {
-                        // Master toggle
                         ToggleRow(label: "Silent Aim", icon: "wind", on: $config.AimEnabled)
 
                         if config.AimEnabled {
-                            Divider().background(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.2))
-
-                            // FOV toggle
+                            Divider().background(Color(white: 0.20))
                             ToggleRow(label: "Hiện Vòng FOV", icon: "circle.dashed", on: $config.EspFov)
-
-                            // FOV Slider
                             SliderRow(label: "Silent FOV", value: $config.FovSize, range: 30...400, isPercent: false)
-
-                            // Headshot Rate Slider
                             SliderRow(label: "Tỉ Lệ Headshot", value: $config.HeadshotRate, range: 0...100, isPercent: true)
 
-                            // AimTarget picker
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Vị Trí Ngắm (Target Bone)")
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(Color(red: 0.55, green: 0.75, blue: 0.85))
+                                    .foregroundColor(Color(white: 0.65))
 
                                 HStack(spacing: 8) {
                                     ForEach(0..<3, id: \.self) { idx in
@@ -661,14 +631,14 @@ struct ContentView: View {
                                         Button(action: { config.AimTarget = idx }) {
                                             Text(name)
                                                 .font(.system(size: 13, weight: .bold))
-                                                .foregroundColor(config.AimTarget == idx ? Color(red: 0.02, green: 0.07, blue: 0.10) : Color(red: 0.72, green: 0.94, blue: 0.98))
+                                                .foregroundColor(config.AimTarget == idx ? Color.black : Color.white)
                                                 .frame(maxWidth: .infinity)
                                                 .frame(height: 36)
-                                                .background(config.AimTarget == idx ? Color(red: 0.00, green: 0.85, blue: 0.98) : Color(red: 0.02, green: 0.08, blue: 0.12))
+                                                .background(config.AimTarget == idx ? Color.white : Color(white: 0.05))
                                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 8)
-                                                        .stroke(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.3), lineWidth: 1)
+                                                        .stroke(Color(white: 0.25), lineWidth: 1)
                                                 )
                                         }
                                     }
@@ -684,13 +654,11 @@ struct ContentView: View {
                         ToggleRow(label: "Hệ Thống Aimbot", icon: "flame", on: $config.AimSystemEnabled)
 
                         if config.AimSystemEnabled {
-                            Divider().background(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.2))
-
-                            // AimTarget picker (shared with silent aim)
+                            Divider().background(Color(white: 0.20))
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Vị Trí Ngắm")
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(Color(red: 0.55, green: 0.75, blue: 0.85))
+                                    .foregroundColor(Color(white: 0.65))
 
                                 HStack(spacing: 8) {
                                     ForEach(0..<3, id: \.self) { idx in
@@ -698,14 +666,14 @@ struct ContentView: View {
                                         Button(action: { config.AimTarget = idx }) {
                                             Text(name)
                                                 .font(.system(size: 13, weight: .bold))
-                                                .foregroundColor(config.AimTarget == idx ? Color(red: 0.02, green: 0.07, blue: 0.10) : Color(red: 0.72, green: 0.94, blue: 0.98))
+                                                .foregroundColor(config.AimTarget == idx ? Color.black : Color.white)
                                                 .frame(maxWidth: .infinity)
                                                 .frame(height: 36)
-                                                .background(config.AimTarget == idx ? Color(red: 0.00, green: 0.85, blue: 0.98) : Color(red: 0.02, green: 0.08, blue: 0.12))
+                                                .background(config.AimTarget == idx ? Color.white : Color(white: 0.05))
                                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 8)
-                                                        .stroke(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.3), lineWidth: 1)
+                                                        .stroke(Color(white: 0.25), lineWidth: 1)
                                                 )
                                         }
                                     }
@@ -721,17 +689,17 @@ struct ContentView: View {
                 CardView(title: "VISUALS (ESP)", icon: "eye") {
                     VStack(spacing: 14) {
                         ToggleRow(label: "Bật ESP Tổng", icon: "eye.fill", on: $config.EspMaster)
-                        Divider().background(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.2))
+                        Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Hiện Khung (Box)", icon: "person.crop.square", on: $config.EspBox)
-                        Divider().background(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.2))
+                        Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Hiện Dây Kẻ (Line)", icon: "line.diagonal", on: $config.EspLine)
-                        Divider().background(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.2))
+                        Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Hiện Tên (Name)", icon: "textformat", on: $config.EspName)
-                        Divider().background(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.2))
+                        Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Hiện Thanh Máu (Health)", icon: "heart.fill", on: $config.EspHealth)
-                        Divider().background(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.2))
+                        Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Hiện Khoảng Cách (Distance)", icon: "ruler", on: $config.EspDistance)
-                        Divider().background(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.2))
+                        Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Hiện Khung Xương (Skeleton)", icon: "figure.walk", on: $config.EspSkeleton)
                     }
                 }
@@ -741,20 +709,19 @@ struct ContentView: View {
                     Button(action: { injectGame() }) {
                         HStack {
                             if isInjecting {
-                                ProgressView().progressViewStyle(CircularProgressViewStyle(tint: Color(red: 0.02, green: 0.07, blue: 0.10)))
+                                ProgressView().progressViewStyle(CircularProgressViewStyle(tint: Color.black))
                             } else {
                                 Image(systemName: "bolt.fill")
-                                    .foregroundColor(Color(red: 0.02, green: 0.07, blue: 0.10))
+                                    .foregroundColor(Color.black)
                                 Text("CÀI ĐẶT MOD VÀO GAME")
-                                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                                    .foregroundColor(Color(red: 0.02, green: 0.07, blue: 0.10))
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .foregroundColor(Color.black)
                             }
                         }
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color(red: 0.00, green: 0.85, blue: 0.98))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .shadow(color: Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.35), radius: 8, x: 0, y: 3)
+                        .frame(height: 48)
+                        .background(Color.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
                     }
                     .disabled(isInjecting)
                 } else {
@@ -762,13 +729,17 @@ struct ContentView: View {
                         HStack {
                             Image(systemName: "trash.fill").foregroundColor(.white)
                             Text("GỠ BỎ MOD KHỎI GAME")
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                                .font(.system(size: 14, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                         }
                         .frame(maxWidth: .infinity)
-                        .frame(height: 50)
-                        .background(Color.red.opacity(0.85))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .frame(height: 48)
+                        .background(Color(white: 0.15))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color(white: 0.35), lineWidth: 1)
+                        )
                     }
                 }
             }
@@ -777,22 +748,21 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Profile Tab
+    // MARK: - Profile Tab (Đen Trắng)
     var profileView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
-                // License Info Card
                 CardView(title: "THÔNG TIN BẢN QUYỀN", icon: "person.crop.circle.badge.checkmark") {
                     VStack(alignment: .leading, spacing: 14) {
                         // Key Row
                         VStack(alignment: .leading, spacing: 6) {
                             Text("LICENSE KEY")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color(red: 0.55, green: 0.75, blue: 0.85))
+                                .foregroundColor(Color(white: 0.65))
                             HStack {
                                 Text(license.storedKey.isEmpty ? "Chưa kích hoạt" : license.storedKey)
                                     .font(.system(size: 13, weight: .bold, design: .monospaced))
-                                    .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                                    .foregroundColor(.white)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.8)
                                 Spacer()
@@ -800,14 +770,14 @@ struct ContentView: View {
                                     UIPasteboard.general.string = license.storedKey
                                 }) {
                                     Image(systemName: "doc.on.doc")
-                                        .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                                        .foregroundColor(.white)
                                         .padding(6)
-                                        .background(Color(red: 0.02, green: 0.08, blue: 0.12))
+                                        .background(Color(white: 0.15))
                                         .clipShape(RoundedRectangle(cornerRadius: 6))
                                 }
                             }
                             .padding(10)
-                            .background(Color(red: 0.02, green: 0.08, blue: 0.12))
+                            .background(Color(white: 0.05))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
 
@@ -815,7 +785,7 @@ struct ContentView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("MÃ THIẾT BỊ (HWID)")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color(red: 0.55, green: 0.75, blue: 0.85))
+                                .foregroundColor(Color(white: 0.65))
                             HStack {
                                 Text(license.deviceId)
                                     .font(.system(size: 12, weight: .medium, design: .monospaced))
@@ -827,14 +797,14 @@ struct ContentView: View {
                                     UIPasteboard.general.string = license.deviceId
                                 }) {
                                     Image(systemName: "doc.on.doc")
-                                        .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                                        .foregroundColor(.white)
                                         .padding(6)
-                                        .background(Color(red: 0.02, green: 0.08, blue: 0.12))
+                                        .background(Color(white: 0.15))
                                         .clipShape(RoundedRectangle(cornerRadius: 6))
                                 }
                             }
                             .padding(10)
-                            .background(Color(red: 0.02, green: 0.08, blue: 0.12))
+                            .background(Color(white: 0.05))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
 
@@ -842,28 +812,28 @@ struct ContentView: View {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("HẠN SỬ DỤNG")
                                 .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color(red: 0.55, green: 0.75, blue: 0.85))
+                                .foregroundColor(Color(white: 0.65))
                             HStack {
                                 Image(systemName: "calendar.badge.clock")
-                                    .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                                    .foregroundColor(.white)
                                 Text(license.deviceExpires.isEmpty ? "Vĩnh viễn / Theo key" : license.deviceExpires)
                                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                                    .foregroundColor(Color(red: 0.85, green: 0.95, blue: 1.00))
+                                    .foregroundColor(.white)
                                 Spacer()
                             }
                             .padding(10)
-                            .background(Color(red: 0.02, green: 0.08, blue: 0.12))
+                            .background(Color(white: 0.05))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
 
-                        // Status Badge
+                        // Status Row
                         HStack {
                             Circle()
-                                .fill(license.isAuthed ? Color(red: 0.00, green: 0.85, blue: 0.98) : Color.red)
+                                .fill(license.isAuthed ? Color.white : Color.red)
                                 .frame(width: 8, height: 8)
-                            Text(license.isAuthed ? "TRẠNG THÁI: ĐANG HOẠT ĐỘNG" : "TRẠNG THÁI: HẾT HẠN / ĐÃ KHOÁ")
+                            Text(license.isAuthed ? "TRẠNG THÁI: HOẠT ĐỘNG" : "TRẠNG THÁI: HẾT HẠN")
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundColor(license.isAuthed ? Color(red: 0.00, green: 0.85, blue: 0.98) : Color.red)
+                                .foregroundColor(license.isAuthed ? .white : .red)
                             Spacer()
                         }
                         .padding(.top, 4)
@@ -873,7 +843,6 @@ struct ContentView: View {
                 // Telegram Support Channels Card
                 CardView(title: "KÊNH LIÊN HỆ & HỖ TRỢ", icon: "paperplane.fill") {
                     VStack(spacing: 12) {
-                        // Channel Button
                         Button(action: {
                             if let url = URL(string: "https://t.me/cheatmeo") {
                                 UIApplication.shared.open(url)
@@ -881,10 +850,10 @@ struct ContentView: View {
                         }) {
                             HStack(spacing: 12) {
                                 Image(systemName: "megaphone.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(Color(red: 0.02, green: 0.07, blue: 0.10))
-                                    .frame(width: 36, height: 36)
-                                    .background(Color(red: 0.00, green: 0.85, blue: 0.98))
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.black)
+                                    .frame(width: 32, height: 32)
+                                    .background(Color.white)
                                     .clipShape(Circle())
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Channel Telegram")
@@ -892,22 +861,21 @@ struct ContentView: View {
                                         .foregroundColor(.white)
                                     Text("t.me/cheatmeo")
                                         .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                        .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                                        .foregroundColor(Color(white: 0.70))
                                 }
                                 Spacer()
-                                Image(systemName: "arrow.up.right.square.fill")
-                                    .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                                Image(systemName: "arrow.up.right.square")
+                                    .foregroundColor(.white)
                             }
                             .padding(12)
-                            .background(Color(red: 0.02, green: 0.08, blue: 0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .background(Color(white: 0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.3), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(white: 0.20), lineWidth: 1)
                             )
                         }
 
-                        // Admin Button
                         Button(action: {
                             if let url = URL(string: "https://t.me/truongdeptrai7") {
                                 UIApplication.shared.open(url)
@@ -915,10 +883,10 @@ struct ContentView: View {
                         }) {
                             HStack(spacing: 12) {
                                 Image(systemName: "person.crop.circle.badge.checkmark")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(Color(red: 0.02, green: 0.07, blue: 0.10))
-                                    .frame(width: 36, height: 36)
-                                    .background(Color(red: 0.00, green: 0.85, blue: 0.98))
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.black)
+                                    .frame(width: 32, height: 32)
+                                    .background(Color.white)
                                     .clipShape(Circle())
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("Admin Hỗ Trợ")
@@ -926,18 +894,18 @@ struct ContentView: View {
                                         .foregroundColor(.white)
                                     Text("t.me/truongdeptrai7")
                                         .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                        .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                                        .foregroundColor(Color(white: 0.70))
                                 }
                                 Spacer()
-                                Image(systemName: "arrow.up.right.square.fill")
-                                    .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                                Image(systemName: "arrow.up.right.square")
+                                    .foregroundColor(.white)
                             }
                             .padding(12)
-                            .background(Color(red: 0.02, green: 0.08, blue: 0.12))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .background(Color(white: 0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.3), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(white: 0.20), lineWidth: 1)
                             )
                         }
                     }
@@ -955,16 +923,16 @@ struct ContentView: View {
                     HStack {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
                         Text("ĐỔI LICENSE KEY KHÁC")
-                            .font(.system(size: 14, weight: .bold, design: .rounded))
+                            .font(.system(size: 13, weight: .bold, design: .rounded))
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 46)
-                    .foregroundColor(Color(red: 0.95, green: 0.4, blue: 0.4))
-                    .background(Color(red: 0.25, green: 0.08, blue: 0.08).opacity(0.6))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .frame(height: 44)
+                    .foregroundColor(Color(white: 0.85))
+                    .background(Color(white: 0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.red.opacity(0.35), lineWidth: 1)
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(white: 0.25), lineWidth: 1)
                     )
                 }
             }
@@ -987,14 +955,12 @@ struct ContentView: View {
             if fm.fileExists(atPath: configURL.path) {
                 let data = try Data(contentsOf: configURL)
                 config = try JSONDecoder().decode(EspConfig.self, from: data)
-                log("✅ Loaded config from Documents")
             }
-        } catch { log("❌ Load config failed: \(error)") }
+        } catch { }
     }
 
     private func saveConfigLocally() -> Data? {
         do {
-            // Inject live API tokens & server active state into config before saving
             if !license.getMeomeo().isEmpty { config.meomeo = license.getMeomeo() }
             if !license.getSig().isEmpty { config.sig = license.getSig() }
             if !license.getToken().isEmpty { config.token = license.getToken() }
@@ -1026,13 +992,11 @@ struct ContentView: View {
             let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
             let configURL = docsURL.appendingPathComponent("localConfig.json")
             try? jsonData.write(to: configURL)
-            log("✅ Config synced to game")
         }
     }
 
     private func uninstallMod() {
         guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) else {
-            log("❌ Cannot find game container")
             hasInjected = false
             return
         }
@@ -1043,48 +1007,27 @@ struct ContentView: View {
         do {
             if fm.fileExists(atPath: bytesURL.path) { try fm.removeItem(at: bytesURL) }
             if fm.fileExists(atPath: configURL.path) { try fm.removeItem(at: configURL) }
-            log("✅ Uninstalled mod")
             hasInjected = false
             license.stopHeartbeat()
-        } catch {
-            log("❌ Uninstall error: \(error)")
-        }
+        } catch { }
     }
 
     private func injectGame() {
-        // Anti-Tamper check before proceeding
-        if SecurityShield.isDebuggerAttached {
-            log("❌ Tamper detected: Debugger attached")
-            return
-        }
-
-        // Verify license is still valid before injecting
-        guard license.isAuthed else {
-            log("❌ License not active — authenticate first")
-            return
-        }
-
-        guard let jsonData = saveConfigLocally() else {
-            log("❌ Error saving config")
-            return
-        }
+        if SecurityShield.isDebuggerAttached { return }
+        guard license.isAuthed else { return }
+        guard let jsonData = saveConfigLocally() else { return }
         isInjecting = true
-        log("⏳ Verifying license with server...")
 
-        // Double-check with API before downloading
         license.checkStatus { ok in
             guard ok else {
                 self.isInjecting = false
-                self.log("❌ Server rejected: license inactive or expired")
                 return
             }
-            self.log("✅ License verified")
-            self.log("⏳ Download...")
 
             let token = SecurityShield.githubToken
             let urlStr = SecurityShield.payloadDownloadURL
             guard let url = URL(string: urlStr) else {
-                self.log("❌ Invalid URL"); self.isInjecting = false; return
+                self.isInjecting = false; return
             }
             var request = URLRequest(url: url)
             request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
@@ -1092,19 +1035,12 @@ struct ContentView: View {
             URLSession.shared.dataTask(with: request) { data, response, error in
                 DispatchQueue.main.async {
                     self.isInjecting = false
-                    if let error = error {
-                        self.log("❌ Download error: \(error.localizedDescription)"); return
-                    }
-                    if let http = response as? HTTPURLResponse, http.statusCode != 200 {
-                        self.log("❌ HTTP \(http.statusCode)"); return
-                    }
-                    guard let data = data else {
-                        self.log("❌ No data received"); return
-                    }
-                    self.log("✅ Downloaded \(data.count) bytes")
+                    if let error = error { return }
+                    if let http = response as? HTTPURLResponse, http.statusCode != 200 { return }
+                    guard let data = data else { return }
 
                     guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) else {
-                        self.log("❌ Game not found: \(self.selectedBundleID)"); return
+                        return
                     }
                     let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
                     let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
@@ -1115,28 +1051,22 @@ struct ContentView: View {
                             try fm.createDirectory(at: docsURL, withIntermediateDirectories: true)
                         }
                         try data.write(to: bytesURL)
-                        // Re-save config with fresh API tokens
                         if let freshConfig = self.saveConfigLocally() {
                             try freshConfig.write(to: configURL)
                         } else {
                             try jsonData.write(to: configURL)
                         }
-                        let gameName = self.gameTab == "ff" ? "Free Fire" : "Free Fire MAX"
-                        self.log("✅ Done Mod — launch \(gameName) now!")
                         self.hasInjected = true
                         self.topTab = "Menu"
-                        // Start heartbeat to keep session alive
                         self.license.startHeartbeat()
-                    } catch {
-                        self.log("❌ Write error: \(error)")
-                    }
+                    } catch { }
                 }
             }.resume()
         }
     }
 }
 
-// MARK: - Reusable Components
+// MARK: - Reusable Components (Đen Trắng)
 struct CardView<Content: View>: View {
     var title: String
     var icon: String
@@ -1148,21 +1078,21 @@ struct CardView<Content: View>: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 8) {
                 Image(systemName: icon)
-                    .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                    .foregroundColor(.white)
                     .font(.system(size: 13, weight: .bold))
                 Text(title)
                     .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundColor(Color(red: 0.45, green: 0.95, blue: 1.00))
-                    .tracking(1.2)
+                    .foregroundColor(.white)
+                    .tracking(1.0)
             }
             content
         }
         .padding(16)
-        .background(Color(red: 0.04, green: 0.14, blue: 0.20))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .background(Color(white: 0.10))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color(red: 0.00, green: 0.85, blue: 0.98).opacity(0.28), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color(white: 0.22), lineWidth: 1)
         )
     }
 }
@@ -1174,11 +1104,11 @@ struct ToggleRow: View {
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(on ? Color(red: 0.00, green: 0.85, blue: 0.98) : Color(red: 0.55, green: 0.75, blue: 0.85))
+                .foregroundColor(on ? .white : Color(white: 0.55))
                 .frame(width: 20)
             Text(label)
                 .font(.system(size: 15, weight: .medium, design: .rounded))
-                .foregroundColor(Color(red: 0.85, green: 0.95, blue: 1.00))
+                .foregroundColor(.white)
             Spacer()
             Toggle("", isOn: $on).toggleStyle(SlimToggleStyle()).labelsHidden()
         }
@@ -1195,14 +1125,14 @@ struct SliderRow: View {
             HStack {
                 Text(label)
                     .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(Color(red: 0.65, green: 0.85, blue: 0.95))
+                    .foregroundColor(Color(white: 0.70))
                 Spacer()
                 Text(isPercent ? "\(Int(value))%" : "\(Int(value))")
                     .font(.system(size: 13, weight: .bold, design: .monospaced))
-                    .foregroundColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                    .foregroundColor(.white)
             }
             Slider(value: $value, in: range, step: 1)
-                .accentColor(Color(red: 0.00, green: 0.85, blue: 0.98))
+                .accentColor(.white)
         }
     }
 }
