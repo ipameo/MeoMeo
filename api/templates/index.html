@@ -2,7 +2,7 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>MeoMeo — Hệ Thống License</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
@@ -16,7 +16,6 @@
             --border-focus: #58a6ff;
             --text-primary: #f0f6fc;
             --text-secondary: #8b949e;
-            --accent-blue: #238636;
             --btn-primary: #238636;
             --btn-primary-hover: #2ea043;
             --btn-blue: #1f6feb;
@@ -25,9 +24,6 @@
             --btn-danger-hover: #f85149;
             --btn-secondary: #21262d;
             --btn-secondary-hover: #30363d;
-            --badge-green: #238636;
-            --badge-red: #da3633;
-            --badge-yellow: #9e6a03;
             --card-radius: 8px;
         }
 
@@ -36,30 +32,31 @@
             margin: 0;
             padding: 0;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
             background-color: var(--bg-body);
             color: var(--text-primary);
             min-height: 100vh;
-            padding: 20px;
+            padding: 16px;
         }
 
         .container {
-            max-width: 1100px;
+            max-width: 1080px;
             margin: 0 auto;
+            width: 100%;
         }
 
-        /* ── Header Đơn Giản ── */
+        /* ── Header Gọn Gàng (PC & Mobi) ── */
         header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 14px;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
             border-bottom: 1px solid var(--border-color);
-            flex-wrap: wrap;
-            gap: 12px;
+            gap: 10px;
         }
 
         .brand {
@@ -78,12 +75,14 @@
             align-items: center;
             justify-content: center;
             font-size: 18px;
+            flex-shrink: 0;
         }
 
         .brand-title h1 {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: 700;
             color: #fff;
+            line-height: 1.2;
         }
 
         .brand-title p {
@@ -95,9 +94,10 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex-shrink: 0;
         }
 
-        /* ── Nút Bấm Cơ Bản (Không Màu Mè) ── */
+        /* ── Nút Bấm Cơ Bản ── */
         .btn {
             background: var(--btn-blue);
             color: #fff;
@@ -109,56 +109,33 @@
             cursor: pointer;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 6px;
             text-decoration: none;
             transition: background 0.15s ease;
+            white-space: nowrap;
         }
 
-        .btn:hover {
-            background: var(--btn-blue-hover);
-        }
-
-        .btn-success {
-            background: var(--btn-primary);
-        }
-        .btn-success:hover {
-            background: var(--btn-primary-hover);
-        }
-
+        .btn:hover { background: var(--btn-blue-hover); }
+        .btn-success { background: var(--btn-primary); }
+        .btn-success:hover { background: var(--btn-primary-hover); }
         .btn-secondary {
             background: var(--btn-secondary);
             color: var(--text-primary);
             border: 1px solid var(--border-color);
         }
-        .btn-secondary:hover {
-            background: var(--btn-secondary-hover);
-        }
+        .btn-secondary:hover { background: var(--btn-secondary-hover); }
+        .btn-danger { background: var(--btn-danger); }
+        .btn-danger:hover { background: var(--btn-danger-hover); }
+        .btn-warning { background: #d29922; color: #fff; }
+        .btn-warning:hover { background: #e3b341; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; border-radius: 4px; }
 
-        .btn-danger {
-            background: var(--btn-danger);
-        }
-        .btn-danger:hover {
-            background: var(--btn-danger-hover);
-        }
-
-        .btn-warning {
-            background: #d29922;
-            color: #fff;
-        }
-        .btn-warning:hover {
-            background: #e3b341;
-        }
-
-        .btn-sm {
-            padding: 4px 10px;
-            font-size: 12px;
-            border-radius: 4px;
-        }
-
-        /* ── Client View (Form Nhập Key Bình Thường - Gọn Gàng) ── */
+        /* ── Client View (Form Nhập Key - Tương Thích Mobile / PC) ── */
         #clientSection {
             max-width: 580px;
-            margin: 40px auto;
+            margin: 20px auto;
+            width: 100%;
         }
 
         .client-card {
@@ -169,12 +146,12 @@
         }
 
         .client-header {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
             text-align: center;
         }
 
         .client-header h2 {
-            font-size: 20px;
+            font-size: 19px;
             font-weight: 700;
             color: #fff;
             margin-bottom: 6px;
@@ -183,6 +160,7 @@
         .client-header p {
             font-size: 13px;
             color: var(--text-secondary);
+            line-height: 1.4;
         }
 
         .input-group {
@@ -193,23 +171,19 @@
 
         .key-input {
             flex: 1;
+            min-width: 0;
             background: var(--bg-input);
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 10px 14px;
+            padding: 10px 12px;
             font-size: 14px;
             font-family: 'JetBrains Mono', monospace;
             color: #fff;
             outline: none;
         }
 
-        .key-input:focus {
-            border-color: var(--border-focus);
-        }
-
-        .key-input::placeholder {
-            color: #484f58;
-        }
+        .key-input:focus { border-color: var(--border-focus); }
+        .key-input::placeholder { color: #484f58; font-size: 13px; }
 
         /* ── Result Box ── */
         .result-box {
@@ -217,8 +191,8 @@
             background: #0d1117;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 16px;
-            margin-top: 16px;
+            padding: 14px;
+            margin-top: 14px;
         }
 
         .result-header {
@@ -236,8 +210,9 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 6px 0;
+            padding: 7px 0;
             font-size: 13px;
+            gap: 8px;
         }
 
         .result-row:not(:last-child) {
@@ -246,6 +221,7 @@
 
         .result-label {
             color: var(--text-secondary);
+            flex-shrink: 0;
         }
 
         .result-val {
@@ -255,6 +231,8 @@
             display: flex;
             align-items: center;
             gap: 6px;
+            text-align: right;
+            word-break: break-all;
         }
 
         .badge-status {
@@ -263,6 +241,7 @@
             border-radius: 4px;
             font-size: 11px;
             font-weight: 600;
+            white-space: nowrap;
         }
         .badge-active { background: #1f6f32; color: #fff; }
         .badge-banned { background: #da3633; color: #fff; }
@@ -273,14 +252,14 @@
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
-            margin-top: 20px;
+            margin-top: 18px;
         }
 
         .btn-tele {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             color: var(--text-primary);
-            padding: 9px;
+            padding: 10px;
             border-radius: 6px;
             font-size: 12px;
             font-weight: 600;
@@ -302,11 +281,11 @@
             display: none;
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.75);
             z-index: 1000;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            padding: 16px;
         }
 
         .modal-card {
@@ -322,14 +301,14 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
         .modal-header h3 {
             font-size: 15px;
             color: #fff;
         }
 
-        /* ── Admin Dashboard (Ẩn Mặc Định) ── */
+        /* ── Admin Dashboard ── */
         #adminDashboard {
             display: none;
         }
@@ -340,9 +319,9 @@
             align-items: center;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
-            padding: 10px 16px;
+            padding: 10px 14px;
             border-radius: var(--card-radius);
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             flex-wrap: wrap;
             gap: 10px;
         }
@@ -358,25 +337,20 @@
             background: #1f6f32;
             color: #fff;
         }
-        .status-badge.offline {
-            background: #da3633;
-        }
+        .status-badge.offline { background: #da3633; }
 
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-        @media (max-width: 800px) {
-            .stats-grid { grid-template-columns: repeat(2, 1fr); }
+            gap: 10px;
+            margin-bottom: 16px;
         }
 
         .stat-box {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: var(--card-radius);
-            padding: 14px;
+            padding: 12px 14px;
         }
         .stat-label {
             font-size: 11px;
@@ -386,7 +360,7 @@
             margin-bottom: 4px;
         }
         .stat-value {
-            font-size: 20px;
+            font-size: 19px;
             font-weight: 700;
             color: #fff;
             font-family: 'JetBrains Mono', monospace;
@@ -396,16 +370,16 @@
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: var(--card-radius);
-            padding: 16px 20px;
+            padding: 14px 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 20px;
+            margin-bottom: 16px;
             flex-wrap: wrap;
             gap: 12px;
         }
         .killswitch-info h3 {
-            font-size: 15px;
+            font-size: 14px;
             font-weight: 700;
             color: #fff;
             margin-bottom: 2px;
@@ -419,8 +393,9 @@
         .toggle-switch {
             position: relative;
             display: inline-block;
-            width: 50px;
-            height: 26px;
+            width: 48px;
+            height: 24px;
+            flex-shrink: 0;
         }
         .toggle-switch input { opacity: 0; width: 0; height: 0; }
         .slider {
@@ -429,38 +404,34 @@
             top: 0; left: 0; right: 0; bottom: 0;
             background-color: #30363d;
             transition: .2s;
-            border-radius: 26px;
+            border-radius: 24px;
         }
         .slider:before {
             position: absolute;
             content: "";
             height: 18px;
             width: 18px;
-            left: 4px;
-            bottom: 4px;
+            left: 3px;
+            bottom: 3px;
             background-color: white;
             transition: .2s;
             border-radius: 50%;
         }
-        input:checked + .slider {
-            background-color: #238636;
-        }
-        input:checked + .slider:before {
-            transform: translateX(24px);
-        }
+        input:checked + .slider { background-color: #238636; }
+        input:checked + .slider:before { transform: translateX(24px); }
 
         .card {
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: var(--card-radius);
-            padding: 18px;
-            margin-bottom: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
         }
         .card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 14px;
+            margin-bottom: 12px;
             flex-wrap: wrap;
             gap: 8px;
         }
@@ -472,14 +443,14 @@
 
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+            gap: 8px;
         }
         .feature-item {
             background: #0d1117;
             border: 1px solid var(--border-color);
             border-radius: 6px;
-            padding: 10px 12px;
+            padding: 8px 12px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -504,6 +475,7 @@
             color: #fff;
             font-size: 13px;
             outline: none;
+            width: 100%;
         }
         .form-group input:focus, .form-group select:focus {
             border-color: var(--border-focus);
@@ -511,28 +483,30 @@
 
         .table-responsive {
             overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
         table {
             width: 100%;
+            min-width: 600px;
             border-collapse: collapse;
-            font-size: 13px;
+            font-size: 12.5px;
         }
         th {
             text-align: left;
-            padding: 10px 12px;
+            padding: 8px 10px;
             color: var(--text-secondary);
             font-size: 11px;
             text-transform: uppercase;
             border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
         }
         td {
-            padding: 10px 12px;
+            padding: 8px 10px;
             border-bottom: 1px solid #21262d;
             vertical-align: middle;
+            white-space: nowrap;
         }
-        tr:hover td {
-            background: rgba(255, 255, 255, 0.02);
-        }
+        tr:hover td { background: rgba(255, 255, 255, 0.02); }
         .key-text {
             font-family: 'JetBrains Mono', monospace;
             font-weight: 600;
@@ -547,7 +521,7 @@
             gap: 4px;
         }
         .key-text:hover { background: #21262d; border-color: #58a6ff; }
-        .actions-cell { display: flex; gap: 6px; flex-wrap: wrap; }
+        .actions-cell { display: flex; gap: 4px; flex-wrap: wrap; }
 
         /* Modal Created Key Popup */
         #newKeyModal .key-display {
@@ -557,7 +531,7 @@
             padding: 12px;
             text-align: center;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 700;
             color: #58a6ff;
             margin: 12px 0;
@@ -567,22 +541,59 @@
         /* ── Toast ── */
         #toast {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 16px;
+            bottom: 16px;
+            right: 16px;
+            left: 16px;
+            max-width: 380px;
+            margin: 0 auto;
+            padding: 10px 14px;
             border-radius: 6px;
             background: #161b22;
             color: #fff;
-            font-size: 13px;
+            font-size: 12.5px;
             font-weight: 600;
             border: 1px solid var(--border-color);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-            transform: translateY(80px);
+            box-shadow: 0 4px 14px rgba(0,0,0,0.6);
+            transform: translateY(100px);
             opacity: 0;
             transition: all 0.25s ease;
             z-index: 9999;
+            text-align: center;
         }
         #toast.show { transform: translateY(0); opacity: 1; }
+
+        /* ── RESPONSIVE MOBILE TWEAKS (MOBI & TABLET) ── */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            header { margin-bottom: 14px; }
+            .brand-title h1 { font-size: 15px; }
+            .brand-title p { font-size: 11px; }
+            .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .stat-box { padding: 10px; }
+            .stat-value { font-size: 17px; }
+            .client-card { padding: 16px; }
+            .social-grid { grid-template-columns: 1fr; }
+            .killswitch-card { padding: 12px 14px; }
+            .card { padding: 14px; }
+        }
+
+        @media (max-width: 480px) {
+            .input-group {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .input-group .btn {
+                width: 100%;
+                height: 40px;
+            }
+            .key-input {
+                height: 42px;
+                text-align: center;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -593,7 +604,7 @@
                 <div class="brand-icon">🐱</div>
                 <div class="brand-title">
                     <h1>MeoMeo iOS</h1>
-                    <p>Tra cứu License & Trạng Thái Key</p>
+                    <p>Tra cứu License & Quản Trị</p>
                 </div>
             </div>
 
@@ -608,7 +619,7 @@
         </header>
 
         <!-- ═══════════════════════════════════════════════════════════════════════ -->
-        <!-- CLIENT VIEW: CHỈ HIỆN NHẬP KEY - GIAO DIỆN BÌNH THƯỜNG KHÔNG MÀU MÈ -->
+        <!-- CLIENT VIEW: CHỈ HIỆN NHẬP KEY - GIAO DIỆN BÌNH THƯỜNG MOBI & PC -->
         <!-- ═══════════════════════════════════════════════════════════════════════ -->
         <div id="clientSection">
             <div class="client-card">
@@ -618,7 +629,7 @@
                 </div>
 
                 <div class="input-group">
-                    <input type="text" id="clientKeyInput" class="key-input" placeholder="Nhập mã key (VD: XXXX-XXXX-XXXX-XXXX)" autocomplete="off" spellcheck="false" onkeypress="if(event.key==='Enter') checkClientKey()">
+                    <input type="text" id="clientKeyInput" class="key-input" placeholder="Nhập mã key (XXXX-XXXX-XXXX-XXXX)" autocomplete="off" spellcheck="false" onkeypress="if(event.key==='Enter') checkClientKey()">
                     <button class="btn btn-secondary" onclick="pasteClientKey()" title="Dán từ Clipboard">📋 Dán</button>
                     <button class="btn btn-success" onclick="checkClientKey()">Kiểm Tra</button>
                 </div>
@@ -649,7 +660,7 @@
                         <span class="result-val" id="resExpires">—</span>
                     </div>
                     <div class="result-row">
-                        <span class="result-label">Thiết Bị:</span>
+                        <span class="result-label">Thiết Bị (HWID):</span>
                         <span class="result-val" id="resDevices">—</span>
                     </div>
                 </div>
@@ -673,10 +684,10 @@
             <!-- ADMIN TOP BAR -->
             <div class="admin-top-bar">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                    <span style="font-weight: 700; color: #fff;">Bảng Quản Trị</span>
+                    <span style="font-weight: 700; color: #fff; font-size: 13px;">Bảng Quản Trị</span>
                     <span style="color: var(--text-secondary); font-size: 12px;">(Live Control)</span>
                 </div>
-                <div style="display: flex; align-items: center; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
                     <div id="liveBadge" class="status-badge">
                         <span id="liveBadgeText">ONLINE</span>
                     </div>
@@ -687,7 +698,7 @@
             <!-- STATS ROW -->
             <div class="stats-grid">
                 <div class="stat-box">
-                    <div class="stat-label">Trạng Thái Server</div>
+                    <div class="stat-label">Server Status</div>
                     <div class="stat-value" id="statServerStatus" style="color: #3fb950;">ONLINE</div>
                 </div>
                 <div class="stat-box">
@@ -699,7 +710,7 @@
                     <div class="stat-value" id="statActiveKeys" style="color: #3fb950;">0</div>
                 </div>
                 <div class="stat-box">
-                    <div class="stat-label">Thiết Bị Đang Dùng</div>
+                    <div class="stat-label">Thiết Bị Dùng</div>
                     <div class="stat-value" id="statUsedDevices">0</div>
                 </div>
             </div>
@@ -722,7 +733,7 @@
             <div class="card">
                 <div class="card-header">
                     <h2>Điều Khiển Tính Năng Server (Live Sync)</h2>
-                    <span style="font-size: 12px; color: var(--text-secondary);">Tắt tính năng nào thì người chơi trong game sẽ tắt ngay tính năng đó</span>
+                    <span style="font-size: 11px; color: var(--text-secondary);">Tắt tính năng nào thì người chơi trong game sẽ tắt ngay tính năng đó</span>
                 </div>
                 <div class="features-grid" id="featuresGrid">
                     <!-- Injected via JS -->
@@ -730,7 +741,7 @@
             </div>
 
             <!-- FORMS GRID: CREATE KEY & QUICK ACTIONS -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; margin-bottom: 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; margin-bottom: 16px;">
                 <!-- CREATE KEY FORM -->
                 <div class="card">
                     <div class="card-header">
@@ -757,9 +768,12 @@
                             <div class="form-group">
                                 <label>Số Máy (HWID)</label>
                                 <select id="newKeyDevices">
-                                    <option value="1" selected>1 Máy</option>
+                                    <option value="1" selected>1 Máy (Chuẩn)</option>
                                     <option value="2">2 Máy</option>
+                                    <option value="3">3 Máy</option>
                                     <option value="5">5 Máy</option>
+                                    <option value="10">10 Máy</option>
+                                    <option value="99999">Không Giới Hạn HWID</option>
                                 </select>
                             </div>
                         </div>
@@ -794,7 +808,7 @@
             <div class="card">
                 <div class="card-header">
                     <h2>Danh Sách License Key</h2>
-                    <input type="text" id="searchKeyInput" oninput="filterKeys()" placeholder="Tìm kiếm key..." style="background: #0d1117; border: 1px solid var(--border-color); color: #fff; padding: 5px 10px; border-radius: 4px; font-size: 12px;">
+                    <input type="text" id="searchKeyInput" oninput="filterKeys()" placeholder="Tìm kiếm key..." style="background: #0d1117; border: 1px solid var(--border-color); color: #fff; padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 160px;">
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -802,7 +816,7 @@
                             <tr>
                                 <th>License Key</th>
                                 <th>Hạn Dùng</th>
-                                <th>Thiết Bị</th>
+                                <th>Thiết Bị (HWID)</th>
                                 <th>Trạng Thái</th>
                                 <th>Ngày Tạo</th>
                                 <th style="text-align: right;">Thao Tác</th>
@@ -867,7 +881,7 @@
                 <h3>🎉 Tạo Key Thành Công!</h3>
                 <button class="btn btn-secondary btn-sm" onclick="closeNewKeyModal()">✕</button>
             </div>
-            <p style="font-size: 13px; color: var(--text-secondary);">Key đã được lưu vào hệ thống. Bạn có thể copy để gửi cho khách:</p>
+            <p style="font-size: 13px; color: var(--text-secondary);">Key đã lưu vào hệ thống. Bạn có thể copy để gửi cho khách:</p>
             <div id="newKeyModalValue" class="key-display">—</div>
             <div style="display: flex; gap: 8px;">
                 <button class="btn btn-success" style="flex: 1; justify-content: center;" onclick="copyNewKeyModal()">📋 Sao Chép Key</button>
@@ -919,6 +933,8 @@
         function fallbackCopy(text, successMsg) {
             const temp = document.createElement("textarea");
             temp.value = text;
+            temp.style.position = "fixed";
+            temp.style.opacity = "0";
             document.body.appendChild(temp);
             temp.select();
             document.execCommand("copy");
@@ -985,7 +1001,9 @@
                 document.getElementById("resStatus").innerText = data.status;
                 document.getElementById("resDuration").innerText = data.duration_text;
                 document.getElementById("resExpires").innerText = data.expires_at;
-                document.getElementById("resDevices").innerText = `${data.used_devices} / ${data.max_devices} máy`;
+                
+                const deviceSummary = data.device_summary || (data.max_devices >= 9999 ? `${data.used_devices} máy (Không giới hạn)` : `${data.used_devices} / ${data.max_devices} máy`);
+                document.getElementById("resDevices").innerText = deviceSummary;
 
                 const badge = document.getElementById("resBadge");
                 if (data.status.includes("Banned") || data.status.includes("bị")) {
@@ -1168,7 +1186,6 @@
                         <span class="slider" style="border-radius: 22px;"></span>
                     </label>
                 `;
-                const s = div.querySelector(".slider");
                 grid.appendChild(div);
             }
         }
@@ -1321,6 +1338,9 @@
                 const banBtnText = isBanned ? "Mở Ban" : "Ban";
                 const banBtnClass = isBanned ? "btn-warning" : "btn-danger";
 
+                const isUnlimited = k.max_devices >= 9999;
+                const deviceText = isUnlimited ? `${k.used_devices || 0} / ∞ (K.Giới hạn)` : `${k.used_devices || 0} / ${k.max_devices || 1}`;
+
                 return `
                     <tr>
                         <td>
@@ -1329,9 +1349,9 @@
                             </span>
                         </td>
                         <td>${k.duration_days >= 9999 ? "Vĩnh viễn" : k.duration_days + " ngày"}</td>
-                        <td>${k.used_devices || 0} / ${k.max_devices || 1}</td>
+                        <td>${deviceText}</td>
                         <td>${statusBadge}</td>
-                        <td style="color: var(--text-secondary); font-size: 12px;">${k.created_at || "—"}</td>
+                        <td style="color: var(--text-secondary); font-size: 11px;">${k.created_at || "—"}</td>
                         <td style="text-align: right;">
                             <div class="actions-cell" style="justify-content: flex-end;">
                                 <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('${k.license_key}', 'Đã copy: ${k.license_key}')">Copy</button>
@@ -1360,13 +1380,13 @@
 
                 return `
                     <tr>
-                        <td style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #58a6ff;">${d.device_id}</td>
+                        <td style="font-family: 'JetBrains Mono', monospace; font-size: 11.5px; color: #58a6ff;">${d.device_id}</td>
                         <td>
                             <span class="key-text" onclick="copyToClipboard('${d.license_key || ""}', 'Đã copy: ${d.license_key}')">
                                 ${d.license_key || "—"} 📋
                             </span>
                         </td>
-                        <td style="font-size: 12px;">${d.expires_at || "—"}</td>
+                        <td style="font-size: 11.5px;">${d.expires_at || "—"}</td>
                         <td>${badge}</td>
                         <td style="text-align: right;">
                             <div class="actions-cell" style="justify-content: flex-end;">

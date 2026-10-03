@@ -240,13 +240,13 @@ def auth():
     now = datetime.utcnow()
 
     if device is None:
-        # Check max devices for this license
+        # Check max devices for this license (if not unlimited)
         device_count = db.execute(
             "SELECT COUNT(*) as cnt FROM devices WHERE license_key_id = ?",
             (lk["id"],),
         ).fetchone()["cnt"]
 
-        if device_count >= lk["max_devices"]:
+        if lk["max_devices"] < 9999 and device_count >= lk["max_devices"]:
             log_auth(device_id, "auth", "max_devices")
             return jsonify({"error": "max_devices_reached"}), 403
 
@@ -618,13 +618,18 @@ def check_key():
     elif is_expired:
         status_label = "Đã hết hạn"
 
+    is_unlimited_hwid = (lk["max_devices"] >= 9999)
+    device_summary = f"{used_count} máy (Không giới hạn)" if is_unlimited_hwid else f"{used_count} / {lk['max_devices']} máy"
+
     return jsonify({
         "ok": True,
         "key": lk["license_key"],
         "duration_days": lk["duration_days"],
         "duration_text": "Vĩnh viễn" if lk["duration_days"] >= 9999 else f"{lk['duration_days']} ngày",
         "max_devices": lk["max_devices"],
+        "max_devices_text": "Không giới hạn" if is_unlimited_hwid else f"{lk['max_devices']} máy",
         "used_devices": used_count,
+        "device_summary": device_summary,
         "status": status_label,
         "active": (not is_banned) and (not is_expired),
         "expires_at": expires_str,
