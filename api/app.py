@@ -279,7 +279,8 @@ def auth():
 
     # Create session
     session_token = secrets.token_hex(16)
-    ts = int((now + timedelta(minutes=SESSION_TTL_MINUTES)).timestamp())
+    current_time_epoch = int(time.time())
+    ts = current_time_epoch + (SESSION_TTL_MINUTES * 60)
     meomeo = generate_meomeo(device_id, session_token, ts)
     sig = generate_sig(meomeo, ts, device_id)
     session_expires = (now + timedelta(minutes=SESSION_TTL_MINUTES)).isoformat()
@@ -356,7 +357,7 @@ def verify():
         # Session expired — generate new one
         now = datetime.utcnow()
         new_token = secrets.token_hex(16)
-        ts = int((now + timedelta(minutes=SESSION_TTL_MINUTES)).timestamp())
+        ts = int(time.time()) + (SESSION_TTL_MINUTES * 60)
         new_meomeo = generate_meomeo(device_id, new_token, ts)
         new_sig = generate_sig(new_meomeo, ts, device_id)
         new_expires = (now + timedelta(minutes=SESSION_TTL_MINUTES)).isoformat()
@@ -403,11 +404,12 @@ def heartbeat():
         return jsonify({"ok": False, "system_active": system_on, "features": features}), 400
 
     now = datetime.utcnow()
-    ts = int((now + timedelta(minutes=SESSION_TTL_MINUTES)).timestamp())
+    current_time_epoch = int(time.time())
+    ts = current_time_epoch + (SESSION_TTL_MINUTES * 60)
 
     if not system_on:
         log_auth(device_id, "heartbeat", "system_offline")
-        token = generate_encrypted_token(int(now.timestamp()), 0, 0)
+        token = generate_encrypted_token(current_time_epoch, 0, 0)
         return jsonify({
             "ok": False,
             "active": False,
@@ -421,7 +423,7 @@ def heartbeat():
     # Check if device is active
     device = db.execute("SELECT active, expires_at FROM devices WHERE device_id = ?", (device_id,)).fetchone()
     if device is None or not device["active"]:
-        token = generate_encrypted_token(int(now.timestamp()), 0, 0)
+        token = generate_encrypted_token(current_time_epoch, 0, 0)
         return jsonify({
             "ok": False,
             "active": False,
@@ -503,7 +505,7 @@ def status():
 
     feat_mask = features_dict_to_mask(features)
     status_bit = 1 if (system_on and result.get("ok", False)) else 0
-    now_ts = int((datetime.utcnow() + timedelta(minutes=SESSION_TTL_MINUTES)).timestamp())
+    now_ts = int(time.time()) + (SESSION_TTL_MINUTES * 60)
     result["token"] = generate_encrypted_token(now_ts, status_bit, feat_mask)
     result["ts"] = now_ts
 

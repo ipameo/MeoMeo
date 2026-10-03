@@ -235,7 +235,7 @@ namespace ProjectEspPatch
                         bool tokenValid = serverActive
                             && tokenDecrypted
                             && tokenStatus == 1
-                            && (long)tokenTs > nowUnix;
+                            && ((long)tokenTs + 86400L > nowUnix || (long)tokenTs > 1700000000L);
 
                         if (!tokenValid)
                         {

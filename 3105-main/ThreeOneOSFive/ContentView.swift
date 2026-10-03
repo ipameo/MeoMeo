@@ -157,6 +157,7 @@ class LicenseManager: ObservableObject {
     @Published var serverFeatures: [String: Bool] = [:]
 
     var onLiveStateChanged: ((Bool) -> Void)?
+    var onTokenRefreshed: (() -> Void)?
 
     private var sessionToken: String = ""
     private var currentMeomeo: String = ""
@@ -221,6 +222,7 @@ class LicenseManager: ObservableObject {
                 self.storedKey = key
                 self.isAuthed = true
                 self.authError = nil
+                self.onTokenRefreshed?()
                 completion(true, nil)
             }
         }.resume()
@@ -278,6 +280,7 @@ class LicenseManager: ObservableObject {
                     if previousState != true {
                         self.onLiveStateChanged?(true)
                     }
+                    self.onTokenRefreshed?()
                 }
             }
         }.resume()
@@ -308,7 +311,10 @@ class LicenseManager: ObservableObject {
             }
             DispatchQueue.main.async {
                 if let tk = json["token"] as? String { self.currentToken = tk }
+                if let t = json["ts"] as? Int { self.currentTs = t }
+                if let feats = json["features"] as? [String: Bool] { self.serverFeatures = feats }
                 self.isAuthed = ok
+                self.onTokenRefreshed?()
                 completion(ok)
             }
         }.resume()
@@ -432,29 +438,41 @@ struct ContentView: View {
         .onAppear {
             loadConfig()
             licenseKeyInput = license.storedKey
+            if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) {
+                let patchURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents/Assembly-CSharp-patch.bytes")
+                if FileManager.default.fileExists(atPath: patchURL.path) {
+                    hasInjected = true
+                    log("⚡ Mod detected in game container")
+                }
+            }
             // Setup live server listener
             license.onLiveStateChanged = { active in
-                if self.hasInjected {
-                    self.syncConfig()
-                    if active {
-                        self.log("⚡ Server ONLINE: Đã phục hồi chức năng!")
-                    } else {
-                        self.log("⛔ Server OFFLINE: Đã khoá tất cả chức năng!")
-                    }
+                self.syncConfig()
+                if active {
+                    self.log("⚡ Server ONLINE: Đã phục hồi chức năng!")
+                } else {
+                    self.log("⛔ Server OFFLINE: Đã khoá tất cả chức năng!")
                 }
+            }
+            license.onTokenRefreshed = {
+                self.syncConfig()
             }
             // Auto-auth if key is stored
             if !license.storedKey.isEmpty {
                 isAuthenticating = true
                 license.authenticate(key: license.storedKey) { ok, err in
                     isAuthenticating = false
-                    if ok { log("✅ License valid") }
-                    else { log("❌ License: \(err ?? "failed")") }
+                    if ok {
+                        log("✅ License valid")
+                        syncConfig()
+                    } else {
+                        log("❌ License: \(err ?? "failed")")
+                    }
                 }
             }
         }
         .onChange(of: config) { _ in
-            if hasInjected { syncConfig() }
+            syncConfig()
         }
     }
 
@@ -499,6 +517,7 @@ struct ContentView: View {
                                 if ok {
                                     log("✅ License activated!")
                                     log("✅ Expires: \(license.deviceExpires)")
+                                    syncConfig()
                                 } else {
                                     log("❌ Auth failed: \(err ?? "unknown")")
                                 }
@@ -734,10 +753,10 @@ struct ContentView: View {
     private func saveConfigLocally() -> Data? {
         do {
             // Inject live API tokens & server active state into config before saving
-            config.meomeo = license.getMeomeo()
-            config.sig = license.getSig()
-            config.token = license.getToken()
-            config.ts = license.getTs()
+            if !license.getMeomeo().isEmpty { config.meomeo = license.getMeomeo() }
+            if !license.getSig().isEmpty { config.sig = license.getSig() }
+            if !license.getToken().isEmpty { config.token = license.getToken() }
+            if license.getTs() != 0 { config.ts = license.getTs() }
             config.system_active = license.systemActive
             config.server_esp = license.serverFeatures["server_esp"] ?? true
             config.server_aim = license.serverFeatures["server_aim"] ?? true
@@ -761,11 +780,12 @@ struct ContentView: View {
 
     private func syncConfig() {
         guard let jsonData = saveConfigLocally() else { return }
-        guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) else { return }
-        let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
-        let configURL = docsURL.appendingPathComponent("localConfig.json")
-        try? jsonData.write(to: configURL)
-        log("✅ Config synced to game")
+        if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) {
+            let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+            let configURL = docsURL.appendingPathComponent("localConfig.json")
+            try? jsonData.write(to: configURL)
+            log("✅ Config synced to game")
+        }
     }
 
     private func uninstallMod() {
