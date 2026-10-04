@@ -71,7 +71,7 @@ struct APIConfig {
         return SecurityShield.apiBaseURL
     }
     static let sessionTTL: TimeInterval = 25 * 60
-    static let heartbeatInterval: TimeInterval = 2.0
+    static let heartbeatInterval: TimeInterval = 15.0
 }
 
 // MARK: - Config Model
@@ -289,14 +289,17 @@ class LicenseManager: ObservableObject {
                         self.onLiveStateChanged?(false)
                     }
                 } else {
-                    if let m = json["meomeo"] as? String { self.currentMeomeo = m }
-                    if let s = json["sig"] as? String { self.currentSig = s }
-                    if let tk = json["token"] as? String { self.currentToken = tk }
-                    if let t = json["ts"] as? Int { self.currentTs = t }
+                    var tokenChanged = false
+                    if let m = json["meomeo"] as? String, m != self.currentMeomeo { self.currentMeomeo = m; tokenChanged = true }
+                    if let s = json["sig"] as? String, s != self.currentSig { self.currentSig = s; tokenChanged = true }
+                    if let tk = json["token"] as? String, tk != self.currentToken { self.currentToken = tk; tokenChanged = true }
+                    if let t = json["ts"] as? Int, t != self.currentTs { self.currentTs = t; tokenChanged = true }
                     if previousState != true {
                         self.onLiveStateChanged?(true)
                     }
-                    self.onTokenRefreshed?()
+                    if tokenChanged {
+                        self.onTokenRefreshed?()
+                    }
                 }
             }
         }.resume()
@@ -1033,34 +1036,42 @@ struct ContentView: View {
             var request = URLRequest(url: url)
             request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
 
+            let writePatchData: (Data) -> Void = { patchData in
+                guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) else {
+                    self.isInjecting = false
+                    return
+                }
+                let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+                let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
+                let configURL = docsURL.appendingPathComponent("localConfig.json")
+                do {
+                    let fm = FileManager.default
+                    if !fm.fileExists(atPath: docsURL.path) {
+                        try fm.createDirectory(at: docsURL, withIntermediateDirectories: true)
+                    }
+                    try patchData.write(to: bytesURL)
+                    if let freshConfig = self.saveConfigLocally() {
+                        try freshConfig.write(to: configURL)
+                    } else {
+                        try jsonData.write(to: configURL)
+                    }
+                    self.hasInjected = true
+                    self.topTab = "Menu"
+                    self.license.startHeartbeat()
+                } catch { }
+                self.isInjecting = false
+            }
+
             URLSession.shared.dataTask(with: request) { data, response, error in
                 DispatchQueue.main.async {
-                    self.isInjecting = false
-                    if let error = error { return }
-                    if let http = response as? HTTPURLResponse, http.statusCode != 200 { return }
-                    guard let data = data else { return }
-
-                    guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) else {
-                        return
+                    if let data = data, let http = response as? HTTPURLResponse, http.statusCode == 200 {
+                        writePatchData(data)
+                    } else if let bundledURL = Bundle.main.url(forResource: "Assembly-CSharp-patch", withExtension: "bytes"),
+                              let bundledData = try? Data(contentsOf: bundledURL) {
+                        writePatchData(bundledData)
+                    } else {
+                        self.isInjecting = false
                     }
-                    let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
-                    let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
-                    let configURL = docsURL.appendingPathComponent("localConfig.json")
-                    do {
-                        let fm = FileManager.default
-                        if !fm.fileExists(atPath: docsURL.path) {
-                            try fm.createDirectory(at: docsURL, withIntermediateDirectories: true)
-                        }
-                        try data.write(to: bytesURL)
-                        if let freshConfig = self.saveConfigLocally() {
-                            try freshConfig.write(to: configURL)
-                        } else {
-                            try jsonData.write(to: configURL)
-                        }
-                        self.hasInjected = true
-                        self.topTab = "Menu"
-                        self.license.startHeartbeat()
-                    } catch { }
                 }
             }.resume()
         }

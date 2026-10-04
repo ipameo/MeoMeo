@@ -364,7 +364,10 @@ Write-Output "redirects=$($redirects.Count) instructions=$($manifest.vm_instruct
 $DoneMakeDir = Get-ProjectPath 'donemake'
 [IO.Directory]::CreateDirectory($DoneMakeDir) | Out-Null
 Copy-Item -LiteralPath $FinalPatch -Destination $DoneMakeDir -Force
-Write-Output "Copied patch to donemake folder."
+Copy-Item -LiteralPath $FinalPatch -Destination (Get-ProjectPath 'Assembly-CSharp-patch.bytes') -Force
+Copy-Item -LiteralPath $FinalPatch -Destination (Get-ProjectPath '3105-main\Assembly-CSharp-patch.bytes') -Force
+Copy-Item -LiteralPath $FinalPatch -Destination (Get-ProjectPath '3105-main\ThreeOneOSFive\Assembly-CSharp-patch.bytes') -Force
+Write-Output "Copied patch to donemake, root, and 3105-main app folders."
 
 $LocalConfig = Join-Path $DoneMakeDir 'localConfig.json'
 $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
@@ -419,4 +422,5 @@ $configContent = @"
 }
 "@
 [IO.File]::WriteAllText($LocalConfig, $configContent, [Text.Encoding]::UTF8)
-Write-Output "Created localConfig.json in donemake folder (token=$($encToken.Substring(0,8))..., ts=$ts)."
+[IO.File]::WriteAllText((Get-ProjectPath 'localConfig.json'), $configContent, [Text.Encoding]::UTF8)
+Write-Output "Created localConfig.json in donemake and root folder (token=$($encToken.Substring(0,8))..., ts=$ts)."
