@@ -68,6 +68,10 @@ namespace ProjectEspPatch
             try
             {
                 stealthState = self.IsInStealth();
+                if (Time.frameCount % 120 != 0)
+                {
+                    return stealthState;
+                }
                 GameObject driver = GameObject.Find("__esp_driver");
                 bool createdDriver = false;
                 if (driver == null)
@@ -135,7 +139,7 @@ namespace ProjectEspPatch
             int screenWidth = Screen.width;
             int screenHeight = Screen.height;
             float lastUpdate = self.{{SCENE_STATE_FIELD}}.x;
-            if (Time.realtimeSinceStartup - lastUpdate > 1.0f || lastUpdate == 0)
+            if (Time.realtimeSinceStartup - lastUpdate > 3.0f || lastUpdate == 0)
             {
                 self.{{SCENE_STATE_FIELD}} = new Vector2(Time.realtimeSinceStartup, self.{{SCENE_STATE_FIELD}}.y);
                 try
@@ -396,12 +400,7 @@ namespace ProjectEspPatch
             Color savedColor = GUI.color;
             bool isIOS = Application.platform == RuntimePlatform.IPhonePlayer;
             try {
-    GUI.matrix = Matrix4x4.identity;
-                // iOS: Periodic proactive GC sweep to continuously flush temporary heap objects/strings and prevent Jetsam OOM
-                if (isIOS && (Time.frameCount % 240 == 0))
-                {
-                    GC.Collect();
-                }
+                GUI.matrix = Matrix4x4.identity;
                 Texture2D pixel = Texture2D.whiteTexture;
                 if (pixel != null
                     && screenWidth > 0 && screenHeight > 0)
@@ -451,7 +450,7 @@ namespace ProjectEspPatch
                             && localRoot != null && players != null)
                         {
                             int enemyCount = 0;
-                            GUIStyle nameStyle = new GUIStyle();
+                            GUIStyle nameStyle = GUI.skin.label;
                             nameStyle.fontSize = 14;
                             nameStyle.alignment = TextAnchor.MiddleCenter;
                             for (int index = 0; index < players.Count; index++)
@@ -827,12 +826,9 @@ namespace ProjectEspPatch
                                         float tagY = top - tagH - 2f;
 
                                         nameStyle.fontSize = 14;
-                                        // 4-directional black shadow for perfect visibility without background/border
+                                        // 1-directional shadow for crisp visibility
                                         nameStyle.normal.textColor = Color.black;
-                                        GUI.Label(new Rect(tagX + 1f, tagY, tagW, tagH), displayName, nameStyle);
-                                        GUI.Label(new Rect(tagX - 1f, tagY, tagW, tagH), displayName, nameStyle);
-                                        GUI.Label(new Rect(tagX, tagY + 1f, tagW, tagH), displayName, nameStyle);
-                                        GUI.Label(new Rect(tagX, tagY - 1f, tagW, tagH), displayName, nameStyle);
+                                        GUI.Label(new Rect(tagX + 1f, tagY + 1f, tagW, tagH), displayName, nameStyle);
 
                                         // Main name text (Red when knocked, White when alive)
                                         nameStyle.normal.textColor = dying ? Color.red : Color.white;
@@ -858,15 +854,6 @@ namespace ProjectEspPatch
                                         GUI.color = new Color(0.06f, 0.08f, 0.12f, 0.82f);
                                         GUI.DrawTexture(new Rect(distTagX, distTagY, distW, distH), pixel);
 
-                                        // Subtle pill border
-                                        GUI.color = dying
-                                            ? Color.red
-                                            : new Color(0.35f, 0.45f, 0.55f, 0.45f);
-                                        GUI.DrawTexture(new Rect(distTagX, distTagY, distW, 1f), pixel);
-                                        GUI.DrawTexture(new Rect(distTagX, distTagY + distH - 1f, distW, 1f), pixel);
-                                        GUI.DrawTexture(new Rect(distTagX, distTagY, 1f, distH), pixel);
-                                        GUI.DrawTexture(new Rect(distTagX + distW - 1f, distTagY, 1f, distH), pixel);
-
                                         // Centered distance label with drop shadow
                                         nameStyle.fontSize = 12;
                                         nameStyle.normal.textColor = new Color(0f, 0f, 0f, 0.95f);
@@ -889,7 +876,7 @@ namespace ProjectEspPatch
                                 } // end for loop
                         
                                 string countText = enemyCount > 0 ? ("Enemy : " + enemyCount) : "Clean";
-                                GUIStyle countStyle = new GUIStyle();
+                                GUIStyle countStyle = GUI.skin.label;
                                 countStyle.fontSize = 32;
                                 countStyle.alignment = TextAnchor.MiddleCenter;
                                 float countW = 350f;
