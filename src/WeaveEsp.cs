@@ -600,20 +600,20 @@ namespace ProjectEspPatch
                 method.Name == "get_LastAimingInfoFromWeapon"
                 && method.Parameters.Count == 0);
             helperMethod = helperType.Methods.Single(method => method.Name == "SilentAim");
-            CloneBody();
-            int silentAimInstructions = targetMethod.Body.Instructions.Count;
+            // CloneBody();
+            int silentAimInstructions = 0;
 
             targetMethod = player.Methods.Single(method =>
                 method.Name == "get_IsMovableEntity" && method.Parameters.Count == 0);
             helperMethod = helperType.Methods.Single(method => method.Name == "AimSystem");
-            CloneBody();
-            int aimSystemInstructions = targetMethod.Body.Instructions.Count;
+            // CloneBody();
+            int aimSystemInstructions = 0;
 
             targetMethod = playerAttributes.Methods.Single(method =>
                 method.Name == "GetScatterRate" && method.Parameters.Count == 0);
             helperMethod = helperType.Methods.Single(method => method.Name == "ScatterRate");
-            CloneBody();
-            int scatterInstructions = targetMethod.Body.Instructions.Count;
+            // CloneBody();
+            int scatterInstructions = 0;
             targetAssembly.Write(args[2]);
 
             Console.WriteLine("woven=" + args[2]);
