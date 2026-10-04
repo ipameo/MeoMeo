@@ -109,62 +109,9 @@ namespace ProjectEspPatch
                         UnityEngine.Object.DontDestroyOnLoad(driver);
                     }
                 }
-
-                // ── FLY: apply to local player only ──────────────────────────
-                try
-                {
-                    if (self.IsLocalPlayer() && driver != null)
-                    {
-                        SceneEditBoxSelectTool menuComp = (SceneEditBoxSelectTool)driver.GetComponent(typeof(SceneEditBoxSelectTool));
-                        int auxBits = menuComp == null ? 0 : (int)menuComp.{{SCENE_POSITION_FIELD}}.y;
-                        if ((auxBits & AuxFlyEnabled) != 0)
-                        {
-                            GameObject playerObj = self.gameObject;
-                            if (playerObj != null)
-                            {
-                                PhysicalCCT cct = (PhysicalCCT)playerObj.GetComponent(typeof(PhysicalCCT));
-                                if (cct != null)
-                                {
-                                    cct.UseGravity = false;
-                                    cct.GravityScale = 0f;
-                                    Vector3 vel = cct.Velocity;
-                                    // Keep horizontal movement; clamp vertical drift
-                                    if (vel.y < -1f)
-                                    {
-                                        cct.Velocity = new Vector3(vel.x, -0.5f, vel.z);
-                                    }
-                                    // Allow jump input to still work naturally
-                                    if (self.UGCRequestJump && vel.y < 6f)
-                                    {
-                                        cct.Velocity = new Vector3(vel.x, 6f, vel.z);
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            // Re-enable gravity if fly was turned off
-                            GameObject playerObj2 = self.gameObject;
-                            if (playerObj2 != null)
-                            {
-                                PhysicalCCT cct2 = (PhysicalCCT)playerObj2.GetComponent(typeof(PhysicalCCT));
-                                if (cct2 != null && !cct2.UseGravity)
-                                {
-                                    cct2.UseGravity = true;
-                                    cct2.GravityScale = 1f;
-                                }
-                            }
-                        }
-                    }
-                }
-                catch (Exception)
-                {
-                    // FLY logic must not interrupt stealth/driver setup.
-                }
             }
             catch (Exception)
             {
-                // Rendering setup must not break the queried player state.
                 stealthState = false;
             }
             return stealthState;
@@ -410,6 +357,48 @@ namespace ProjectEspPatch
             int aimMode = (state & AimModeMask) >> AimModeShift;
             
             if (currentEvent.type != EventType.Repaint) { return; }
+
+            // ── FLY: runs once per Repaint frame, local player only ───────────
+            try
+            {
+                Player localFly = GameFacade.CurrentLocalPlayer();
+                if (localFly != null && (auxState & AuxFlyEnabled) != 0)
+                {
+                    GameObject flyObj = localFly.gameObject;
+                    if (flyObj != null)
+                    {
+                        PhysicalCCT cct = (PhysicalCCT)flyObj.GetComponent(typeof(PhysicalCCT));
+                        if (cct != null)
+                        {
+                            cct.UseGravity = false;
+                            cct.GravityScale = 0f;
+                            Vector3 vel = cct.Velocity;
+                            if (vel.y < -1f)
+                            {
+                                cct.Velocity = new Vector3(vel.x, -0.5f, vel.z);
+                            }
+                            if (localFly.UGCRequestJump && vel.y < 6f)
+                            {
+                                cct.Velocity = new Vector3(vel.x, 6f, vel.z);
+                            }
+                        }
+                    }
+                }
+                else if (localFly != null && (auxState & AuxFlyEnabled) == 0)
+                {
+                    GameObject flyObj2 = localFly.gameObject;
+                    if (flyObj2 != null)
+                    {
+                        PhysicalCCT cct2 = (PhysicalCCT)flyObj2.GetComponent(typeof(PhysicalCCT));
+                        if (cct2 != null && !cct2.UseGravity)
+                        {
+                            cct2.UseGravity = true;
+                            cct2.GravityScale = 1f;
+                        }
+                    }
+                }
+            }
+            catch (Exception) { }
 
             // Required method and string references (dead-code guard; never executes)
             if (Time.frameCount < -1)
