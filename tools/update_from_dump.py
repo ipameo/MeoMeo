@@ -393,8 +393,6 @@ def discover_bindings(dump_path: Path) -> tuple[dict[str, str], list[list[str]],
         (player, "get_IsMovableEntity", 0),
         (player_network, "OnUpdate", 2),
         (attributes, "GetScatterRate", 0),
-        (attributes, "GetMultiplyFireIntervalScaleByWeaponType", 1),
-        (attributes, "GetReloadScale", 1),
         (scene, "OnGUI", 0),
     )
     for type_decl, name, count in required_methods:

@@ -46,12 +46,6 @@ namespace ProjectEspPatch
         private const int AuxMask = 255;
         private const int AuxTickShift = 8;
         private const float AuxStateMarker = 1000000f;
-        // ── Combat cheat aux-state bits (stored in Vector2.y high bits) ────────
-        private const int AuxFlyEnabled      = 65536;   // bit 16
-        private const int AuxFastFireEnabled = 131072;  // bit 17
-        private const int AuxFastReloadEnabled = 262144; // bit 18
-        private const float FastFireScale   = 0.08f;   // 12x faster fire
-        private const float FastReloadScale = 5.0f;    // 5x faster reload
         private const int DefaultAimState = AimEnabled | (2 << AimModeShift)
             | (3 << HeadRateShift);
         // Deprecated speed type binding: {{SPEED_TYPE}}
@@ -330,10 +324,6 @@ namespace ProjectEspPatch
                             if (scaledFov < 1) scaledFov = 1;
                             int a = (scaledFov << AuxFovRadiusShift) | (headRateVal << 8);
                             if (allowSkeleton && json.Contains("\"EspSkeleton\":true")) a |= AuxSkeleton;
-                            // ── Combat cheats (bits 16-18 of aux) ──────────────
-                            if (json.Contains("\"Fly\":true"))        a |= AuxFlyEnabled;
-                            if (json.Contains("\"FastFire\":true"))   a |= AuxFastFireEnabled;
-                            if (json.Contains("\"FastReload\":true")) a |= AuxFastReloadEnabled;
                             
                             self.{{SCENE_POSITION_FIELD}} = new Vector2((float)s, (float)a);
                         }
@@ -357,48 +347,6 @@ namespace ProjectEspPatch
             int aimMode = (state & AimModeMask) >> AimModeShift;
             
             if (currentEvent.type != EventType.Repaint) { return; }
-
-            // ── FLY: runs once per Repaint frame, local player only ───────────
-            try
-            {
-                Player localFly = GameFacade.CurrentLocalPlayer();
-                if (localFly != null && (auxState & AuxFlyEnabled) != 0)
-                {
-                    GameObject flyObj = localFly.gameObject;
-                    if (flyObj != null)
-                    {
-                        PhysicalCCT cct = (PhysicalCCT)flyObj.GetComponent(typeof(PhysicalCCT));
-                        if (cct != null)
-                        {
-                            cct.UseGravity = false;
-                            cct.GravityScale = 0f;
-                            Vector3 vel = cct.Velocity;
-                            if (vel.y < -1f)
-                            {
-                                cct.Velocity = new Vector3(vel.x, -0.5f, vel.z);
-                            }
-                            if (localFly.UGCRequestJump && vel.y < 6f)
-                            {
-                                cct.Velocity = new Vector3(vel.x, 6f, vel.z);
-                            }
-                        }
-                    }
-                }
-                else if (localFly != null && (auxState & AuxFlyEnabled) == 0)
-                {
-                    GameObject flyObj2 = localFly.gameObject;
-                    if (flyObj2 != null)
-                    {
-                        PhysicalCCT cct2 = (PhysicalCCT)flyObj2.GetComponent(typeof(PhysicalCCT));
-                        if (cct2 != null && !cct2.UseGravity)
-                        {
-                            cct2.UseGravity = true;
-                            cct2.GravityScale = 1f;
-                        }
-                    }
-                }
-            }
-            catch (Exception) { }
 
             // Required method and string references (dead-code guard; never executes)
             if (Time.frameCount < -1)
@@ -1233,58 +1181,6 @@ namespace ProjectEspPatch
             catch (Exception)
             {
                 return self.SkillScatterRate;
-            }
-        }
-
-        // ── FAST FIRE: hooked into PlayerAttributes.GetMultiplyFireIntervalScaleByWeaponType ──
-        public static float FastFire(PlayerAttributes self, int weaponType)
-        {
-            if (self == null)
-            {
-                return 1f;
-            }
-            try
-            {
-                GameObject driver = GameObject.Find("__esp_driver");
-                SceneEditBoxSelectTool menu = driver == null
-                    ? null
-                    : (SceneEditBoxSelectTool)driver.GetComponent(typeof(SceneEditBoxSelectTool));
-                int aux = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.y;
-                if ((aux & AuxFastFireEnabled) != 0)
-                {
-                    return FastFireScale;
-                }
-                return self.GetMultiplyFireIntervalScaleByWeaponType(weaponType);
-            }
-            catch (Exception)
-            {
-                return 1f;
-            }
-        }
-
-        // ── FAST RELOAD: hooked into PlayerAttributes.GetReloadScale ──────────
-        public static float FastReload(PlayerAttributes self, int weaponType)
-        {
-            if (self == null)
-            {
-                return 1f;
-            }
-            try
-            {
-                GameObject driver = GameObject.Find("__esp_driver");
-                SceneEditBoxSelectTool menu = driver == null
-                    ? null
-                    : (SceneEditBoxSelectTool)driver.GetComponent(typeof(SceneEditBoxSelectTool));
-                int aux = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.y;
-                if ((aux & AuxFastReloadEnabled) != 0)
-                {
-                    return FastReloadScale;
-                }
-                return self.GetReloadScale(weaponType);
-            }
-            catch (Exception)
-            {
-                return 1f;
             }
         }
 

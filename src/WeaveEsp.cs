@@ -105,8 +105,13 @@ namespace ProjectEspPatch
 
         private static void RenameField(TypeDefinition type, string oldName, string newName)
         {
-            FieldDefinition field = type.Fields.Single(value => value.Name == oldName);
-            field.Name = newName;
+            try {
+                FieldDefinition field = type.Fields.Single(value => value.Name == oldName);
+                field.Name = newName;
+            } catch (Exception) {
+                Console.WriteLine("Failed to rename field: " + oldName + " in type " + type.FullName);
+                throw;
+            }
         }
 
         private static void RenameMethod(TypeDefinition type, string oldName, string newName)
@@ -609,20 +614,6 @@ namespace ProjectEspPatch
             helperMethod = helperType.Methods.Single(method => method.Name == "ScatterRate");
             CloneBody();
             int scatterInstructions = targetMethod.Body.Instructions.Count;
-
-            targetMethod = playerAttributes.Methods.Single(method =>
-                method.Name == "GetMultiplyFireIntervalScaleByWeaponType"
-                && method.Parameters.Count == 1);
-            helperMethod = helperType.Methods.Single(method => method.Name == "FastFire");
-            CloneBody();
-            int fastFireInstructions = targetMethod.Body.Instructions.Count;
-
-            targetMethod = playerAttributes.Methods.Single(method =>
-                method.Name == "GetReloadScale" && method.Parameters.Count == 1);
-            helperMethod = helperType.Methods.Single(method => method.Name == "FastReload");
-            CloneBody();
-            int fastReloadInstructions = targetMethod.Body.Instructions.Count;
-
             targetAssembly.Write(args[2]);
 
             Console.WriteLine("woven=" + args[2]);
@@ -631,8 +622,6 @@ namespace ProjectEspPatch
             Console.WriteLine("silent_aim_instructions=" + silentAimInstructions);
             Console.WriteLine("aim_system_instructions=" + aimSystemInstructions);
             Console.WriteLine("scatter_instructions=" + scatterInstructions);
-            Console.WriteLine("fast_fire_instructions=" + fastFireInstructions);
-            Console.WriteLine("fast_reload_instructions=" + fastReloadInstructions);
             return 0;
         }
     }

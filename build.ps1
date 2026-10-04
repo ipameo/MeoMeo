@@ -101,7 +101,7 @@ if (-not [IO.File]::Exists($Dump)) {
 $Cecil = Join-Path $ThirdParty 'Mono.Cecil.dll'
 $Weaver = Join-Path $Build 'WeaveEsp.exe'
 Invoke-Checked $Csc @(
-    '/nologo', '/target:exe', '/optimize+', "/out:$Weaver",
+    '/nologo', '/target:exe', '/optimize+', '/platform:x64', "/out:$Weaver",
     "/reference:$Cecil", (Get-ProjectPath 'src\WeaveEsp.cs')
 )
 Copy-Item -LiteralPath $Cecil -Destination (Join-Path $Build 'Mono.Cecil.dll') -Force
@@ -147,7 +147,7 @@ Invoke-Checked 'py' @(
 
 $IFixCompiler = Join-Path $Build 'IFix.exe'
 Invoke-Checked $Csc @(
-    '/nologo', '/unsafe', '/target:exe', '/optimize+', "/out:$IFixCompiler",
+    '/nologo', '/unsafe', '/target:exe', '/optimize+', '/platform:x64', "/out:$IFixCompiler",
     "/reference:$Cecil",
     "/reference:$(Join-Path $ThirdParty 'Mono.Cecil.Mdb.dll')",
     "/reference:$(Join-Path $ThirdParty 'Mono.Cecil.Pdb.dll')",
@@ -187,20 +187,10 @@ try {
     $configWriter.Write([int]0)
 
     $configWriter.Write('COW.GamePlay.PlayerAttributes')
-    $configWriter.Write([int]3)
+    $configWriter.Write([int]1)
     $configWriter.Write('GetScatterRate')
     $configWriter.Write('System.Single')
     $configWriter.Write([int]0)
-    $configWriter.Write('GetMultiplyFireIntervalScaleByWeaponType')
-    $configWriter.Write('System.Single')
-    $configWriter.Write([int]1)
-    $configWriter.Write([bool]$false)      # IsOut = false
-    $configWriter.Write('System.Int32')   # ParameterType
-    $configWriter.Write('GetReloadScale')
-    $configWriter.Write('System.Single')
-    $configWriter.Write([int]1)
-    $configWriter.Write([bool]$false)      # IsOut = false
-    $configWriter.Write('System.Int32')   # ParameterType
 
     for ($index = 0; $index -lt 4; $index++) {
         $configWriter.Write([int]0)
@@ -232,7 +222,7 @@ if (-not $verification.valid -or @($verification.errors).Count -ne 0 `
     throw 'Generated patch did not pass strict VM verification.'
 }
 if ($report.magic -ne '0x66A319B20DB4A2CB' -or $report.remaining_bytes -ne 0 `
-    -or $methods.Count -ne 8 -or $redirects.Count -ne 7) {
+    -or $methods.Count -ne 6 -or $redirects.Count -ne 5) {
     throw 'Generated patch failed structural assertions.'
 }
 
@@ -241,9 +231,7 @@ $expectedRedirects = @(
     'COW.GamePlay.SceneEditBoxSelectTool|OnGUI',
     'COW.GamePlay.Player|get_LastAimingInfoFromWeapon',
     'COW.GamePlay.Player|get_IsMovableEntity',
-    'COW.GamePlay.PlayerAttributes|GetScatterRate',
-    'COW.GamePlay.PlayerAttributes|GetMultiplyFireIntervalScaleByWeaponType',
-    'COW.GamePlay.PlayerAttributes|GetReloadScale'
+    'COW.GamePlay.PlayerAttributes|GetScatterRate'
 )
 $actualRedirects = @($redirects | ForEach-Object {
     (($_.declaring_type -split ',')[0]) + '|' + $_.name
