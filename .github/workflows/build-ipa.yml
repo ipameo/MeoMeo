@@ -14,12 +14,13 @@ jobs:
     
     - name: Build
       run: |
-        xcodebuild clean build \
+        mkdir -p output-app
+        xcodebuild build \
           -project 3105-main/ThreeOneOSFive.xcodeproj \
           -alltargets \
           -configuration Release \
           -sdk iphoneos \
-          CONFIGURATION_BUILD_DIR=$PWD/build \
+          CONFIGURATION_BUILD_DIR=$PWD/output-app \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO \
           CODE_SIGNING_ALLOWED=NO
@@ -27,8 +28,8 @@ jobs:
     - name: Create IPA
       run: |
         mkdir -p Payload
-        # Find the .app folder in the build directory
-        APP_PATH=$(find build -name "*.app" | head -n 1)
+        # Find the .app folder in the output-app directory
+        APP_PATH=$(find output-app -name "*.app" | head -n 1)
         if [ -z "$APP_PATH" ]; then
           echo "App not found"
           exit 1

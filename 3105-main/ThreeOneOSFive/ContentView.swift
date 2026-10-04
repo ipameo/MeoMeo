@@ -685,16 +685,6 @@ struct ContentView: View {
                     }
                 }
 
-                // ── CHIẾN ĐẤU (COMBAT) ────────────────────────────────
-                CardView(title: "CHIẾN ĐẤU", icon: "flame.fill") {
-                    VStack(spacing: 14) {
-                        ToggleRow(label: "Bay (Fly)", icon: "airplane", on: $config.Fly)
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Bắn Nhanh (Fast Fire)", icon: "bolt.fill", on: $config.FastFire)
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Nạp Đạn Nhanh (Fast Reload)", icon: "arrow.clockwise", on: $config.FastReload)
-                    }
-                }
 
                 // ── VISUALS ────────────────────────────────────────────
                 CardView(title: "VISUALS (ESP)", icon: "eye") {
