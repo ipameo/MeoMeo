@@ -187,10 +187,20 @@ try {
     $configWriter.Write([int]0)
 
     $configWriter.Write('COW.GamePlay.PlayerAttributes')
-    $configWriter.Write([int]1)
+    $configWriter.Write([int]3)
     $configWriter.Write('GetScatterRate')
     $configWriter.Write('System.Single')
     $configWriter.Write([int]0)
+    $configWriter.Write('GetMultiplyFireIntervalScaleByWeaponType')
+    $configWriter.Write('System.Single')
+    $configWriter.Write([int]1)
+    $configWriter.Write([bool]$false)      # IsOut = false
+    $configWriter.Write('System.Int32')   # ParameterType
+    $configWriter.Write('GetReloadScale')
+    $configWriter.Write('System.Single')
+    $configWriter.Write([int]1)
+    $configWriter.Write([bool]$false)      # IsOut = false
+    $configWriter.Write('System.Int32')   # ParameterType
 
     for ($index = 0; $index -lt 4; $index++) {
         $configWriter.Write([int]0)
@@ -222,7 +232,7 @@ if (-not $verification.valid -or @($verification.errors).Count -ne 0 `
     throw 'Generated patch did not pass strict VM verification.'
 }
 if ($report.magic -ne '0x66A319B20DB4A2CB' -or $report.remaining_bytes -ne 0 `
-    -or $methods.Count -ne 6 -or $redirects.Count -ne 5) {
+    -or $methods.Count -ne 8 -or $redirects.Count -ne 7) {
     throw 'Generated patch failed structural assertions.'
 }
 
@@ -231,7 +241,9 @@ $expectedRedirects = @(
     'COW.GamePlay.SceneEditBoxSelectTool|OnGUI',
     'COW.GamePlay.Player|get_LastAimingInfoFromWeapon',
     'COW.GamePlay.Player|get_IsMovableEntity',
-    'COW.GamePlay.PlayerAttributes|GetScatterRate'
+    'COW.GamePlay.PlayerAttributes|GetScatterRate',
+    'COW.GamePlay.PlayerAttributes|GetMultiplyFireIntervalScaleByWeaponType',
+    'COW.GamePlay.PlayerAttributes|GetReloadScale'
 )
 $actualRedirects = @($redirects | ForEach-Object {
     (($_.declaring_type -split ',')[0]) + '|' + $_.name
@@ -346,20 +358,25 @@ $manifest = [ordered]@{
     ifix_core_sha256 = (Get-FileHash $IFixCore -Algorithm SHA256).Hash
     neutral_patch_sha256 = (Get-FileHash $NeutralPatch -Algorithm SHA256).Hash
     redirects = @(
-        'Player.IsReallyInStealth -> bootstrap',
+        'Player.IsReallyInStealth -> bootstrap + fly',
         'SceneEditBoxSelectTool.OnGUI -> ESP/menu',
         'Player.get_LastAimingInfoFromWeapon -> silent aim',
         'Player.get_IsMovableEntity -> native aim system',
-        'PlayerAttributes.GetScatterRate -> no recoil'
+        'PlayerAttributes.GetScatterRate -> no recoil',
+        'PlayerAttributes.GetMultiplyFireIntervalScaleByWeaponType -> fast fire',
+        'PlayerAttributes.GetReloadScale -> fast reload'
     )
     features = @(
         'ESP box/tracer/health/name/distance/skeleton/visibility filters',
         'three-finger five-tap draggable ESP/AIM/SETTINGS menu',
         'silent aim BODY/HEAD/MIXED with headshot rate and FOV',
         'native aim system HEAD/NECK',
-        'no recoil'
+        'no recoil',
+        'fly (zero gravity + float)',
+        'fast fire (12x)',
+        'fast reload (5x)'
     )
-    excluded = @('fast reload', 'fake lag', 'fast parachute', 'speed running')
+    excluded = @('fake lag', 'fast parachute', 'speed running')
     vm_instructions = [int](($methods | Measure-Object instructions -Sum).Sum)
     vm_exception_handlers = [int](($methods | Measure-Object exceptions -Sum).Sum)
 }
@@ -436,6 +453,9 @@ $configContent = @"
   `"AimTarget`" : 0,
   `"FovSize`" : 60.0,
   `"HeadshotRate`" : 80.0,
+  `"Fly`" : false,
+  `"FastFire`" : false,
+  `"FastReload`" : false,
   `"testCodePatch`" : true
 }
 "@

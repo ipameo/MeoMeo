@@ -9,5 +9,8 @@
   "EspFov": true,
   "AimEnabled": true,
   "AimSystemEnabled": true,
-  "NoRecoil": true
+  "NoRecoil": true,
+  "Fly": false,
+  "FastFire": false,
+  "FastReload": false
 }

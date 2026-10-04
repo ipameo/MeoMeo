@@ -1,8 +1,8 @@
 ﻿{
-  "meomeo" : "357c7ff913e28652548526aa144cb26b",
-  "sig" : "e9af3f581297b9fe0741466a07b923a4",
-  "token" : "45fd37466c114ca3ccada8b13fce4bc8",
-  "ts" : 1793604385,
+  "meomeo" : "f6de28ce33123f302539b593825dd982",
+  "sig" : "bcefc56ab6ed634a531bcf53e060742e",
+  "token" : "ee1c47466c114ca3b204f84a74b8d6be",
+  "ts" : 1793672617,
   "system_active" : true,
   "server_esp" : true,
   "server_aim" : true,
@@ -28,5 +28,8 @@
   "AimTarget" : 0,
   "FovSize" : 60.0,
   "HeadshotRate" : 80.0,
+  "Fly" : false,
+  "FastFire" : false,
+  "FastReload" : false,
   "testCodePatch" : true
 }
