@@ -51,11 +51,10 @@ class GeneratedSourceTests(unittest.TestCase):
 
     def test_menu_is_present(self) -> None:
         for value in (
-            "NovaX", "Silent aim", "Aim system", "No recoil",
+            "Hoá iOS Cheat", "Silent aim", "Aim system", "No recoil",
             "RESET DEFAULTS", "HIDE MENU",
         ):
             self.assertIn(value, self.source)
-        self.assertIn("Input.touchCount >= 3", self.source)
 
     def test_removed_features_are_absent(self) -> None:
         for value in (

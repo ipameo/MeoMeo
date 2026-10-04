@@ -166,11 +166,17 @@ $PatchConfig = Join-Path $Build 'patch-config.bin'
 $configStream = [IO.File]::Create($PatchConfig)
 $configWriter = New-Object IO.BinaryWriter($configStream)
 try {
-    $configWriter.Write([int]2)
+    $configWriter.Write([int]3)
 
     $configWriter.Write('COW.GamePlay.Player')
-    $configWriter.Write([int]1)
+    $configWriter.Write([int]3)
     $configWriter.Write('IsReallyInStealth')
+    $configWriter.Write('System.Boolean')
+    $configWriter.Write([int]0)
+    $configWriter.Write('get_LastAimingInfoFromWeapon')
+    $configWriter.Write('COW.GamePlay.' + [string]$bindingInfo.placeholders.AIM_INFO_TYPE)
+    $configWriter.Write([int]0)
+    $configWriter.Write('get_IsMovableEntity')
     $configWriter.Write('System.Boolean')
     $configWriter.Write([int]0)
 
@@ -178,6 +184,12 @@ try {
     $configWriter.Write([int]1)
     $configWriter.Write('OnGUI')
     $configWriter.Write('System.Void')
+    $configWriter.Write([int]0)
+
+    $configWriter.Write('COW.GamePlay.PlayerAttributes')
+    $configWriter.Write([int]1)
+    $configWriter.Write('GetScatterRate')
+    $configWriter.Write('System.Single')
     $configWriter.Write([int]0)
 
     for ($index = 0; $index -lt 4; $index++) {
@@ -210,13 +222,16 @@ if (-not $verification.valid -or @($verification.errors).Count -ne 0 `
     throw 'Generated patch did not pass strict VM verification.'
 }
 if ($report.magic -ne '0x66A319B20DB4A2CB' -or $report.remaining_bytes -ne 0 `
-    -or $redirects.Count -ne 2) {
+    -or $methods.Count -ne 6 -or $redirects.Count -ne 5) {
     throw 'Generated patch failed structural assertions.'
 }
 
 $expectedRedirects = @(
     'COW.GamePlay.Player|IsReallyInStealth',
-    'COW.GamePlay.SceneEditBoxSelectTool|OnGUI'
+    'COW.GamePlay.SceneEditBoxSelectTool|OnGUI',
+    'COW.GamePlay.Player|get_LastAimingInfoFromWeapon',
+    'COW.GamePlay.Player|get_IsMovableEntity',
+    'COW.GamePlay.PlayerAttributes|GetScatterRate'
 )
 $actualRedirects = @($redirects | ForEach-Object {
     (($_.declaring_type -split ',')[0]) + '|' + $_.name
@@ -250,7 +265,9 @@ $requiredMethods = @(
     'get_whiteTexture', 'get_current', 'get_type', 'get_matrix', 'set_matrix',
     'get_color', 'set_color', 'TRS', 'Euler', 'Clamp', 'Contains', 'Use',
     'get_mousePosition', 'get_delta', 'get_touchCount', 'get_unscaledTime',
-    'get_NeckBone'
+    'get_AimStartPostion', 'get_HeadCollider', 'Normalize', 'op_Subtraction',
+    'Range', 'get_SkillScatterRate', 'get_NeckBone', 'get_FireColliders',
+    'set_LockedAimingCollider', '<>iFixBaseProxy_get_IsMovableEntity'
 )
 $missingMethods = @($requiredMethods | Where-Object { $methodNames -notcontains $_ })
 if ($missingMethods.Count -ne 0) {
@@ -279,9 +296,21 @@ if ($missingStrings.Count -ne 0) {
 }
 
 $requiredFields = @(
+    [string]$bindingInfo.placeholders.PLAYER_AIM_INFO_FIELD,
     [string]$bindingInfo.placeholders.SCENE_MENU_FIELD,
     [string]$bindingInfo.placeholders.SCENE_POSITION_FIELD,
-    [string]$bindingInfo.placeholders.SCENE_STATE_FIELD
+    [string]$bindingInfo.placeholders.SCENE_STATE_FIELD,
+    [string]$bindingInfo.placeholders.AIM_GAME_OBJECT_FIELD,
+    [string]$bindingInfo.placeholders.AIM_COLLIDER_FIELD,
+    [string]$bindingInfo.placeholders.AIM_HIT_POSITION_FIELD,
+    [string]$bindingInfo.placeholders.AIM_TRACE_POSITION_FIELD,
+    [string]$bindingInfo.placeholders.AIM_DIRECTION_FIELD,
+    [string]$bindingInfo.placeholders.AIM_ORIGIN_FIELD,
+    [string]$bindingInfo.placeholders.AIM_SECONDARY_ORIGIN_FIELD,
+    [string]$bindingInfo.placeholders.AIM_HIT_TYPE_FIELD,
+    [string]$bindingInfo.placeholders.AIM_FLAG_A_FIELD,
+    [string]$bindingInfo.placeholders.AIM_FLAG_B_FIELD,
+    [string]$bindingInfo.placeholders.AIM_SHORT_FIELD
 )
 $fieldNames = @($report.fields | ForEach-Object { $_.name })
 $missingFields = @($requiredFields | Where-Object { $fieldNames -notcontains $_ })
@@ -317,25 +346,20 @@ $manifest = [ordered]@{
     ifix_core_sha256 = (Get-FileHash $IFixCore -Algorithm SHA256).Hash
     neutral_patch_sha256 = (Get-FileHash $NeutralPatch -Algorithm SHA256).Hash
     redirects = @(
-        'Player.IsReallyInStealth -> bootstrap + fly',
+        'Player.IsReallyInStealth -> bootstrap',
         'SceneEditBoxSelectTool.OnGUI -> ESP/menu',
         'Player.get_LastAimingInfoFromWeapon -> silent aim',
         'Player.get_IsMovableEntity -> native aim system',
-        'PlayerAttributes.GetScatterRate -> no recoil',
-        'PlayerAttributes.GetMultiplyFireIntervalScaleByWeaponType -> fast fire',
-        'PlayerAttributes.GetReloadScale -> fast reload'
+        'PlayerAttributes.GetScatterRate -> no recoil'
     )
     features = @(
         'ESP box/tracer/health/name/distance/skeleton/visibility filters',
         'three-finger five-tap draggable ESP/AIM/SETTINGS menu',
         'silent aim BODY/HEAD/MIXED with headshot rate and FOV',
         'native aim system HEAD/NECK',
-        'no recoil',
-        'fly (zero gravity + float)',
-        'fast fire (12x)',
-        'fast reload (5x)'
+        'no recoil'
     )
-    excluded = @('fake lag', 'fast parachute', 'speed running')
+    excluded = @('fly', 'fast fire', 'fast reload', 'fake lag', 'fast parachute', 'speed running')
     vm_instructions = [int](($methods | Measure-Object instructions -Sum).Sum)
     vm_exception_handlers = [int](($methods | Measure-Object exceptions -Sum).Sum)
 }
@@ -392,14 +416,14 @@ $configContent = @"
   `"ts`" : $ts,
   `"system_active`" : true,
   `"server_esp`" : true,
-  `"server_aim`" : false,
+  `"server_aim`" : true,
   `"server_box`" : true,
   `"server_line`" : true,
   `"server_skeleton`" : false,
   `"server_name`" : true,
   `"server_distance`" : true,
   `"server_health`" : true,
-  `"server_headshot`" : false,
+  `"server_headshot`" : true,
   `"EspMaster`" : true,
   `"EspBox`" : true,
   `"EspLine`" : true,
@@ -408,13 +432,13 @@ $configContent = @"
   `"EspDistance`" : true,
   `"EspTracer`" : true,
   `"EspSkeleton`" : false,
-  `"AimEnabled`" : false,
-  `"AimSystemEnabled`" : false,
-  `"EspFov`" : false,
-  `"NoRecoil`" : false,
+  `"AimEnabled`" : true,
+  `"AimSystemEnabled`" : true,
+  `"EspFov`" : true,
+  `"NoRecoil`" : true,
   `"AimTarget`" : 0,
   `"FovSize`" : 60.0,
-  `"HeadshotRate`" : 0.0,
+  `"HeadshotRate`" : 80.0,
   `"Fly`" : false,
   `"FastFire`" : false,
   `"FastReload`" : false,
