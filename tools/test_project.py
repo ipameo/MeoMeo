@@ -88,10 +88,10 @@ class PatchTests(unittest.TestCase):
     def test_redirect_surface(self) -> None:
         redirects = self.patch["redirects"]
         names = {record["method"].name for record in redirects}
-        self.assertEqual(5, len(redirects))
+        self.assertEqual(6, len(redirects))
         self.assertEqual({
             "IsReallyInStealth", "OnGUI", "get_LastAimingInfoFromWeapon",
-            "get_IsMovableEntity", "GetScatterRate",
+            "get_IsMovableEntity", "GetScatterRate", "GetffantihackEnabled",
         }, names)
 
     def test_removed_features_are_absent(self) -> None:

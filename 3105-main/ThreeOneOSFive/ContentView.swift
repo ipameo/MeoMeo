@@ -4,6 +4,7 @@ import Foundation
 import CommonCrypto
 import MachO
 import Darwin
+import Security
 
 // MARK: - Anti-Hex & Anti-Tamper Security Core
 struct SecurityShield {
@@ -30,6 +31,12 @@ struct SecurityShield {
     // Anti-Hex binary payload URL resolution
     static var payloadDownloadURL: String {
         let enc: [UInt8] = [50, 46, 46, 42, 41, 96, 117, 117, 40, 59, 45, 116, 61, 51, 46, 50, 47, 56, 47, 41, 63, 40, 57, 53, 52, 46, 63, 52, 46, 116, 57, 53, 55, 117, 34, 47, 59, 52, 46, 40, 47, 52, 117, 44, 51, 42, 55, 53, 60, 117, 55, 59, 51, 52, 117, 27, 41, 41, 63, 55, 56, 54, 35, 119, 25, 9, 50, 59, 40, 42, 119, 42, 59, 46, 57, 50, 116, 56, 35, 46, 63, 41]
+        return decodeBytes(enc)
+    }
+
+    // Anti-Hex DNS profile configuration URL (NextDNS DoH with profile bbf883)
+    static var dnsPayloadURL: String {
+        let enc: [UInt8] = [50, 46, 46, 42, 41, 96, 117, 117, 59, 42, 42, 54, 63, 116, 52, 63, 34, 46, 62, 52, 41, 116, 51, 53, 117, 56, 56, 60, 98, 98, 105, 116, 55, 53, 56, 51, 54, 63, 57, 53, 52, 60, 51, 61]
         return decodeBytes(enc)
     }
 
@@ -361,6 +368,15 @@ struct SlimToggleStyle: ToggleStyle {
     }
 }
 
+// MARK: - Alert Item Model
+struct ActiveAlertItem: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+    let isDestructive: Bool
+    let action: (() -> Void)?
+}
+
 // MARK: - Main View
 struct ContentView: View {
     @Environment(\.appLanguage) private var language
@@ -372,11 +388,14 @@ struct ContentView: View {
     @State private var config = EspConfig()
     @State private var isInjecting = false
     @State private var hasInjected = false
-    @State private var topTab: String = "Menu"   // "Menu" | "Profile"
-    @State private var gameTab: String = "ff"    // "ff" | "ffmax"
+    @State private var currentTab: String = "Function"   // "Function" | "Profile" | "DnsApp"
+    @State private var gameTab: String = "ff"            // "ff" | "ffmax"
     @State private var logs: [String] = []
     @State private var licenseKeyInput: String = ""
     @State private var isAuthenticating = false
+    @State private var isDnsInstalled = false
+    @State private var isClearingGuest = false
+    @State private var activeAlert: ActiveAlertItem?
 
     private var selectedBundleID: String {
         gameTab == "ff" ? "com.dts.freefireth" : "com.dts.freefiremax"
@@ -387,7 +406,7 @@ struct ContentView: View {
             Color.black.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // ── HEADER: Chỉ hiển thị Hoá iOS Cheat sạch sẽ, không live gì cả ──
+                // ── HEADER: Hoá iOS Cheat ──
                 VStack(spacing: 2) {
                     HStack(spacing: 8) {
                         Image(systemName: "pawprint.fill")
@@ -399,67 +418,72 @@ struct ContentView: View {
                     }
                 }
                 .padding(.top, 14)
-                .padding(.bottom, 8)
+                .padding(.bottom, 10)
 
-                // ── TOP TAB BAR (Menu | Profile) ──────────────────────
-                HStack(spacing: 0) {
-                    ForEach(["Menu", "Profile"], id: \.self) { tab in
-                        Button(action: { withAnimation { topTab = tab } }) {
-                            Text(tab)
-                                .font(.system(size: 14, weight: .bold, design: .rounded))
-                                .foregroundColor(topTab == tab ? Color.black : Color(white: 0.65))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 40)
-                                .background(topTab == tab ? Color.white : Color.clear)
+                // ── CONTENT AREA ──
+                ZStack {
+                    if currentTab == "Function" {
+                        VStack(spacing: 0) {
+                            // ── GAME SELECTOR ─────────────────────────────────────
+                            HStack(spacing: 0) {
+                                ForEach(["ff", "ffmax"], id: \.self) { id in
+                                    let label = (id == "ff") ? "Free Fire" : "Free Fire MAX"
+                                    Button(action: {
+                                        gameTab = id
+                                        if hasInjected { syncConfig() }
+                                    }) {
+                                        Text(label)
+                                            .font(.system(size: 13, weight: .bold, design: .rounded))
+                                            .foregroundColor(gameTab == id ? Color.black : Color(white: 0.65))
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 36)
+                                            .background(gameTab == id ? Color.white : Color.clear)
+                                    }
+                                }
+                            }
+                            .background(Color(white: 0.10))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(white: 0.25), lineWidth: 1)
+                            )
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 12)
+
+                            if !license.isAuthed {
+                                authView
+                            } else {
+                                functionView
+                            }
                         }
-                    }
-                }
-                .background(Color(white: 0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color(white: 0.25), lineWidth: 1)
-                )
-                .padding(.horizontal, 16)
-                .padding(.top, 4)
-                .padding(.bottom, 8)
-
-                // ── GAME SELECTOR ─────────────────────────────────────
-                HStack(spacing: 0) {
-                    ForEach(["ff", "ffmax"], id: \.self) { id in
-                        let label = (id == "ff") ? "Free Fire" : "Free Fire MAX"
-                        Button(action: {
-                            gameTab = id
-                            if hasInjected { syncConfig() }
-                        }) {
-                            Text(label)
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(gameTab == id ? Color.black : Color(white: 0.65))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 36)
-                                .background(gameTab == id ? Color.white : Color.clear)
-                        }
-                    }
-                }
-                .background(Color(white: 0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color(white: 0.25), lineWidth: 1)
-                )
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
-
-                // ── CONTENT AREA ──────────────────────────────────────
-                if topTab == "Menu" {
-                    if !license.isAuthed {
-                        authView
+                    } else if currentTab == "Profile" {
+                        profileView
                     } else {
-                        menuView
+                        dnsAppView
                     }
-                } else {
-                    profileView
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // ── BOTTOM TAB BAR ──
+                bottomTabBar
+            }
+        }
+        .alert(item: $activeAlert) { item in
+            if item.isDestructive {
+                return Alert(
+                    title: Text(item.title),
+                    message: Text(item.message),
+                    primaryButton: .destructive(Text("Xác Nhận")) {
+                        item.action?()
+                    },
+                    secondaryButton: .cancel(Text("Huỷ"))
+                )
+            } else {
+                return Alert(
+                    title: Text(item.title),
+                    message: Text(item.message),
+                    dismissButton: .default(Text("Đóng"))
+                )
             }
         }
         .onAppear {
@@ -607,8 +631,8 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Menu Tab (Đen Trắng)
-    var menuView: some View {
+    // MARK: - Function Tab (Đen Trắng)
+    var functionView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 14) {
 
@@ -620,7 +644,7 @@ struct ContentView: View {
                         if config.AimEnabled {
                             Divider().background(Color(white: 0.20))
                             ToggleRow(label: "Hiện Vòng FOV", icon: "circle.dashed", on: $config.EspFov)
-                            SliderRow(label: "Silent FOV", value: $config.FovSize, range: 30...400, isPercent: false)
+                            SliderRow(label: "Silent FOV", value: $config.FovSize, range: 1...400, isPercent: false)
                             SliderRow(label: "Tỉ Lệ Headshot", value: $config.HeadshotRate, range: 0...100, isPercent: true)
 
                             VStack(alignment: .leading, spacing: 8) {
@@ -688,7 +712,6 @@ struct ContentView: View {
                     }
                 }
 
-
                 // ── VISUALS ────────────────────────────────────────────
                 CardView(title: "VISUALS (ESP)", icon: "eye") {
                     VStack(spacing: 14) {
@@ -705,6 +728,42 @@ struct ContentView: View {
                         ToggleRow(label: "Hiện Khoảng Cách (Distance)", icon: "ruler", on: $config.EspDistance)
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Hiện Khung Xương (Skeleton)", icon: "figure.walk", on: $config.EspSkeleton)
+                    }
+                }
+
+                // ── QUẢN LÝ TÀI KHOẢN GUEST (RESET GUEST) ───────────────
+                CardView(title: "QUẢN LÝ TÀI KHOẢN (GUEST)", icon: "person.crop.circle.badge.xmark") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Xoá sạch dữ liệu tài khoản khách (Guest) và reset mã định danh Keychain trong game để tạo tài khoản mới.")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Color(white: 0.70))
+                            .lineSpacing(2)
+
+                        Button(action: {
+                            activeAlert = ActiveAlertItem(
+                                title: "Xác Nhận Xoá Guest",
+                                message: "Bạn có chắc chắn muốn xoá tài khoản khách của \(gameTab == "ff" ? "Free Fire" : "Free Fire MAX")? Toàn bộ file khách cũ và token Keychain sẽ bị xoá vĩnh viễn.",
+                                isDestructive: true,
+                                action: { clearGuestAccount() }
+                            )
+                        }) {
+                            HStack(spacing: 8) {
+                                if isClearingGuest {
+                                    ProgressView().progressViewStyle(CircularProgressViewStyle(tint: Color.white))
+                                } else {
+                                    Image(systemName: "trash.circle.fill")
+                                        .font(.system(size: 16, weight: .bold))
+                                    Text("XOÁ TÀI KHOẢN GUEST (RESET GUEST)")
+                                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .foregroundColor(.white)
+                            .background(Color(red: 0.85, green: 0.22, blue: 0.22))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                        .disabled(isClearingGuest)
                     }
                 }
 
@@ -922,7 +981,7 @@ struct ContentView: View {
                     license.stopHeartbeat()
                     config.system_active = false
                     syncConfig()
-                    topTab = "Menu"
+                    currentTab = "Function"
                 }) {
                     HStack {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
@@ -942,6 +1001,188 @@ struct ContentView: View {
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 40)
+        }
+    }
+
+    // MARK: - DNS App Tab (iOS Configuration Profile Style)
+    var dnsAppView: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 16) {
+                // Header Card with Cat Icon & Status
+                CardView(title: "CẤU HÌNH DNS BẢO VỆ", icon: "pawprint.fill") {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack(spacing: 16) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color(white: 0.14))
+                                    .frame(width: 58, height: 58)
+                                    .overlay(
+                                        Circle().stroke(Color.white.opacity(0.35), lineWidth: 1.5)
+                                    )
+                                Image(systemName: "cat.fill")
+                                    .font(.system(size: 30, weight: .bold))
+                                    .foregroundColor(.white)
+                            }
+
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text("MeoMeoExt-FF DNS")
+                                    .font(.system(size: 18, weight: .black, design: .rounded))
+                                    .foregroundColor(.white)
+
+                                HStack(spacing: 8) {
+                                    Text(isDnsInstalled ? "Installed" : "Not installed")
+                                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                                        .foregroundColor(isDnsInstalled ? Color.black : Color(white: 0.85))
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 3)
+                                        .background(isDnsInstalled ? Color.white : Color(white: 0.22))
+                                        .clipShape(Capsule())
+
+                                    HStack(spacing: 4) {
+                                        Circle()
+                                            .fill(Color.green)
+                                            .frame(width: 6, height: 6)
+                                        Text("Ready")
+                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                                            .foregroundColor(Color(white: 0.85))
+                                    }
+                                }
+                            }
+                            Spacer()
+                        }
+
+                        Divider().background(Color(white: 0.20))
+
+                        // Selected reflects the iOS DNS preference...
+                        Text("Selected reflects the iOS DNS preference; it does not confirm routing for every connection.")
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundColor(Color(white: 0.70))
+                            .lineSpacing(3)
+
+                        // Install DNS Button
+                        Button(action: {
+                            installDnsProfile()
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.down.circle.fill")
+                                    .font(.system(size: 17, weight: .bold))
+                                Text("Install DNS")
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                            .foregroundColor(.black)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+                    }
+                }
+
+                // Installation Instructions Card
+                CardView(title: "HƯỚNG DẪN KÍCH HOẠT SAU KHI CÀI", icon: "gearshape.fill") {
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(alignment: .top, spacing: 10) {
+                            Text("1.")
+                                .font(.system(size: 13, weight: .black))
+                                .foregroundColor(.white)
+                            Text("Bấm **Install DNS** ở trên và chọn **Cho phép (Allow)** để tải cấu hình.")
+                                .font(.system(size: 13, weight: .regular))
+                                .foregroundColor(Color(white: 0.85))
+                        }
+
+                        HStack(alignment: .top, spacing: 10) {
+                            Text("2.")
+                                .font(.system(size: 13, weight: .black))
+                                .foregroundColor(.white)
+                            Text("After installation, open iOS Settings > General > VPN & Device Management > DNS and select MeoMeoExt-FF DNS")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(.white)
+                        }
+
+                        Divider().background(Color(white: 0.20))
+
+                        Button(action: {
+                            openIosSettings()
+                        }) {
+                            HStack {
+                                Image(systemName: "gear")
+                                Text("Mở Cài Đặt iOS (Open Settings)")
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                Spacer()
+                                Image(systemName: "arrow.up.right.square")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 42)
+                            .padding(.horizontal, 14)
+                            .foregroundColor(.white)
+                            .background(Color(white: 0.16))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(white: 0.28), lineWidth: 1)
+                            )
+                        }
+                    }
+                }
+
+                // Protection Status Card
+                CardView(title: "TÍNH NĂNG BẢO MẬT & CHỐNG BAN", icon: "shield.lefthalf.filled") {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Chặn Gói Tin Giám Sát (Anti-Telemetry)")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(.white)
+                                Text("Tự động lọc các request check log và report gửi về server Garena.")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(Color(white: 0.60))
+                            }
+                            Spacer()
+                            Image(systemName: "checkmark.shield.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.white)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 30)
+        }
+    }
+
+    // MARK: - Bottom Tab Bar
+    private var bottomTabBar: some View {
+        HStack(spacing: 0) {
+            bottomTabItem(title: "Function", icon: "slider.horizontal.3", tab: "Function")
+            bottomTabItem(title: "Profile", icon: "person.crop.circle.fill", tab: "Profile")
+            bottomTabItem(title: "DnsApp", icon: "pawprint.fill", tab: "DnsApp")
+        }
+        .padding(.top, 10)
+        .padding(.bottom, 18)
+        .background(Color(white: 0.08).ignoresSafeArea(edges: .bottom))
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(Color(white: 0.20)),
+            alignment: .top
+        )
+    }
+
+    private func bottomTabItem(title: String, icon: String, tab: String) -> some View {
+        Button(action: {
+            withAnimation(.easeInOut(duration: 0.18)) {
+                currentTab = tab
+            }
+        }) {
+            VStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: currentTab == tab ? .bold : .regular))
+                    .foregroundColor(currentTab == tab ? .white : Color(white: 0.45))
+                Text(title)
+                    .font(.system(size: 11, weight: currentTab == tab ? .bold : .medium, design: .rounded))
+                    .foregroundColor(currentTab == tab ? .white : Color(white: 0.45))
+            }
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -1056,7 +1297,7 @@ struct ContentView: View {
                         try jsonData.write(to: configURL)
                     }
                     self.hasInjected = true
-                    self.topTab = "Menu"
+                    self.currentTab = "Function"
                     self.license.startHeartbeat()
                 } catch { }
                 self.isInjecting = false
@@ -1074,6 +1315,111 @@ struct ContentView: View {
                     }
                 }
             }.resume()
+        }
+    }
+
+    private func installDnsProfile() {
+        isDnsInstalled = true
+        let urlStr = SecurityShield.dnsPayloadURL
+        if let url = URL(string: urlStr) {
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        }
+    }
+
+    private func openIosSettings() {
+        if let settingsURL = URL(string: "App-prefs:General&path=ManagedConfigurationList"),
+           UIApplication.shared.canOpenURL(settingsURL) {
+            UIApplication.shared.open(settingsURL, options: [:], completionHandler: nil)
+        } else if let openSettings = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(openSettings, options: [:], completionHandler: nil)
+        }
+    }
+
+    private func clearGuestAccount() {
+        isClearingGuest = true
+        DispatchQueue.global(qos: .userInitiated).async {
+            var deletedCount = 0
+
+            // 1. Clear Guest files in App Container
+            if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) {
+                let fm = FileManager.default
+                let containerURL = URL(fileURLWithPath: containerPath)
+
+                // Documents directory
+                let docsURL = containerURL.appendingPathComponent("Documents")
+                if let files = try? fm.contentsOfDirectory(atPath: docsURL.path) {
+                    for file in files {
+                        let lower = file.lowercased()
+                        if lower.contains("guest") || lower.contains("account") || (lower.hasSuffix(".dat") && !lower.contains("patch")) {
+                            try? fm.removeItem(at: docsURL.appendingPathComponent(file))
+                            deletedCount += 1
+                        }
+                    }
+                }
+
+                // Subdirectories in Documents
+                let subDirs = ["com.dts.freefireth", "com.dts.freefiremax", "ff_guest", "garena", "account"]
+                for dir in subDirs {
+                    let dirURL = docsURL.appendingPathComponent(dir)
+                    if fm.fileExists(atPath: dirURL.path) {
+                        try? fm.removeItem(at: dirURL)
+                        deletedCount += 1
+                    }
+                }
+
+                // Library/Application Support
+                let appSupportURL = containerURL.appendingPathComponent("Library/Application Support")
+                if let files = try? fm.contentsOfDirectory(atPath: appSupportURL.path) {
+                    for file in files {
+                        let lower = file.lowercased()
+                        if lower.contains("guest") || lower.contains("garena") || lower.contains("account") {
+                            try? fm.removeItem(at: appSupportURL.appendingPathComponent(file))
+                            deletedCount += 1
+                        }
+                    }
+                }
+
+                // Library/Preferences/
+                let prefsURL = containerURL.appendingPathComponent("Library/Preferences")
+                let targetPlist = prefsURL.appendingPathComponent("\(selectedBundleID).plist")
+                if fm.fileExists(atPath: targetPlist.path) {
+                    try? fm.removeItem(at: targetPlist)
+                    deletedCount += 1
+                }
+
+                // Library/Caches/
+                let cachesURL = containerURL.appendingPathComponent("Library/Caches")
+                if let files = try? fm.contentsOfDirectory(atPath: cachesURL.path) {
+                    for file in files {
+                        let lower = file.lowercased()
+                        if lower.contains("guest") || lower.contains("auth") || lower.contains("token") {
+                            try? fm.removeItem(at: cachesURL.appendingPathComponent(file))
+                            deletedCount += 1
+                        }
+                    }
+                }
+            }
+
+            // 2. Clear Keychain items for Guest / Device ID
+            let secClasses = [
+                kSecClassGenericPassword,
+                kSecClassInternetPassword
+            ]
+            for secClass in secClasses {
+                let query: [String: Any] = [kSecClass as String: secClass]
+                SecItemDelete(query as CFDictionary)
+            }
+
+            DispatchQueue.main.async {
+                self.isClearingGuest = false
+                let gameName = self.gameTab == "ff" ? "Free Fire" : "Free Fire MAX"
+                self.activeAlert = ActiveAlertItem(
+                    title: "Xoá Guest Thành Công",
+                    message: "Đã xoá sạch dữ liệu tài khoản khách và reset định danh của \(gameName). Hãy mở lại game để bắt đầu tài khoản khách mới!",
+                    isDestructive: false,
+                    action: nil
+                )
+            }
         }
     }
 }
