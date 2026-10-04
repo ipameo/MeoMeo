@@ -105,6 +105,10 @@ struct EspConfig: Codable, Equatable {
     var AimSystemEnabled: Bool = false // Aim System
     var EspFov: Bool = false
     var NoRecoil: Bool = false
+    // Combat cheats
+    var Fly: Bool = false
+    var FastFire: Bool = false
+    var FastReload: Bool = false
     var AimTarget: Int = 0             // 0=Head, 1=Neck, 2=Body
     var FovSize: Float = 60.0
     var HeadshotRate: Float = 60.0
@@ -140,6 +144,9 @@ struct EspConfig: Codable, Equatable {
         AimSystemEnabled = try c.decodeIfPresent(Bool.self, forKey: .AimSystemEnabled) ?? false
         EspFov = try c.decodeIfPresent(Bool.self, forKey: .EspFov) ?? false
         NoRecoil = try c.decodeIfPresent(Bool.self, forKey: .NoRecoil) ?? false
+        Fly = try c.decodeIfPresent(Bool.self, forKey: .Fly) ?? false
+        FastFire = try c.decodeIfPresent(Bool.self, forKey: .FastFire) ?? false
+        FastReload = try c.decodeIfPresent(Bool.self, forKey: .FastReload) ?? false
         AimTarget = try c.decodeIfPresent(Int.self, forKey: .AimTarget) ?? 0
         FovSize = try c.decodeIfPresent(Float.self, forKey: .FovSize) ?? 60.0
         HeadshotRate = try c.decodeIfPresent(Float.self, forKey: .HeadshotRate) ?? 60.0
@@ -682,6 +689,17 @@ struct ContentView: View {
 
                             ToggleRow(label: "Giảm Giật (No Recoil)", icon: "minus.circle", on: $config.NoRecoil)
                         }
+                    }
+                }
+
+                // ── CHIẾN ĐẤU (COMBAT) ────────────────────────────────
+                CardView(title: "CHIẾN ĐẤU", icon: "flame.fill") {
+                    VStack(spacing: 14) {
+                        ToggleRow(label: "Bay (Fly)", icon: "airplane", on: $config.Fly)
+                        Divider().background(Color(white: 0.20))
+                        ToggleRow(label: "Bắn Nhanh (Fast Fire)", icon: "bolt.fill", on: $config.FastFire)
+                        Divider().background(Color(white: 0.20))
+                        ToggleRow(label: "Nạp Đạn Nhanh (Fast Reload)", icon: "arrow.clockwise", on: $config.FastReload)
                     }
                 }
 
