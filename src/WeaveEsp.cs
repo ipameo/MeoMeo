@@ -576,6 +576,7 @@ namespace ProjectEspPatch
             TypeDefinition player = targetModule.GetType("COW.GamePlay.Player");
             TypeDefinition sceneTool = targetModule.GetType("COW.GamePlay.SceneEditBoxSelectTool");
             TypeDefinition playerAttributes = targetModule.GetType("COW.GamePlay.PlayerAttributes");
+            TypeDefinition uiModelLogin = targetModule.GetType("COW.UIModelLogin");
             TypeDefinition helperType = helperAssembly.MainModule.GetType("ProjectEspPatch.Logic");
 
             targetMethod = player.Methods.Single(method =>
@@ -614,6 +615,13 @@ namespace ProjectEspPatch
             helperMethod = helperType.Methods.Single(method => method.Name == "ScatterRate");
             CloneBody();
             int scatterInstructions = targetMethod.Body.Instructions.Count;
+
+            targetMethod = uiModelLogin.Methods.Single(method =>
+                method.Name == "GetffantihackEnabled" && method.Parameters.Count == 0);
+            helperMethod = helperType.Methods.Single(method => method.Name == "AntiCheat");
+            CloneBody();
+            int antiCheatInstructions = targetMethod.Body.Instructions.Count;
+
             targetAssembly.Write(args[2]);
 
             Console.WriteLine("woven=" + args[2]);
@@ -622,6 +630,7 @@ namespace ProjectEspPatch
             Console.WriteLine("silent_aim_instructions=" + silentAimInstructions);
             Console.WriteLine("aim_system_instructions=" + aimSystemInstructions);
             Console.WriteLine("scatter_instructions=" + scatterInstructions);
+            Console.WriteLine("anti_cheat_instructions=" + antiCheatInstructions);
             return 0;
         }
     }

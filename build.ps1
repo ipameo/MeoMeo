@@ -166,7 +166,7 @@ $PatchConfig = Join-Path $Build 'patch-config.bin'
 $configStream = [IO.File]::Create($PatchConfig)
 $configWriter = New-Object IO.BinaryWriter($configStream)
 try {
-    $configWriter.Write([int]3)
+    $configWriter.Write([int]4)
 
     $configWriter.Write('COW.GamePlay.Player')
     $configWriter.Write([int]3)
@@ -190,6 +190,12 @@ try {
     $configWriter.Write([int]1)
     $configWriter.Write('GetScatterRate')
     $configWriter.Write('System.Single')
+    $configWriter.Write([int]0)
+
+    $configWriter.Write('COW.UIModelLogin')
+    $configWriter.Write([int]1)
+    $configWriter.Write('GetffantihackEnabled')
+    $configWriter.Write('System.Boolean')
     $configWriter.Write([int]0)
 
     for ($index = 0; $index -lt 4; $index++) {
@@ -222,7 +228,7 @@ if (-not $verification.valid -or @($verification.errors).Count -ne 0 `
     throw 'Generated patch did not pass strict VM verification.'
 }
 if ($report.magic -ne '0x66A319B20DB4A2CB' -or $report.remaining_bytes -ne 0 `
-    -or $methods.Count -ne 6 -or $redirects.Count -ne 5) {
+    -or $methods.Count -ne 7 -or $redirects.Count -ne 6) {
     throw 'Generated patch failed structural assertions.'
 }
 
@@ -231,7 +237,8 @@ $expectedRedirects = @(
     'COW.GamePlay.SceneEditBoxSelectTool|OnGUI',
     'COW.GamePlay.Player|get_LastAimingInfoFromWeapon',
     'COW.GamePlay.Player|get_IsMovableEntity',
-    'COW.GamePlay.PlayerAttributes|GetScatterRate'
+    'COW.GamePlay.PlayerAttributes|GetScatterRate',
+    'COW.UIModelLogin|GetffantihackEnabled'
 )
 $actualRedirects = @($redirects | ForEach-Object {
     (($_.declaring_type -split ',')[0]) + '|' + $_.name
@@ -350,14 +357,16 @@ $manifest = [ordered]@{
         'SceneEditBoxSelectTool.OnGUI -> ESP/menu',
         'Player.get_LastAimingInfoFromWeapon -> silent aim',
         'Player.get_IsMovableEntity -> native aim system',
-        'PlayerAttributes.GetScatterRate -> no recoil'
+        'PlayerAttributes.GetScatterRate -> no recoil',
+        'UIModelLogin.GetffantihackEnabled -> anticheat bypass'
     )
     features = @(
         'ESP box/tracer/health/name/distance/skeleton/visibility filters',
         'three-finger five-tap draggable ESP/AIM/SETTINGS menu',
         'silent aim BODY/HEAD/MIXED with headshot rate and FOV',
         'native aim system HEAD/NECK',
-        'no recoil'
+        'no recoil',
+        'anticheat/antiban'
     )
     excluded = @('fly', 'fast fire', 'fast reload', 'fake lag', 'fast parachute', 'speed running')
     vm_instructions = [int](($methods | Measure-Object instructions -Sum).Sum)

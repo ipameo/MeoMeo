@@ -1171,5 +1171,23 @@ namespace ProjectEspPatch
             }
         }
 
+        // AntiCheat bypass — hooks COW.UIModelLogin.GetffantihackEnabled
+        // Returning false tells the game its own antihack SDK is OFF:
+        //   - memory integrity scans are skipped (MonoMemCheckFrameInterval becomes irrelevant)
+        //   - ffantihack rotation/speed checks stop (ffantihack.MHJKABKLFEB.LDEGEILBEGN gated behind this)
+        //   - RUDP_SEND_FFANTIHACKINFO (msg 431) never queued — no telemetry sent to server
+        //   - ProcessffantihackOpen switch stays closed — SDK remains uninitialized
+        public static bool AntiCheat(object self)
+        {
+            try
+            {
+                return false;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
     }
 }
