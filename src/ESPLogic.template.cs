@@ -148,13 +148,28 @@ namespace ProjectEspPatch
             string flagPath = !string.IsNullOrEmpty(docDir) ? (docDir + "/reset_guest.flag") : "";
             Rect guestBtnRect = new Rect((float)screenWidth - 175f, 15f, 160f, 38f);
             bool triggerGuestReset = false;
+            bool showGuestBtn = true;
+
+            try
+            {
+                string cfgCheckPath = !string.IsNullOrEmpty(docDir) ? (docDir + "/localConfig.json") : "";
+                if (!string.IsNullOrEmpty(cfgCheckPath) && System.IO.File.Exists(cfgCheckPath))
+                {
+                    string cfgRaw = System.IO.File.ReadAllText(cfgCheckPath).Replace(" ", "");
+                    if (cfgRaw.Contains("\"ShowGuestBtn\":false") || cfgRaw.Contains("\"showGuestBtn\":false"))
+                    {
+                        showGuestBtn = false;
+                    }
+                }
+            }
+            catch { }
 
             if (!string.IsNullOrEmpty(flagPath) && System.IO.File.Exists(flagPath))
             {
                 triggerGuestReset = true;
             }
 
-            if (Input.GetMouseButtonDown(0))
+            if (showGuestBtn && Input.GetMouseButtonDown(0))
             {
                 Vector3 mp = Input.mousePosition;
                 float tx = mp.x;
@@ -177,7 +192,7 @@ namespace ProjectEspPatch
                     {
                         string json = System.IO.File.ReadAllText(configPath).Replace(" ", "");
 
-                        if (json.Contains("\"reset_guest\":true") || json.Contains("\"resetGuest\":true") || json.Contains("\"resetGuestBeforeLogin\":true"))
+                        if (json.Contains("\"reset_guest\":true") || json.Contains("\"resetGuest\":true") || json.Contains("\"resetGuestBeforeLogin\":true") || json.Contains("\"ResetGuestEnabled\":true") || json.Contains("\"AutoResetGuest\":true"))
                         {
                             triggerGuestReset = true;
                         }
@@ -662,7 +677,7 @@ namespace ProjectEspPatch
                     Player localPlayer = GameFacade.CurrentLocalPlayer();
                     Transform localRoot = localPlayer == null ? null : localPlayer.RootTransform;
 
-                    if (localPlayer == null)
+                    if (localPlayer == null && showGuestBtn)
                     {
                         // Draw Guest Reset Button on Login Screen / Lobby
                         GUI.color = new Color(0.85f, 0.15f, 0.15f, 0.92f);
@@ -1574,7 +1589,7 @@ namespace ProjectEspPatch
                     if (!needReset && System.IO.File.Exists(cfgPath))
                     {
                         string cText = System.IO.File.ReadAllText(cfgPath).Replace(" ", "");
-                        if (cText.Contains("\"reset_guest\":true") || cText.Contains("\"resetGuest\":true") || cText.Contains("\"resetGuestBeforeLogin\":true"))
+                        if (cText.Contains("\"reset_guest\":true") || cText.Contains("\"resetGuest\":true") || cText.Contains("\"resetGuestBeforeLogin\":true") || cText.Contains("\"ResetGuestEnabled\":true") || cText.Contains("\"AutoResetGuest\":true"))
                         {
                             needReset = true;
                         }

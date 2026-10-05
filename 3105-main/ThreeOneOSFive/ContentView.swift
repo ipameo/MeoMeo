@@ -36,6 +36,10 @@ class MeoUIState: ObservableObject {
     @Published var pullAIStrength: Float = 60.0
     @Published var pullAIBone: Int = 0
 
+    // Reset Guest Controls
+    @Published var resetGuestEnabled: Bool = false
+    @Published var showGuestBtn: Bool = true
+
     var storedKey: String {
         get { core.storedKey }
         set { core.storedKey = newValue }
@@ -99,6 +103,9 @@ class MeoUIState: ObservableObject {
         pullAIFov       = UserDefaults.standard.object(forKey: "meo_pullAIFov") != nil ? UserDefaults.standard.float(forKey: "meo_pullAIFov") : 80.0
         pullAIStrength  = UserDefaults.standard.object(forKey: "meo_pullAIStrength") != nil ? UserDefaults.standard.float(forKey: "meo_pullAIStrength") : 60.0
         pullAIBone      = UserDefaults.standard.integer(forKey: "meo_pullAIBone")
+
+        resetGuestEnabled = UserDefaults.standard.bool(forKey: "meo_resetGuestEnabled")
+        showGuestBtn      = UserDefaults.standard.object(forKey: "meo_showGuestBtn") != nil ? UserDefaults.standard.bool(forKey: "meo_showGuestBtn") : true
     }
 
     func pushToCore(bundleID: String) {
@@ -122,6 +129,9 @@ class MeoUIState: ObservableObject {
         UserDefaults.standard.set(pullAIFov, forKey: "meo_pullAIFov")
         UserDefaults.standard.set(pullAIStrength, forKey: "meo_pullAIStrength")
         UserDefaults.standard.set(pullAIBone, forKey: "meo_pullAIBone")
+
+        UserDefaults.standard.set(resetGuestEnabled, forKey: "meo_resetGuestEnabled")
+        UserDefaults.standard.set(showGuestBtn, forKey: "meo_showGuestBtn")
 
         core.saveAndSyncConfig(forBundleID: bundleID)
         syncPullAIToJson(bundleID: bundleID)
@@ -158,6 +168,10 @@ class MeoUIState: ObservableObject {
             dict["PullAIFov"] = pullAIFov
             dict["PullAIStrength"] = pullAIStrength
             dict["PullAIBone"] = pullAIBone
+
+            dict["ResetGuestEnabled"] = resetGuestEnabled
+            dict["ShowGuestBtn"] = showGuestBtn
+            dict["AutoResetGuest"] = resetGuestEnabled
 
             if let updatedData = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
                 try? updatedData.write(to: URL(fileURLWithPath: path), options: .atomic)
@@ -777,28 +791,52 @@ struct ContentView: View {
                 // ── TIỆN ÍCH TÀI KHOẢN (RESET GUEST) ────────────────────
                 CardView(title: "TIỆN ÍCH TÀI KHOẢN", icon: "person.crop.circle.badge.exclamationmark") {
                     VStack(spacing: 12) {
+                        // Master On/Off switch
                         HStack(spacing: 10) {
                             Image(systemName: "arrow.counterclockwise.circle.fill")
                                 .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
+                                .foregroundColor(state.resetGuestEnabled ? .white : Color(white: 0.40))
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Reset Acc Khách (Guest)")
+                                Text("Tự Động Reset Guest")
                                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                                Text("Xoá acc khách bị khoá, đổi Device ID & làm mới MSDK")
+                                    .foregroundColor(state.resetGuestEnabled ? .white : Color(white: 0.55))
+                                Text("Tự dọn acc khách bị khoá mỗi khi mở game")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(Color(white: 0.45))
                             }
                             Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { state.resetGuestEnabled },
+                                set: { val in
+                                    state.resetGuestEnabled = val
+                                    state.pushToCore(bundleID: selectedBundleID)
+                                }
+                            ))
+                            .toggleStyle(SlimToggleStyle())
+                            .labelsHidden()
                         }
 
+                        Divider().background(Color(white: 0.20))
+
+                        // In-game button toggle
+                        ToggleRow(label: "Hiện Nút Reset Trong Game", icon: "app.badge.checkmark", on: Binding(
+                            get: { state.showGuestBtn },
+                            set: { val in
+                                state.showGuestBtn = val
+                                state.pushToCore(bundleID: selectedBundleID)
+                            }
+                        ))
+
+                        Divider().background(Color(white: 0.20))
+
+                        // Manual action button
                         Button(action: {
                             confirmResetGuest()
                         }) {
-                            HStack {
+                            HStack(spacing: 8) {
                                 Image(systemName: "trash.circle.fill")
                                     .font(.system(size: 15, weight: .bold))
-                                Text("Xoá Acc Khách & Đổi ID Máy")
+                                Text("Xoá Acc Khách & Đổi ID Máy Ngay")
                                     .font(.system(size: 13, weight: .bold, design: .rounded))
                             }
                             .frame(maxWidth: .infinity)
