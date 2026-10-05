@@ -3,14 +3,27 @@
 -- SQLite3
 -- ============================================
 
--- License keys issued by admin
+-- License keys issued by admin or sellers
 CREATE TABLE IF NOT EXISTS license_keys (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
     license_key     TEXT    UNIQUE NOT NULL,
     max_devices     INTEGER DEFAULT 1,
     duration_days   INTEGER DEFAULT 30,
     active          INTEGER DEFAULT 1,
-    created_at      TEXT    DEFAULT (datetime('now'))
+    seller_id       INTEGER DEFAULT NULL,
+    created_at      TEXT    DEFAULT (datetime('now')),
+    FOREIGN KEY (seller_id) REFERENCES sellers(id)
+);
+
+-- Sellers table for dedicated seller web panels
+CREATE TABLE IF NOT EXISTS sellers (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    name                TEXT    NOT NULL,
+    token               TEXT    UNIQUE NOT NULL,
+    active              INTEGER DEFAULT 1,
+    max_devices_limit   INTEGER DEFAULT 99999,
+    note                TEXT    DEFAULT '',
+    created_at          TEXT    DEFAULT (datetime('now'))
 );
 
 -- Devices bound to a license

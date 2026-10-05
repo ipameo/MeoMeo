@@ -740,19 +740,20 @@ def admin_add_key():
     days = data.get("days", 30)
     max_devices = data.get("max_devices", 1)
     custom_key = data.get("key")
+    seller_id = data.get("seller_id")
     key = custom_key if custom_key else generate_license_key()
 
     db = get_db()
     try:
         db.execute(
-            "INSERT INTO license_keys (license_key, max_devices, duration_days) VALUES (?, ?, ?)",
-            (key, max_devices, days),
+            "INSERT INTO license_keys (license_key, max_devices, duration_days, seller_id) VALUES (?, ?, ?, ?)",
+            (key, max_devices, days, seller_id),
         )
         db.commit()
     except sqlite3.IntegrityError:
         return jsonify({"error": "key_already_exists"}), 409
 
-    return jsonify({"ok": True, "key": key, "days": days, "max_devices": max_devices})
+    return jsonify({"ok": True, "key": key, "days": days, "max_devices": max_devices, "seller_id": seller_id})
 
 
 @app.route("/api/admin/revoke_key", methods=["POST"])
@@ -974,11 +975,20 @@ def admin_system_status():
     features = get_server_features()
 
     keys = db.execute("""
-        SELECT lk.*, COUNT(d.id) as used_devices
+        SELECT lk.*, COUNT(d.id) as used_devices, s.name as seller_name
         FROM license_keys lk
         LEFT JOIN devices d ON lk.id = d.license_key_id
+        LEFT JOIN sellers s ON lk.seller_id = s.id
         GROUP BY lk.id
         ORDER BY lk.created_at DESC
+    """).fetchall()
+
+    sellers = db.execute("""
+        SELECT s.*, COUNT(lk.id) as key_count
+        FROM sellers s
+        LEFT JOIN license_keys lk ON s.id = lk.seller_id
+        GROUP BY s.id
+        ORDER BY s.created_at DESC
     """).fetchall()
 
     devices = db.execute("""
@@ -999,12 +1009,213 @@ def admin_system_status():
         "system_active": system_on,
         "features": features,
         "keys": [dict(k) for k in keys],
+        "sellers": [dict(s) for s in sellers],
         "devices": [dict(d) for d in devices],
         "logs": [dict(l) for l in logs],
     })
 
 
-# ─── Dashboard Web UI & Health Check ──────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════════════════════
+# ADMIN SELLER MANAGEMENT ENDPOINTS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@app.route("/api/admin/add_seller", methods=["POST"])
+@require_admin
+def admin_add_seller():
+    """Create a new seller account with dedicated token."""
+    data = request.get_json(silent=True) or {}
+    name = (data.get("name") or "").strip()
+    custom_token = (data.get("token") or "").strip()
+    max_devices_limit = int(data.get("max_devices_limit") or 99999)
+    note = (data.get("note") or "").strip()
+
+    if not name:
+        return jsonify({"ok": False, "error": "Vui lòng nhập tên Seller"}), 400
+
+    token = custom_token if custom_token else secrets.token_hex(8)
+    db = get_db()
+    try:
+        db.execute(
+            "INSERT INTO sellers (name, token, active, max_devices_limit, note) VALUES (?, ?, 1, ?, ?)",
+            (name, token, max_devices_limit, note)
+        )
+        db.commit()
+    except sqlite3.IntegrityError:
+        return jsonify({"ok": False, "error": "Token seller đã tồn tại"}), 409
+
+    seller = db.execute("SELECT * FROM sellers WHERE token = ?", (token,)).fetchone()
+    return jsonify({"ok": True, "seller": dict(seller)})
+
+
+@app.route("/api/admin/delete_seller", methods=["POST"])
+@require_admin
+def admin_delete_seller():
+    """Delete a seller and unassign or delete their keys."""
+    data = request.get_json(silent=True) or {}
+    seller_id = data.get("seller_id")
+    if not seller_id:
+        return jsonify({"ok": False, "error": "missing_seller_id"}), 400
+
+    db = get_db()
+    db.execute("UPDATE license_keys SET seller_id = NULL WHERE seller_id = ?", (seller_id,))
+    db.execute("DELETE FROM sellers WHERE id = ?", (seller_id,))
+    db.commit()
+    return jsonify({"ok": True, "message": "Đã xoá Seller thành công"})
+
+
+@app.route("/api/admin/toggle_seller", methods=["POST"])
+@require_admin
+def admin_toggle_seller():
+    """Toggle a seller active status."""
+    data = request.get_json(silent=True) or {}
+    seller_id = data.get("seller_id")
+    active = data.get("active", True)
+    if not seller_id:
+        return jsonify({"ok": False, "error": "missing_seller_id"}), 400
+
+    db = get_db()
+    db.execute("UPDATE sellers SET active = ? WHERE id = ?", (1 if active else 0, seller_id))
+    db.commit()
+    return jsonify({"ok": True, "active": active})
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SELLER PORTAL API ENDPOINTS (/api/seller/...)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def get_seller_by_token(token: str):
+    if not token:
+        return None
+    db = get_db()
+    return db.execute("SELECT * FROM sellers WHERE token = ? AND active = 1", (token,)).fetchone()
+
+
+def require_seller(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        data = request.get_json(silent=True) or {}
+        token = data.get("token") or request.args.get("token", "")
+        if not token and "token" in kwargs:
+            token = kwargs["token"]
+        seller = get_seller_by_token(token)
+        if not seller:
+            return jsonify({"ok": False, "error": "Token Seller không hợp lệ hoặc đã bị khoá"}), 403
+        g.seller = seller
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/api/seller/dashboard", methods=["GET"])
+@require_seller
+def seller_dashboard():
+    """Get dashboard stats and keys belonging strictly to this seller."""
+    seller = g.seller
+    db = get_db()
+    purge_expired_keys(db)
+
+    keys = db.execute("""
+        SELECT lk.*, COUNT(d.id) as used_devices
+        FROM license_keys lk
+        LEFT JOIN devices d ON lk.id = d.license_key_id
+        WHERE lk.seller_id = ?
+        GROUP BY lk.id
+        ORDER BY lk.created_at DESC
+    """, (seller["id"],)).fetchall()
+
+    return jsonify({
+        "ok": True,
+        "seller": {
+            "id": seller["id"],
+            "name": seller["name"],
+            "token": seller["token"],
+            "created_at": seller["created_at"]
+        },
+        "keys": [dict(k) for k in keys],
+        "total_keys": len(keys),
+        "active_keys": len([k for k in keys if k["active"] == 1])
+    })
+
+
+@app.route("/api/seller/create_key", methods=["POST"])
+@require_seller
+def seller_create_key():
+    """Seller creates a new license key (1, 3, 5, 7, 30 days, custom devices)."""
+    seller = g.seller
+    data = request.get_json(silent=True) or {}
+    days = int(data.get("days", 30))
+    max_devices = int(data.get("max_devices", 1))
+    custom_key = (data.get("key") or "").strip()
+
+    # Supported seller durations: 1, 3, 5, 7, 30 days (or flexible)
+    allowed_days = [1, 3, 5, 7, 30, 90, 365, 9999]
+    if days not in allowed_days:
+        days = 30
+
+    if max_devices < 1:
+        max_devices = 1
+
+    key = custom_key if custom_key else generate_license_key()
+    db = get_db()
+    try:
+        db.execute(
+            "INSERT INTO license_keys (license_key, max_devices, duration_days, seller_id) VALUES (?, ?, ?, ?)",
+            (key, max_devices, days, seller["id"])
+        )
+        db.commit()
+    except sqlite3.IntegrityError:
+        return jsonify({"ok": False, "error": "Mã Key đã tồn tại, vui lòng đổi mã khác"}), 409
+
+    return jsonify({"ok": True, "key": key, "days": days, "max_devices": max_devices})
+
+
+@app.route("/api/seller/reset_hwid", methods=["POST"])
+@require_seller
+def seller_reset_hwid():
+    """Seller resets HWID for their own keys only."""
+    seller = g.seller
+    data = request.get_json(silent=True) or {}
+    key = (data.get("key") or "").strip()
+    if not key:
+        return jsonify({"ok": False, "error": "Vui lòng nhập License Key cần reset"}), 400
+
+    db = get_db()
+    lk = db.execute("SELECT id FROM license_keys WHERE license_key = ? AND seller_id = ?", (key, seller["id"])).fetchone()
+    if not lk:
+        return jsonify({"ok": False, "error": "Key không tồn tại hoặc không thuộc quyền quản lý của bạn"}), 404
+
+    devices = db.execute("SELECT device_id FROM devices WHERE license_key_id = ?", (lk["id"],)).fetchall()
+    for d in devices:
+        db.execute("DELETE FROM sessions WHERE device_id = ?", (d["device_id"],))
+    db.execute("DELETE FROM devices WHERE license_key_id = ?", (lk["id"],))
+    db.commit()
+    return jsonify({"ok": True, "message": f"Đã reset HWID cho key {key}"})
+
+
+@app.route("/api/seller/delete_key", methods=["POST"])
+@require_seller
+def seller_delete_key():
+    """Seller deletes their own license key."""
+    seller = g.seller
+    data = request.get_json(silent=True) or {}
+    key = (data.get("key") or "").strip()
+    if not key:
+        return jsonify({"ok": False, "error": "Vui lòng nhập License Key cần xoá"}), 400
+
+    db = get_db()
+    lk = db.execute("SELECT id FROM license_keys WHERE license_key = ? AND seller_id = ?", (key, seller["id"])).fetchone()
+    if not lk:
+        return jsonify({"ok": False, "error": "Key không tồn tại hoặc không thuộc quyền quản lý của bạn"}), 404
+
+    devices = db.execute("SELECT device_id FROM devices WHERE license_key_id = ?", (lk["id"],)).fetchall()
+    for d in devices:
+        db.execute("DELETE FROM sessions WHERE device_id = ?", (d["device_id"],))
+    db.execute("DELETE FROM devices WHERE license_key_id = ?", (lk["id"],))
+    db.execute("DELETE FROM license_keys WHERE id = ?", (lk["id"],))
+    db.commit()
+    return jsonify({"ok": True, "message": f"Đã xoá vĩnh viễn key {key}"})
+
+
+# ─── Dashboard Web UI & Seller Portal Route ───────────────────────────────────
 @app.route("/admin", methods=["GET"])
 @app.route("/", methods=["GET"])
 def index():
@@ -1016,6 +1227,33 @@ def index():
             "system_active": is_system_active(),
             "port": 2007,
         })
+    return render_template("index.html")
+
+
+@app.route("/<path:seller_path>", methods=["GET"])
+def seller_page(seller_path):
+    """
+    Dedicated Seller Web Interface.
+    Matches paths like /seuvip-tokenxxxxx, /seller-token123, or any custom path token.
+    If the path matches a seller token or prefix, it serves the dedicated Seller UI.
+    """
+    token = seller_path.strip()
+    # Check if format is prefix-token (e.g. seuvip-3ce84676a3567f00 or seller-xxxxx)
+    if "-" in token:
+        prefix, possible_token = token.split("-", 1)
+    else:
+        possible_token = token
+
+    db = get_db()
+    seller = db.execute(
+        "SELECT * FROM sellers WHERE token = ? OR token = ? AND active = 1",
+        (token, possible_token)
+    ).fetchone()
+
+    if seller:
+        return render_template("seller.html", seller=dict(seller), seller_token=seller["token"])
+
+    # Fallback to index if not a seller route
     return render_template("index.html")
 
 

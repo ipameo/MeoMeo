@@ -864,6 +864,7 @@
                                 <select id="newKeyDays">
                                     <option value="1">1 Ngày (Test)</option>
                                     <option value="3">3 Ngày</option>
+                                    <option value="5">5 Ngày</option>
                                     <option value="7">7 Ngày (Tuần)</option>
                                     <option value="30" selected>30 Ngày (Tháng)</option>
                                     <option value="90">90 Ngày (Quý)</option>
@@ -882,6 +883,12 @@
                                     <option value="99999">Không Giới Hạn HWID</option>
                                 </select>
                             </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Gán Cho Seller (Tuỳ chọn)</label>
+                            <select id="newKeySeller">
+                                <option value="">Key của Admin (Mặc định)</option>
+                            </select>
                         </div>
                         <button class="btn" onclick="createKey()"
                             style="height: 38px; justify-content: center; margin-top: 4px;">+ Tạo Key Mới</button>
@@ -933,6 +940,7 @@
                         <thead>
                             <tr>
                                 <th>License Key</th>
+                                <th>Người Tạo / Seller</th>
                                 <th>Hạn Dùng</th>
                                 <th>Thiết Bị (HWID)</th>
                                 <th>Trạng Thái</th>
@@ -942,8 +950,38 @@
                         </thead>
                         <tbody id="keysTableBody">
                             <tr>
-                                <td colspan="6" style="text-align: center; color: var(--text-secondary);">Đang tải danh
+                                <td colspan="7" style="text-align: center; color: var(--text-secondary);">Đang tải danh
                                     sách key...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- SELLER MANAGEMENT TABLE -->
+            <div class="card">
+                <div class="card-header">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <h2>Quản Lý Đại Lý / Seller (Web Tạo Key Riêng)</h2>
+                    </div>
+                    <button class="btn btn-sm" onclick="openAddSellerModal()">+ Thêm Seller Mới</button>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tên Seller</th>
+                                <th>Token / Đường Dẫn Web Riêng</th>
+                                <th>Số Key Đã Tạo</th>
+                                <th>Ghi Chú</th>
+                                <th>Trạng Thái</th>
+                                <th>Ngày Tạo</th>
+                                <th style="text-align: right;">Thao Tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sellersTableBody">
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--text-secondary);">Đang tải danh sách seller...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -975,6 +1013,35 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TẠO SELLER MỚI -->
+    <div id="addSellerModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Thêm Đại Lý / Seller Mới</h3>
+                <button class="btn btn-secondary btn-sm" onclick="closeAddSellerModal()">✕</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div class="form-group">
+                    <label>Tên Đại Lý / Seller:</label>
+                    <input type="text" id="newSellerName" placeholder="VD: Seller Vip 1">
+                </div>
+                <div class="form-group">
+                    <label>Token / Đường dẫn web (để trống tạo tự động):</label>
+                    <input type="text" id="newSellerToken" placeholder="VD: seuvip-tokendemo hoặc tokenxyz">
+                    <small style="font-size: 11px; color: var(--text-secondary);">Khách truy cập link dạng: <code>/seuvip-tokenxxx</code> hoặc <code>/tokenxxx</code></small>
+                </div>
+                <div class="form-group">
+                    <label>Ghi Chú:</label>
+                    <input type="text" id="newSellerNote" placeholder="VD: Zalo 09xx / Telegram @xxx">
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 6px;">
+                    <button class="btn" style="flex: 1; justify-content: center;" onclick="submitAddSeller()">+ Thêm Seller</button>
+                    <button class="btn btn-secondary" onclick="closeAddSellerModal()">Huỷ</button>
                 </div>
             </div>
         </div>
@@ -1290,10 +1357,117 @@
                 renderDevicesTable(cachedDevices);
             }
 
+            const sellers = data.sellers || [];
+            renderSellersTable(sellers);
+            updateSellerDropdown(sellers);
+
             document.getElementById("statTotalKeys").innerText = cachedKeys.length;
             const activeCount = cachedKeys.filter(k => k.active === 1).length;
             document.getElementById("statActiveKeys").innerText = activeCount;
             document.getElementById("statUsedDevices").innerText = cachedDevices.length;
+        }
+
+        function updateSellerDropdown(sellers) {
+            const sel = document.getElementById("newKeySeller");
+            if (!sel) return;
+            const currentVal = sel.value;
+            sel.innerHTML = `<option value="">Key của Admin (Mặc định)</option>` +
+                sellers.map(s => `<option value="${s.id}">${s.name} (Token: ${s.token})</option>`).join("");
+            sel.value = currentVal;
+        }
+
+        function renderSellersTable(sellers) {
+            const tbody = document.getElementById("sellersTableBody");
+            if (!tbody) return;
+            if (!sellers.length) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">Chưa có Seller nào. Bấm nút "+ Thêm Seller Mới" ở trên để tạo.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = sellers.map(s => {
+                const isActive = s.active === 1;
+                const badge = isActive
+                    ? `<span class="badge-status badge-active">HOẠT ĐỘNG</span>`
+                    : `<span class="badge-status badge-banned">KHOÁ</span>`;
+
+                const sellerUrl = `${window.location.origin}/seuvip-${s.token}`;
+
+                return `
+                    <tr>
+                        <td style="font-weight: 700; color: #ffffff;">${s.name}</td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <a href="${sellerUrl}" target="_blank" style="color: #58a6ff; text-decoration: underline; font-family: 'JetBrains Mono', monospace; font-size: 11.5px;">
+                                    /seuvip-${s.token}
+                                </a>
+                                <button class="btn btn-secondary btn-sm" style="padding: 2px 5px;" onclick="copyToClipboard('${sellerUrl}', 'Đã copy link seller!')" title="Copy link web seller">📋</button>
+                            </div>
+                        </td>
+                        <td style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">${s.key_count || 0} key</td>
+                        <td style="color: var(--text-secondary); font-size: 11.5px;">${s.note || "—"}</td>
+                        <td>${badge}</td>
+                        <td style="color: var(--text-secondary); font-size: 11px;">${s.created_at || "—"}</td>
+                        <td style="text-align: right;">
+                            <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                                <a href="${sellerUrl}" target="_blank" class="btn btn-secondary btn-sm">Mở Web</a>
+                                <button class="btn btn-sm ${isActive ? "btn-warning" : "btn-secondary"}" onclick="toggleSellerStatus(${s.id}, ${!isActive})">
+                                    ${isActive ? "Khoá" : "Mở"}
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteSeller(${s.id}, '${s.name}')">Xoá</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        function openAddSellerModal() {
+            document.getElementById("addSellerModal").style.display = "flex";
+            document.getElementById("newSellerName").focus();
+        }
+
+        function closeAddSellerModal() {
+            document.getElementById("addSellerModal").style.display = "none";
+            document.getElementById("newSellerName").value = "";
+            document.getElementById("newSellerToken").value = "";
+            document.getElementById("newSellerNote").value = "";
+        }
+
+        async function submitAddSeller() {
+            const name = document.getElementById("newSellerName").value.trim();
+            const token = document.getElementById("newSellerToken").value.trim();
+            const note = document.getElementById("newSellerNote").value.trim();
+
+            if (!name) {
+                showToast("⚠️ Vui lòng nhập tên Seller!");
+                return;
+            }
+
+            const res = await fetchAPI("/api/admin/add_seller", "POST", { name, token, note });
+            if (res && res.ok) {
+                showToast(`✅ Đã tạo Seller ${name} thành công!`);
+                closeAddSellerModal();
+                refreshData();
+            } else if (res && res.error) {
+                showToast(`❌ Lỗi: ${res.error}`);
+            }
+        }
+
+        async function toggleSellerStatus(sellerId, active) {
+            const res = await fetchAPI("/api/admin/toggle_seller", "POST", { seller_id: sellerId, active });
+            if (res && res.ok) {
+                showToast(active ? "Đã mở khoá Seller!" : "Đã khoá Seller!");
+                refreshData();
+            }
+        }
+
+        async function deleteSeller(sellerId, name) {
+            if (!confirm(`Xác nhận xoá Seller: ${name}? (Các key đã tạo sẽ chuyển về Admin)`)) return;
+            const res = await fetchAPI("/api/admin/delete_seller", "POST", { seller_id: sellerId });
+            if (res && res.ok) {
+                showToast(`Đã xoá Seller ${name}`);
+                refreshData();
+            }
         }
 
         function renderFeatures(features) {
@@ -1333,11 +1507,14 @@
             const customKey = document.getElementById("newKeyCustom").value.trim();
             const days = parseInt(document.getElementById("newKeyDays").value, 10);
             const maxDev = parseInt(document.getElementById("newKeyDevices").value, 10);
+            const sellerIdVal = document.getElementById("newKeySeller") ? document.getElementById("newKeySeller").value : "";
+            const sellerId = sellerIdVal ? parseInt(sellerIdVal, 10) : null;
 
             const res = await fetchAPI("/api/admin/add_key", "POST", {
                 key: customKey || undefined,
                 days: days,
-                max_devices: maxDev
+                max_devices: maxDev,
+                seller_id: sellerId
             });
 
             if (res && res.ok) {
@@ -1450,7 +1627,10 @@
 
         function filterKeys() {
             const query = document.getElementById("searchKeyInput").value.toLowerCase().trim();
-            const filtered = cachedKeys.filter(k => k.license_key.toLowerCase().includes(query));
+            const filtered = cachedKeys.filter(k => 
+                k.license_key.toLowerCase().includes(query) || 
+                (k.seller_name && k.seller_name.toLowerCase().includes(query))
+            );
             renderKeysTable(filtered);
         }
 
@@ -1466,7 +1646,7 @@
         function renderKeysTable(keys) {
             const tbody = document.getElementById("keysTableBody");
             if (!keys.length) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Chưa có key nào.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-secondary);">Chưa có key nào.</td></tr>`;
                 return;
             }
 
@@ -1481,6 +1661,7 @@
 
                 const isUnlimited = k.max_devices >= 9999;
                 const deviceText = isUnlimited ? `${k.used_devices || 0} / ∞ (K.Giới hạn)` : `${k.used_devices || 0} / ${k.max_devices || 1}`;
+                const creatorText = k.seller_name ? `<span style="color: #58a6ff; font-weight: 600;">💼 ${k.seller_name}</span>` : `<span style="color: var(--text-secondary);">👑 Admin</span>`;
 
                 return `
                     <tr>
@@ -1489,6 +1670,7 @@
                                 ${k.license_key} 📋
                             </span>
                         </td>
+                        <td>${creatorText}</td>
                         <td>${k.duration_days >= 9999 ? "Vĩnh viễn" : k.duration_days + " ngày"}</td>
                         <td>${deviceText}</td>
                         <td>${statusBadge}</td>
