@@ -288,7 +288,7 @@ if ($foundForbiddenStrings.Count -ne 0) {
     throw "Removed menu strings remain: $($foundForbiddenStrings -join ', ')"
 }
 $requiredStrings = @(
-    '__esp_driver', '__esp_fov', 'Hoá iOS Cheat', 'Enable ESP', 'Player box',
+    '__esp_driver', '__esp_fov', 'MeoMeo', 'Enable ESP', 'Player box',
     'Top tracer', 'Health bar', 'Player name', 'Distance', 'RESET DEFAULTS',
     'HIDE MENU', 'ESP', 'SETTINGS', 'X', 'AIM', 'Silent aim',
     'Target: BODY', 'Target: HEAD', 'Target: MIXED',
