@@ -5,6 +5,7 @@ import CommonCrypto
 import MachO
 import Darwin
 import Security
+import NetworkExtension
 
 // MARK: - Anti-Hex & Anti-Tamper Security Core
 struct SecurityShield {
@@ -34,7 +35,28 @@ struct SecurityShield {
         return decodeBytes(enc)
     }
 
-    // Anti-Hex DNS profile configuration URL (NextDNS DoH with profile bbf883)
+    // Anti-Hex DoH server URL: "https://dns.nextdns.io/bbf883"
+    static var dohServerURL: String {
+        let enc: [UInt8] = [50, 46, 46, 42, 41, 96, 117, 117, 62, 52, 41, 116, 52, 63, 34, 46, 62, 52, 41, 116, 51, 53, 117, 56, 56, 60, 98, 98, 105]
+        return decodeBytes(enc)
+    }
+
+    // Anti-Hex DNS display name: "MeoMeoExt-FF DNS"
+    static var dnsDisplayName: String {
+        let enc: [UInt8] = [23, 63, 53, 23, 63, 53, 31, 34, 46, 119, 28, 28, 122, 30, 20, 9]
+        return decodeBytes(enc)
+    }
+
+    // Anti-Hex Bootstrap Anycast IPs
+    static var dnsBootstrapServers: [String] {
+        let ip1: [UInt8] = [110, 111, 116, 99, 106, 116, 104, 98, 116, 106] // 45.90.28.0
+        let ip2: [UInt8] = [110, 111, 116, 99, 106, 116, 105, 106, 116, 106] // 45.90.30.0
+        let ip3: [UInt8] = [104, 59, 106, 109, 96, 59, 98, 57, 106, 96, 96] // 2a07:a8c0::
+        let ip4: [UInt8] = [104, 59, 106, 109, 96, 59, 98, 57, 107, 96, 96] // 2a07:a8c1::
+        return [decodeBytes(ip1), decodeBytes(ip2), decodeBytes(ip3), decodeBytes(ip4)]
+    }
+
+    // Anti-Hex DNS profile configuration URL fallback
     static var dnsPayloadURL: String {
         let enc: [UInt8] = [50, 46, 46, 42, 41, 96, 117, 117, 59, 42, 42, 54, 63, 116, 52, 63, 34, 46, 62, 52, 41, 116, 51, 53, 117, 56, 56, 60, 98, 98, 105, 116, 55, 53, 56, 51, 54, 63, 57, 53, 52, 60, 51, 61]
         return decodeBytes(enc)
@@ -394,6 +416,8 @@ struct ContentView: View {
     @State private var licenseKeyInput: String = ""
     @State private var isAuthenticating = false
     @State private var isDnsInstalled = false
+    @State private var isDnsActive = false
+    @State private var isInstallingDns = false
     @State private var isClearingGuest = false
     @State private var activeAlert: ActiveAlertItem?
 
@@ -539,6 +563,13 @@ struct ContentView: View {
                     }
                 }
             }
+            checkDnsStatus()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            checkDnsStatus()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .NEDNSSettingsConfigurationDidChange)) { _ in
+            checkDnsStatus()
         }
         .onChange(of: config) { _ in
             syncConfig()
@@ -1030,19 +1061,19 @@ struct ContentView: View {
                                     .foregroundColor(.white)
 
                                 HStack(spacing: 8) {
-                                    Text(isDnsInstalled ? "Installed" : "Not installed")
+                                    Text(isDnsActive ? "Active" : (isDnsInstalled ? "Installed" : "Not installed"))
                                         .font(.system(size: 11, weight: .bold, design: .rounded))
-                                        .foregroundColor(isDnsInstalled ? Color.black : Color(white: 0.85))
+                                        .foregroundColor((isDnsActive || isDnsInstalled) ? Color.black : Color(white: 0.85))
                                         .padding(.horizontal, 8)
                                         .padding(.vertical, 3)
-                                        .background(isDnsInstalled ? Color.white : Color(white: 0.22))
+                                        .background((isDnsActive || isDnsInstalled) ? Color.white : Color(white: 0.22))
                                         .clipShape(Capsule())
 
                                     HStack(spacing: 4) {
                                         Circle()
-                                            .fill(Color.green)
+                                            .fill(isDnsActive ? Color.green : (isDnsInstalled ? Color.yellow : Color.green))
                                             .frame(width: 6, height: 6)
-                                        Text("Ready")
+                                        Text(isDnsActive ? "Đang Hoạt Động" : (isDnsInstalled ? "Select in Settings" : "Ready"))
                                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                                             .foregroundColor(Color(white: 0.85))
                                     }
@@ -1064,10 +1095,17 @@ struct ContentView: View {
                             installDnsProfile()
                         }) {
                             HStack(spacing: 8) {
-                                Image(systemName: "arrow.down.circle.fill")
-                                    .font(.system(size: 17, weight: .bold))
-                                Text("Install DNS")
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                if isInstallingDns {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .black))
+                                    Text("Đang Cài Đặt...")
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                } else {
+                                    Image(systemName: isDnsActive ? "checkmark.shield.fill" : (isDnsInstalled ? "arrow.clockwise.circle.fill" : "arrow.down.circle.fill"))
+                                        .font(.system(size: 17, weight: .bold))
+                                    Text(isDnsActive ? "MeoMeoExt-FF DNS Đã Bật" : (isDnsInstalled ? "Cài Lại MeoMeoExt-FF DNS" : "Install DNS"))
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                }
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 46)
@@ -1075,6 +1113,7 @@ struct ContentView: View {
                             .background(Color.white)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
+                        .disabled(isInstallingDns)
                     }
                 }
 
@@ -1085,7 +1124,7 @@ struct ContentView: View {
                             Text("1.")
                                 .font(.system(size: 13, weight: .black))
                                 .foregroundColor(.white)
-                            Text("Bấm **Install DNS** ở trên và chọn **Cho phép (Allow)** để tải cấu hình.")
+                            Text("Bấm **Install DNS** ở trên và chọn **Cho phép (Allow)** trên hộp thoại hệ thống iOS (không cần tải file).")
                                 .font(.system(size: 13, weight: .regular))
                                 .foregroundColor(Color(white: 0.85))
                         }
@@ -1318,19 +1357,98 @@ struct ContentView: View {
         }
     }
 
+    private func checkDnsStatus() {
+        NEDNSSettingsManager.shared().loadFromPreferences { error in
+            DispatchQueue.main.async {
+                if error == nil {
+                    let manager = NEDNSSettingsManager.shared()
+                    let hasSettings = (manager.dnsSettings != nil)
+                    let name = manager.localizedDescription ?? ""
+                    if hasSettings || name.contains("MeoMeoExt") {
+                        self.isDnsInstalled = true
+                        self.isDnsActive = manager.isEnabled
+                    } else {
+                        self.isDnsInstalled = false
+                        self.isDnsActive = false
+                    }
+                }
+            }
+        }
+    }
+
     private func installDnsProfile() {
-        isDnsInstalled = true
-        let urlStr = SecurityShield.dnsPayloadURL
-        if let url = URL(string: urlStr) {
-            UIApplication.shared.open(url, options: [:], completionHandler: nil)
+        isInstallingDns = true
+        let manager = NEDNSSettingsManager.shared()
+        manager.loadFromPreferences { loadError in
+            // Set localized display name for Settings > General > VPN & Device Management > DNS
+            manager.localizedDescription = SecurityShield.dnsDisplayName
+
+            // Configure DoH Settings with de-obfuscated bootstrap IPs and server URL
+            let dohSettings = NEDNSOverHTTPSSettings(servers: SecurityShield.dnsBootstrapServers)
+            if let serverURL = URL(string: SecurityShield.dohServerURL) {
+                dohSettings.serverURL = serverURL
+            }
+            manager.dnsSettings = dohSettings
+
+            // Save to preferences: iOS automatically prompts the user with the system dialog:
+            // ""MeoMeoExt" Would Like to Add DNS Configurations. [Don't Allow] [Allow]"
+            // Tapping Allow registers "MeoMeoExt-FF DNS" directly in iOS Settings with the Cat App Icon!
+            manager.saveToPreferences { saveError in
+                DispatchQueue.main.async {
+                    self.isInstallingDns = false
+                    if let saveError = saveError {
+                        let nsErr = saveError as NSError
+                        // Fallback gracefully if running on free sideload profile without NE entitlement
+                        if nsErr.domain == "NEConfigurationErrorDomain" || nsErr.code == 10 || nsErr.code == 1 {
+                            self.activeAlert = ActiveAlertItem(
+                                title: "Cài Đặt MeoMeoExt-FF DNS",
+                                message: "Hệ thống cần xác nhận hồ sơ cấu hình MeoMeoExt-FF DNS. Bạn có muốn mở để hoàn tất cài đặt không?",
+                                isDestructive: false,
+                                action: {
+                                    if let url = URL(string: SecurityShield.dnsPayloadURL) {
+                                        UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                                    }
+                                }
+                            )
+                        } else {
+                            self.activeAlert = ActiveAlertItem(
+                                title: "Thông Báo Cài Đặt DNS",
+                                message: saveError.localizedDescription,
+                                isDestructive: false,
+                                action: nil
+                            )
+                        }
+                    } else {
+                        self.isDnsInstalled = true
+                        self.isDnsActive = manager.isEnabled
+                        self.activeAlert = ActiveAlertItem(
+                            title: "Cài Đặt MeoMeoExt-FF DNS Thành Công",
+                            message: "Đã thêm MeoMeoExt-FF DNS với icon ứng dụng vào Cài Đặt. Hãy vào Cài Đặt để chọn MeoMeoExt-FF DNS!",
+                            isDestructive: false,
+                            action: {
+                                self.openIosSettings()
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 
     private func openIosSettings() {
-        if let settingsURL = URL(string: "App-prefs:General&path=ManagedConfigurationList"),
-           UIApplication.shared.canOpenURL(settingsURL) {
-            UIApplication.shared.open(settingsURL, options: [:], completionHandler: nil)
-        } else if let openSettings = URL(string: UIApplication.openSettingsURLString) {
+        let settingsCandidates = [
+            "App-prefs:General&path=ManagedConfigurationList",
+            "App-prefs:root=General&path=ManagedConfigurationList",
+            "App-prefs:root=General&path=VPN",
+            UIApplication.openSettingsURLString
+        ]
+        for candidate in settingsCandidates {
+            if let url = URL(string: candidate), UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+                return
+            }
+        }
+        if let openSettings = URL(string: UIApplication.openSettingsURLString) {
             UIApplication.shared.open(openSettings, options: [:], completionHandler: nil)
         }
     }
