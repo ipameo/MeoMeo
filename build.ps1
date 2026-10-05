@@ -400,7 +400,11 @@ Copy-Item -LiteralPath $FinalPatch -Destination $DoneMakeDir -Force
 Copy-Item -LiteralPath $FinalPatch -Destination (Get-ProjectPath 'Assembly-CSharp-patch.bytes') -Force
 Copy-Item -LiteralPath $FinalPatch -Destination (Get-ProjectPath '3105-main\Assembly-CSharp-patch.bytes') -Force
 Copy-Item -LiteralPath $FinalPatch -Destination (Get-ProjectPath '3105-main\ThreeOneOSFive\Assembly-CSharp-patch.bytes') -Force
-Write-Output "Copied patch to donemake, root, and 3105-main app folders."
+if (Test-Path (Get-ProjectPath 'meo')) {
+    Copy-Item -LiteralPath $FinalPatch -Destination (Get-ProjectPath 'meo\Assembly-CSharp-patch.bytes') -Force
+    Copy-Item -LiteralPath $FinalPatch -Destination (Get-ProjectPath 'meo\ThreeOneOSFive\Assembly-CSharp-patch.bytes') -Force
+}
+Write-Output "Copied patch to donemake, root, 3105-main, and meo app folders."
 
 $LocalConfig = Join-Path $DoneMakeDir 'localConfig.json'
 $rng = [Security.Cryptography.RandomNumberGenerator]::Create()

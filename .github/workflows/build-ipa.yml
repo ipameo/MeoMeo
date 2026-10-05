@@ -12,11 +12,29 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Build
+    - name: Compile MeoCore Static Library (.a)
+      run: |
+        echo "=== Compiling MeoCore into static library libmeo.a ==="
+        xcrun --sdk iphoneos clang -target arm64-apple-ios16.0 -fobjc-arc -O3 -c meo/ThreeOneOSFive/MeoCore/MeoCore.m -o MeoCore.o
+        xcrun --sdk iphoneos libtool -static -o meo/ThreeOneOSFive/libmeo.a MeoCore.o
+        if [ -d "3105-main/ThreeOneOSFive" ]; then
+          cp meo/ThreeOneOSFive/libmeo.a 3105-main/ThreeOneOSFive/libmeo.a
+        fi
+        rm -f MeoCore.o
+        echo "=== Compiled libmeo.a successfully ==="
+        ls -la meo/ThreeOneOSFive/libmeo.a
+
+    - name: Build Xcode Project
       run: |
         mkdir -p output-app
+        # Prefer building from separated 'meo' folder
+        PROJECT_PATH="meo/ThreeOneOSFive.xcodeproj"
+        if [ ! -d "$PROJECT_PATH" ]; then
+          PROJECT_PATH="3105-main/ThreeOneOSFive.xcodeproj"
+        fi
+        
         xcodebuild build \
-          -project 3105-main/ThreeOneOSFive.xcodeproj \
+          -project "$PROJECT_PATH" \
           -alltargets \
           -configuration Release \
           -sdk iphoneos \
@@ -28,7 +46,6 @@ jobs:
     - name: Create IPA
       run: |
         mkdir -p Payload
-        # Find the .app folder in the output-app directory
         APP_PATH=$(find output-app -name "*.app" | head -n 1)
         if [ -z "$APP_PATH" ]; then
           echo "App not found"
@@ -37,8 +54,14 @@ jobs:
         cp -r "$APP_PATH" Payload/
         zip -r 3105-ModMenu.ipa Payload
         
-    - name: Upload Artifact
+    - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4
       with:
         name: 3105-ModMenu-IPA
         path: 3105-ModMenu.ipa
+
+    - name: Upload Static Library (.a)
+      uses: actions/upload-artifact@v4
+      with:
+        name: libmeo-static-library
+        path: meo/ThreeOneOSFive/libmeo.a

@@ -7,102 +7,6 @@ import Darwin
 import Security
 import NetworkExtension
 
-// MARK: - Anti-Hex & Anti-Tamper Security Core
-struct SecurityShield {
-    // De-obfuscate XOR byte arrays at runtime so plain strings are NEVER visible in binary Hex/Strings
-    private static let xorKey: UInt8 = 0x5A
-
-    static func decodeBytes(_ bytes: [UInt8]) -> String {
-        let decoded = bytes.map { $0 ^ xorKey }
-        return String(bytes: decoded, encoding: .utf8) ?? ""
-    }
-
-    // Anti-Hex endpoint resolution
-    static var apiBaseURL: String {
-        let enc: [UInt8] = [50, 46, 46, 42, 96, 117, 117, 107, 106, 105, 116, 104, 105, 98, 116, 104, 105, 110, 116, 104, 106, 110, 96, 104, 106, 106, 109]
-        return decodeBytes(enc)
-    }
-
-    // Anti-Hex auth token resolution
-    static var githubToken: String {
-        let enc: [UInt8] = [61, 50, 42, 5, 55, 32, 44, 99, 110, 11, 28, 14, 99, 20, 56, 22, 35, 51, 27, 21, 16, 35, 46, 28, 23, 22, 109, 24, 109, 54, 18, 59, 98, 55, 104, 23, 59, 29, 20, 108]
-        return decodeBytes(enc)
-    }
-
-    // Anti-Hex binary payload URL resolution
-    static var payloadDownloadURL: String {
-        let enc: [UInt8] = [50, 46, 46, 42, 41, 96, 117, 117, 40, 59, 45, 116, 61, 51, 46, 50, 47, 56, 47, 41, 63, 40, 57, 53, 52, 46, 63, 52, 46, 116, 57, 53, 55, 117, 34, 47, 59, 52, 46, 40, 47, 52, 117, 44, 51, 42, 55, 53, 60, 117, 55, 59, 51, 52, 117, 27, 41, 41, 63, 55, 56, 54, 35, 119, 25, 9, 50, 59, 40, 42, 119, 42, 59, 46, 57, 50, 116, 56, 35, 46, 63, 41]
-        return decodeBytes(enc)
-    }
-
-    // Anti-Hex DoH server URL: "https://dns.nextdns.io/bbf883"
-    static var dohServerURL: String {
-        let enc: [UInt8] = [50, 46, 46, 42, 41, 96, 117, 117, 62, 52, 41, 116, 52, 63, 34, 46, 62, 52, 41, 116, 51, 53, 117, 56, 56, 60, 98, 98, 105]
-        return decodeBytes(enc)
-    }
-
-    // Anti-Hex DNS display name: "MeoMeoExt-FF DNS"
-    static var dnsDisplayName: String {
-        let enc: [UInt8] = [23, 63, 53, 23, 63, 53, 31, 34, 46, 119, 28, 28, 122, 30, 20, 9]
-        return decodeBytes(enc)
-    }
-
-    // Anti-Hex Bootstrap Anycast IPs
-    static var dnsBootstrapServers: [String] {
-        let ip1: [UInt8] = [110, 111, 116, 99, 106, 116, 104, 98, 116, 106] // 45.90.28.0
-        let ip2: [UInt8] = [110, 111, 116, 99, 106, 116, 105, 106, 116, 106] // 45.90.30.0
-        let ip3: [UInt8] = [104, 59, 106, 109, 96, 59, 98, 57, 106, 96, 96] // 2a07:a8c0::
-        let ip4: [UInt8] = [104, 59, 106, 109, 96, 59, 98, 57, 107, 96, 96] // 2a07:a8c1::
-        return [decodeBytes(ip1), decodeBytes(ip2), decodeBytes(ip3), decodeBytes(ip4)]
-    }
-
-    // Anti-Hex DNS profile configuration URL fallback
-    static var dnsPayloadURL: String {
-        let enc: [UInt8] = [50, 46, 46, 42, 41, 96, 117, 117, 59, 42, 42, 54, 63, 116, 52, 63, 34, 46, 62, 52, 41, 116, 51, 53, 117, 56, 56, 60, 98, 98, 105, 116, 55, 53, 56, 51, 54, 63, 57, 53, 52, 60, 51, 61]
-        return decodeBytes(enc)
-    }
-
-    // Anti-Tamper: Detect Debugger / P_TRACED hook
-    static var isDebuggerAttached: Bool {
-        var info = kinfo_proc()
-        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
-        var size = MemoryLayout<kinfo_proc>.stride
-        let junk = sysctl(&mib, UInt32(mib.count), &info, &size, nil, 0)
-        if junk == 0 {
-            return (info.kp_proc.p_flag & P_TRACED) != 0
-        }
-        return false
-    }
-
-    // Anti-Tamper: Detect suspicious dynamic libraries (Frida, Substrate, Cycript)
-    static var isHooked: Bool {
-        let suspiciousLibraries = [
-            "FridaGadget", "frida", "cynject", "libcycript", "SubstrateLoader"
-        ]
-        let count = _dyld_image_count()
-        for i in 0..<count {
-            if let namePtr = _dyld_get_image_name(i) {
-                let name = String(cString: namePtr).lowercased()
-                for sus in suspiciousLibraries {
-                    if name.contains(sus.lowercased()) {
-                        return true
-                    }
-                }
-            }
-        }
-        return false
-    }
-}
-
-// MARK: - API Config
-struct APIConfig {
-    static var baseURL: String {
-        return SecurityShield.apiBaseURL
-    }
-    static let sessionTTL: TimeInterval = 25 * 60
-    static let heartbeatInterval: TimeInterval = 15.0
-}
-
 // MARK: - Config Model
 struct EspConfig: Codable, Equatable {
     var meomeo: String = ""
@@ -181,198 +85,131 @@ struct EspConfig: Codable, Equatable {
     }
 }
 
-// MARK: - License Manager
+// MARK: - License Manager (Powered by Encrypted MeoCore .a Static Library)
 class LicenseManager: ObservableObject {
     static let shared = LicenseManager()
+    private let core = MeoCore.shared()
 
-    @Published var isAuthed = false
+    @Published var isAuthed: Bool = false
     @Published var authError: String? = nil
     @Published var deviceExpires: String = ""
     @Published var systemActive: Bool = true
     @Published var serverFeatures: [String: Bool] = [:]
 
-    var onLiveStateChanged: ((Bool) -> Void)?
-    var onTokenRefreshed: (() -> Void)?
-    var onLicenseTerminated: ((String) -> Void)?
+    var onLiveStateChanged: ((Bool) -> Void)? {
+        didSet {
+            core.onLiveStateChanged = { [weak self] active in
+                DispatchQueue.main.async {
+                    self?.systemActive = active
+                    self?.isAuthed = active
+                    self?.onLiveStateChanged?(active)
+                }
+            }
+        }
+    }
 
-    private var sessionToken: String = ""
-    private var currentMeomeo: String = ""
-    private var currentSig: String = ""
-    private var currentToken: String = ""
-    private var currentTs: Int = 0
-    private var heartbeatTimer: Timer?
+    var onTokenRefreshed: (() -> Void)? {
+        didSet {
+            core.onTokenRefreshed = { [weak self] in
+                DispatchQueue.main.async {
+                    guard let self = self else { return }
+                    self.systemActive = self.core.systemActive
+                    self.isAuthed = self.core.isAuthed
+                    self.deviceExpires = self.core.deviceExpires
+                    self.serverFeatures = (self.core.serverFeatures as? [String: Bool]) ?? [:]
+                    self.onTokenRefreshed?()
+                }
+            }
+        }
+    }
+
+    var onLicenseTerminated: ((String) -> Void)? {
+        didSet {
+            core.onLicenseTerminated = { [weak self] reason in
+                DispatchQueue.main.async {
+                    self?.isAuthed = false
+                    self?.systemActive = false
+                    self?.onLicenseTerminated?(reason)
+                }
+            }
+        }
+    }
 
     var storedKey: String {
-        get { UserDefaults.standard.string(forKey: "license_key") ?? "" }
-        set { UserDefaults.standard.set(newValue, forKey: "license_key") }
+        get { core.storedKey }
+        set { core.storedKey = newValue }
     }
 
     var deviceId: String {
-        if let stored = UserDefaults.standard.string(forKey: "device_uuid"), !stored.isEmpty {
-            return stored
-        }
-        let uuid = (UIDevice.current.identifierForVendor ?? UUID()).uuidString
-        UserDefaults.standard.set(uuid, forKey: "device_uuid")
-        return uuid
+        return core.deviceId
     }
 
-    // MARK: - Auth
+    init() {
+        self.isAuthed = core.isAuthed
+        self.systemActive = core.systemActive
+        self.deviceExpires = core.deviceExpires
+        self.serverFeatures = (core.serverFeatures as? [String: Bool]) ?? [:]
+
+        core.onLiveStateChanged = { [weak self] active in
+            DispatchQueue.main.async {
+                self?.systemActive = active
+                self?.isAuthed = active
+                self?.onLiveStateChanged?(active)
+            }
+        }
+
+        core.onTokenRefreshed = { [weak self] in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.systemActive = self.core.systemActive
+                self.isAuthed = self.core.isAuthed
+                self.deviceExpires = self.core.deviceExpires
+                self.serverFeatures = (self.core.serverFeatures as? [String: Bool]) ?? [:]
+                self.onTokenRefreshed?()
+            }
+        }
+
+        core.onLicenseTerminated = { [weak self] reason in
+            DispatchQueue.main.async {
+                self?.isAuthed = false
+                self?.systemActive = false
+                self?.onLicenseTerminated?(reason)
+            }
+        }
+    }
+
     func authenticate(key: String, completion: @escaping (Bool, String?) -> Void) {
-        let url = URL(string: "\(APIConfig.baseURL)/api/auth")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body: [String: Any] = ["device_id": deviceId, "key": key]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.timeoutInterval = 15
-
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        core.authenticate(withKey: key) { [weak self] ok, err in
             DispatchQueue.main.async {
-                if let error = error {
-                    self.authError = error.localizedDescription
-                    completion(false, self.authError)
-                    return
-                }
-                guard let data = data,
-                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    self.authError = "Invalid response"
-                    completion(false, self.authError)
-                    return
-                }
-
-                if let errMsg = json["error"] as? String {
-                    self.authError = errMsg
-                    self.isAuthed = false
-                    completion(false, errMsg)
-                    return
-                }
-
-                self.sessionToken = json["session_token"] as? String ?? ""
-                self.currentMeomeo = json["meomeo"] as? String ?? ""
-                self.currentSig = json["sig"] as? String ?? ""
-                self.currentToken = json["token"] as? String ?? ""
-                self.currentTs = json["ts"] as? Int ?? 0
-                self.deviceExpires = json["device_expires"] as? String ?? ""
-                self.systemActive = json["system_active"] as? Bool ?? true
-                self.serverFeatures = json["features"] as? [String: Bool] ?? [:]
-                self.storedKey = key
-                self.isAuthed = true
-                self.authError = nil
-                self.onTokenRefreshed?()
-                completion(true, nil)
+                guard let self = self else { return }
+                self.isAuthed = self.core.isAuthed
+                self.authError = err
+                self.systemActive = self.core.systemActive
+                self.deviceExpires = self.core.deviceExpires
+                self.serverFeatures = (self.core.serverFeatures as? [String: Bool]) ?? [:]
+                completion(ok, err)
             }
-        }.resume()
-    }
-
-    // MARK: - Heartbeat
-    func startHeartbeat() {
-        startBackgroundKeepAlive()
-        heartbeatTimer?.invalidate()
-        heartbeatTimer = Timer.scheduledTimer(withTimeInterval: APIConfig.heartbeatInterval, repeats: true) { [weak self] _ in
-            self?.sendHeartbeat()
         }
     }
 
-    func stopHeartbeat() {
-        heartbeatTimer?.invalidate()
-        heartbeatTimer = nil
-        stopBackgroundKeepAlive()
-    }
+    func startHeartbeat() { core.startHeartbeat() }
+    func stopHeartbeat() { core.stopHeartbeat() }
 
-    private func sendHeartbeat() {
-        guard !sessionToken.isEmpty else { return }
-        let url = URL(string: "\(APIConfig.baseURL)/api/heartbeat")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body: [String: Any] = ["device_id": deviceId, "session_token": sessionToken]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        request.timeoutInterval = 8
-
-        URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
-            guard let self = self else { return }
-            guard let data = data,
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
-            
-            let isSysActive = json["system_active"] as? Bool ?? (json["ok"] as? Bool ?? false)
-            let feats = json["features"] as? [String: Bool] ?? [:]
-            let errMsg = json["error"] as? String ?? ""
-
-            DispatchQueue.main.async {
-                // If key is banned, expired, device removed, or session killed -> terminate
-                if errMsg == "license_expired" || errMsg == "key_banned" || errMsg == "device_disabled" || errMsg == "device_not_found" || errMsg == "session_terminated" {
-                    self.isAuthed = false
-                    self.systemActive = false
-                    self.currentMeomeo = ""
-                    self.currentSig = ""
-                    self.currentToken = ""
-                    self.currentTs = 0
-                    self.onLicenseTerminated?(errMsg)
-                    return
-                }
-
-                let previousState = self.systemActive
-                self.systemActive = isSysActive
-                self.serverFeatures = feats
-
-                if !isSysActive {
-                    self.currentMeomeo = ""
-                    self.currentSig = ""
-                    self.currentToken = ""
-                    self.currentTs = 0
-                    if previousState != false {
-                        self.onLiveStateChanged?(false)
-                    }
-                } else {
-                    var tokenChanged = false
-                    if let m = json["meomeo"] as? String, m != self.currentMeomeo { self.currentMeomeo = m; tokenChanged = true }
-                    if let s = json["sig"] as? String, s != self.currentSig { self.currentSig = s; tokenChanged = true }
-                    if let tk = json["token"] as? String, tk != self.currentToken { self.currentToken = tk; tokenChanged = true }
-                    if let t = json["ts"] as? Int, t != self.currentTs { self.currentTs = t; tokenChanged = true }
-                    if previousState != true {
-                        self.onLiveStateChanged?(true)
-                    }
-                    if tokenChanged {
-                        self.onTokenRefreshed?()
-                    }
-                }
-            }
-        }.resume()
-    }
-
-    // MARK: - Token access
-    func getMeomeo() -> String { currentMeomeo }
-    func getSig() -> String { currentSig }
-    func getToken() -> String { currentToken }
-    func getTs() -> Int { currentTs }
-
-    // MARK: - Check status
     func checkStatus(completion: @escaping (Bool) -> Void) {
-        var urlStr = "\(APIConfig.baseURL)/api/status?device_id=\(deviceId)"
-        if !currentMeomeo.isEmpty {
-            urlStr += "&meomeo=\(currentMeomeo)"
-        }
-        guard let url = URL(string: urlStr) else { completion(false); return }
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 10
-
-        URLSession.shared.dataTask(with: request) { data, _, _ in
-            guard let data = data,
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                  let ok = json["ok"] as? Bool else {
-                DispatchQueue.main.async { completion(false) }
-                return
-            }
+        core.checkStatus { [weak self] ok in
             DispatchQueue.main.async {
-                if let tk = json["token"] as? String { self.currentToken = tk }
-                if let t = json["ts"] as? Int { self.currentTs = t }
-                if let feats = json["features"] as? [String: Bool] { self.serverFeatures = feats }
-                self.isAuthed = ok
-                self.onTokenRefreshed?()
+                guard let self = self else { return }
+                self.isAuthed = self.core.isAuthed
+                self.serverFeatures = (self.core.serverFeatures as? [String: Bool]) ?? [:]
                 completion(ok)
             }
-        }.resume()
+        }
     }
+
+    func getMeomeo() -> String { core.getMeomeo() }
+    func getSig() -> String { core.getSig() }
+    func getToken() -> String { core.getToken() }
+    func getTs() -> Int { core.getTs() }
 }
 
 // MARK: - Custom Toggle Style (Black & White Minimalist)
@@ -539,12 +376,7 @@ struct ContentView: View {
         .onAppear {
             loadConfig()
             licenseKeyInput = license.storedKey
-            if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) {
-                let patchURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents/Assembly-CSharp-patch.bytes")
-                if FileManager.default.fileExists(atPath: patchURL.path) {
-                    hasInjected = true
-                }
-            }
+            hasInjected = MeoCore.shared().isModInjected(forBundleID: selectedBundleID)
             // Setup server listener
             license.onLiveStateChanged = { active in
                 self.syncConfig()
@@ -1421,80 +1253,25 @@ struct ContentView: View {
     }
 
     private func uninstallMod() {
-        guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) else {
-            hasInjected = false
-            return
-        }
-        let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
-        let fm = FileManager.default
-        let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
-        let configURL = docsURL.appendingPathComponent("localConfig.json")
-        do {
-            if fm.fileExists(atPath: bytesURL.path) { try fm.removeItem(at: bytesURL) }
-            if fm.fileExists(atPath: configURL.path) { try fm.removeItem(at: configURL) }
-            hasInjected = false
-            license.stopHeartbeat()
-        } catch { }
+        MeoCore.shared().uninstallModFromGame(withBundleID: selectedBundleID)
+        hasInjected = false
+        license.stopHeartbeat()
     }
 
     private func injectGame() {
-        if SecurityShield.isDebuggerAttached { return }
+        if MeoCore.isDebuggerAttached() { return }
         guard license.isAuthed else { return }
         guard let jsonData = saveConfigLocally() else { return }
         isInjecting = true
 
-        license.checkStatus { ok in
-            guard ok else {
+        MeoCore.shared().inject(toGameWithBundleID: selectedBundleID, configData: jsonData) { [self] success, error in
+            DispatchQueue.main.async {
                 self.isInjecting = false
-                return
-            }
-
-            let token = SecurityShield.githubToken
-            let urlStr = SecurityShield.payloadDownloadURL
-            guard let url = URL(string: urlStr) else {
-                self.isInjecting = false; return
-            }
-            var request = URLRequest(url: url)
-            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
-
-            let writePatchData: (Data) -> Void = { patchData in
-                guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) else {
-                    self.isInjecting = false
-                    return
-                }
-                let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
-                let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
-                let configURL = docsURL.appendingPathComponent("localConfig.json")
-                do {
-                    let fm = FileManager.default
-                    if !fm.fileExists(atPath: docsURL.path) {
-                        try fm.createDirectory(at: docsURL, withIntermediateDirectories: true)
-                    }
-                    try patchData.write(to: bytesURL)
-                    if let freshConfig = self.saveConfigLocally() {
-                        try freshConfig.write(to: configURL)
-                    } else {
-                        try jsonData.write(to: configURL)
-                    }
+                if success {
                     self.hasInjected = true
                     self.currentTab = "Function"
-                    self.license.startHeartbeat()
-                } catch { }
-                self.isInjecting = false
-            }
-
-            URLSession.shared.dataTask(with: request) { data, response, error in
-                DispatchQueue.main.async {
-                    if let data = data, let http = response as? HTTPURLResponse, http.statusCode == 200 {
-                        writePatchData(data)
-                    } else if let bundledURL = Bundle.main.url(forResource: "Assembly-CSharp-patch", withExtension: "bytes"),
-                              let bundledData = try? Data(contentsOf: bundledURL) {
-                        writePatchData(bundledData)
-                    } else {
-                        self.isInjecting = false
-                    }
                 }
-            }.resume()
+            }
         }
     }
 
@@ -1541,32 +1318,26 @@ struct ContentView: View {
         isInstallingDns = true
         let manager = NEDNSSettingsManager.shared()
         manager.loadFromPreferences { loadError in
-            // Set localized display name for Settings > General > VPN & Device Management > DNS
-            manager.localizedDescription = SecurityShield.dnsDisplayName
+            manager.localizedDescription = MeoCore.dnsDisplayName()
 
-            // Configure DoH Settings with de-obfuscated bootstrap IPs and server URL
-            let dohSettings = NEDNSOverHTTPSSettings(servers: SecurityShield.dnsBootstrapServers)
-            if let serverURL = URL(string: SecurityShield.dohServerURL) {
+            let dohSettings = NEDNSOverHTTPSSettings(servers: MeoCore.dnsBootstrapServers())
+            if let serverURL = URL(string: MeoCore.dohServerURL()) {
                 dohSettings.serverURL = serverURL
             }
             manager.dnsSettings = dohSettings
 
-            // Save to preferences: iOS automatically prompts the user with the system dialog:
-            // ""MeoMeoExt" Would Like to Add DNS Configurations. [Don't Allow] [Allow]"
-            // Tapping Allow registers "MeoMeoExt-FF DNS" directly in iOS Settings with the Cat App Icon!
             manager.saveToPreferences { saveError in
                 DispatchQueue.main.async {
                     self.isInstallingDns = false
                     if let saveError = saveError {
                         let nsErr = saveError as NSError
-                        // Fallback gracefully if running on free sideload profile without NE entitlement
                         if nsErr.domain == "NEConfigurationErrorDomain" || nsErr.code == 10 || nsErr.code == 1 {
                             self.activeAlert = ActiveAlertItem(
                                 title: "Cài Đặt MeoMeoExt-FF DNS",
                                 message: "Hệ thống cần xác nhận hồ sơ cấu hình MeoMeoExt-FF DNS. Bạn có muốn mở để hoàn tất cài đặt không?",
                                 isDestructive: false,
                                 action: {
-                                    if let url = URL(string: SecurityShield.dnsPayloadURL) {
+                                    if let url = URL(string: MeoCore.dnsPayloadURL()) {
                                         UIApplication.shared.open(url, options: [:], completionHandler: nil)
                                     }
                                 }

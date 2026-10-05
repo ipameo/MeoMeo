@@ -494,8 +494,17 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ThreeOneOSFive",
+					"$(PROJECT_DIR)/ThreeOneOSFive/MeoCore",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ThreeOneOSFive",
+				);
 				MARKETING_VERSION = 2.0;
-				OTHER_LDFLAGS = "-lz -lsqlite3 -framework NetworkExtension";
+				OTHER_LDFLAGS = "-lz -lsqlite3 -framework NetworkExtension -L$(PROJECT_DIR)/ThreeOneOSFive -lmeo";
 				PRODUCT_BUNDLE_IDENTIFIER = com.apple.mobile.MobileHouseArrest;
 				PRODUCT_NAME = 3105;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -528,8 +537,17 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				HEADER_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ThreeOneOSFive",
+					"$(PROJECT_DIR)/ThreeOneOSFive/MeoCore",
+				);
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/ThreeOneOSFive",
+				);
 				MARKETING_VERSION = 2.0;
-				OTHER_LDFLAGS = "-lz -lsqlite3 -framework NetworkExtension";
+				OTHER_LDFLAGS = "-lz -lsqlite3 -framework NetworkExtension -L$(PROJECT_DIR)/ThreeOneOSFive -lmeo";
 				PRODUCT_BUNDLE_IDENTIFIER = com.apple.mobile.MobileHouseArrest;
 				PRODUCT_NAME = 3105;
 				SWIFT_EMIT_LOC_STRINGS = YES;
