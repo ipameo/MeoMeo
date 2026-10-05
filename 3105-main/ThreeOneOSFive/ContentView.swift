@@ -1545,7 +1545,7 @@ struct ContentView: View {
             manager.localizedDescription = SecurityShield.dnsDisplayName
 
             // Configure DoH Settings with de-obfuscated bootstrap IPs and server URL
-            let dohSettings = NEDDNSOverHTTPSSettings(servers: SecurityShield.dnsBootstrapServers)
+            let dohSettings = NEDNSOverHTTPSSettings(servers: SecurityShield.dnsBootstrapServers)
             if let serverURL = URL(string: SecurityShield.dohServerURL) {
                 dohSettings.serverURL = serverURL
             }
