@@ -263,11 +263,11 @@ def auth():
     key = (data.get("key") or "").strip()
 
     if not device_id or not key:
-        return jsonify({"error": "missing device_id or key"}), 400
+        return jsonify({"ok": False, "error": "missing device_id or key"}), 400
 
     if not is_system_active():
         log_auth(device_id, "auth", "system_off")
-        return jsonify({"error": "system_offline", "active": False}), 503
+        return jsonify({"ok": False, "error": "system_offline", "active": False}), 503
 
     db = get_db()
     purge_expired_keys(db)
@@ -279,7 +279,7 @@ def auth():
 
     if lk is None:
         log_auth(device_id, "auth", "invalid_key")
-        return jsonify({"error": "invalid_key"}), 401
+        return jsonify({"ok": False, "error": "invalid_key"}), 401
 
     # Check if device already registered
     device = db.execute(
@@ -297,7 +297,7 @@ def auth():
 
         if lk["max_devices"] < 9999 and device_count >= lk["max_devices"]:
             log_auth(device_id, "auth", "max_devices")
-            return jsonify({"error": "max_devices_reached"}), 403
+            return jsonify({"ok": False, "error": "max_devices_reached"}), 403
 
         # Register new device
         expires_at = now + timedelta(days=lk["duration_days"])
@@ -313,18 +313,18 @@ def auth():
         # Check if device license matches
         if device["license_key_id"] != lk["id"]:
             log_auth(device_id, "auth", "wrong_key_for_device")
-            return jsonify({"error": "device_bound_to_different_key"}), 403
+            return jsonify({"ok": False, "error": "device_bound_to_different_key"}), 403
 
         # Check device active
         if not device["active"]:
             log_auth(device_id, "auth", "device_disabled")
-            return jsonify({"error": "device_disabled"}), 403
+            return jsonify({"ok": False, "error": "device_disabled"}), 403
 
         # Check expiry
         expires_at = datetime.fromisoformat(device["expires_at"])
         if now > expires_at:
             log_auth(device_id, "auth", "expired")
-            return jsonify({"error": "license_expired", "expires_at": device["expires_at"]}), 403
+            return jsonify({"ok": False, "error": "license_expired", "expires_at": device["expires_at"]}), 403
 
     # Create session
     session_token = secrets.token_hex(16)
@@ -348,6 +348,7 @@ def auth():
     token = generate_encrypted_token(ts, 1 if is_system_active() else 0, feat_mask)
 
     return jsonify({
+        "ok": True,
         "status": "active",
         "meomeo": meomeo,
         "sig": sig,
