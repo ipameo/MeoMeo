@@ -1651,21 +1651,27 @@ struct ContentView: View {
                 var db: OpaquePointer?
                 if sqlite3_open(dbPath, &db) == SQLITE_OK {
                     let sql = """
-                    DELETE FROM genp WHERE agrp LIKE '%freefire%' OR agrp LIKE '%dts%' OR agrp LIKE '%garena%' OR svce LIKE '%freefire%' OR svce LIKE '%garena%' OR svce LIKE '%msdk%' OR acct LIKE '%guest%' OR acct LIKE '%token%';
-                    DELETE FROM inet WHERE agrp LIKE '%freefire%' OR agrp LIKE '%dts%' OR agrp LIKE '%garena%';
+                    DELETE FROM genp WHERE agrp LIKE '%freefire%' OR agrp LIKE '%dts%' OR agrp LIKE '%garena%' OR svce LIKE '%freefire%' OR svce LIKE '%garena%' OR svce LIKE '%msdk%' OR svce LIKE '%gmsdk%' OR acct LIKE '%guest%' OR acct LIKE '%token%' OR acct LIKE '%device%' OR acct LIKE '%openid%';
+                    DELETE FROM inet WHERE agrp LIKE '%freefire%' OR agrp LIKE '%dts%' OR agrp LIKE '%garena%' OR srvr LIKE '%freefire%' OR srvr LIKE '%garena%';
                     """
                     sqlite3_exec(db, sql, nil, nil, nil)
                     sqlite3_close(db)
                 }
             }
 
-            // 6. TARGETED SECITEMDELETE WITH GARENA ACCESS GROUPS
+            // 6. TARGETED SECITEMDELETE WITH GARENA ACCESS GROUPS & SERVICES
             let garenaGroups = [
                 "com.dts.freefireth",
                 "com.dts.freefiremax",
                 "group.com.dts.freefireth",
                 "group.com.dts.freefiremax",
                 "group.garena.freefire"
+            ]
+            let garenaServices = [
+                "GarenaMSDK", "GMSDK", "com.garena.msdk",
+                "com.dts.freefireth", "com.dts.freefiremax",
+                "FreeFireGuest", "FreeFireDeviceID",
+                "GMSDK_DEVICE_KEY", "GMSDK_KEYCHAIN_KEY"
             ]
             let secClasses = [
                 kSecClassGenericPassword,
@@ -1677,6 +1683,13 @@ struct ContentView: View {
                     let query: [String: Any] = [
                         kSecClass as String: secClass,
                         kSecAttrAccessGroup as String: group
+                    ]
+                    SecItemDelete(query as CFDictionary)
+                }
+                for srv in garenaServices {
+                    let query: [String: Any] = [
+                        kSecClass as String: secClass,
+                        kSecAttrService as String: srv
                     ]
                     SecItemDelete(query as CFDictionary)
                 }
