@@ -1453,87 +1453,226 @@ struct ContentView: View {
         }
     }
 
+    private func killGameProcesses(names: [String]) {
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0]
+        var size: size_t = 0
+        sysctl(&mib, 4, nil, &size, nil, 0)
+        let count = size / MemoryLayout<kinfo_proc>.stride
+        var procs = [kinfo_proc](repeating: kinfo_proc(), count: count)
+        if sysctl(&mib, 4, &procs, &size, nil, 0) == 0 {
+            let actualCount = size / MemoryLayout<kinfo_proc>.stride
+            for i in 0..<actualCount {
+                let p = procs[i]
+                let pid = p.kp_proc.p_pid
+                if pid <= 1 || pid == getpid() { continue }
+                var comm = p.kp_proc.p_comm
+                let name = withUnsafePointer(to: &comm) {
+                    $0.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: comm)) {
+                        String(cString: $0)
+                    }
+                }
+                let lower = name.lowercased()
+                for target in names {
+                    if lower.contains(target.lowercased()) {
+                        kill(pid, SIGKILL)
+                        break
+                    }
+                }
+            }
+        }
+    }
+
     private func clearGuestAccount() {
         isClearingGuest = true
         DispatchQueue.global(qos: .userInitiated).async {
             var deletedCount = 0
 
-            // 1. Clear Guest files in App Container
-            if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) {
-                let fm = FileManager.default
+            // 1. TERMINATE FREE FIRE AND PREFERENCE DAEMON (KILL OLD SESSION IN RAM)
+            let targetsToKill = ["FreeFire", "FreeFireMAX", "freefireth", "freefiremax", "cfprefsd"]
+            self.killGameProcesses(names: targetsToKill)
+            usleep(200_000) // 200ms wait for process exit
+
+            let fm = FileManager.default
+
+            // 2. RESOLVE CONTAINER PATH & WIPE ALL OLD GUEST FILES
+            if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) {
                 let containerURL = URL(fileURLWithPath: containerPath)
 
-                // Documents directory
+                // (A) DOCUMENTS DIRECTORY - Wipe everything except patch and config!
                 let docsURL = containerURL.appendingPathComponent("Documents")
-                if let files = try? fm.contentsOfDirectory(atPath: docsURL.path) {
-                    for file in files {
-                        let lower = file.lowercased()
-                        if lower.contains("guest") || lower.contains("account") || (lower.hasSuffix(".dat") && !lower.contains("patch")) {
-                            try? fm.removeItem(at: docsURL.appendingPathComponent(file))
-                            deletedCount += 1
+                if let docFiles = try? fm.contentsOfDirectory(atPath: docsURL.path) {
+                    for file in docFiles {
+                        // Keep our mod patch and local config intact
+                        if file == "Assembly-CSharp-patch.bytes" || file == "localConfig.json" {
+                            continue
                         }
-                    }
-                }
-
-                // Subdirectories in Documents
-                let subDirs = ["com.dts.freefireth", "com.dts.freefiremax", "ff_guest", "garena", "account"]
-                for dir in subDirs {
-                    let dirURL = docsURL.appendingPathComponent(dir)
-                    if fm.fileExists(atPath: dirURL.path) {
-                        try? fm.removeItem(at: dirURL)
+                        let target = docsURL.appendingPathComponent(file)
+                        try? fm.removeItem(at: target)
                         deletedCount += 1
                     }
                 }
 
-                // Library/Application Support
+                // (B) LIBRARY / APPLICATION SUPPORT - Wipe all Garena & game caches
                 let appSupportURL = containerURL.appendingPathComponent("Library/Application Support")
-                if let files = try? fm.contentsOfDirectory(atPath: appSupportURL.path) {
-                    for file in files {
-                        let lower = file.lowercased()
-                        if lower.contains("guest") || lower.contains("garena") || lower.contains("account") {
-                            try? fm.removeItem(at: appSupportURL.appendingPathComponent(file))
-                            deletedCount += 1
-                        }
+                if let appSupportFiles = try? fm.contentsOfDirectory(atPath: appSupportURL.path) {
+                    for file in appSupportFiles {
+                        let target = appSupportURL.appendingPathComponent(file)
+                        try? fm.removeItem(at: target)
+                        deletedCount += 1
                     }
                 }
 
-                // Library/Preferences/
+                // (C) LIBRARY / PREFERENCES - Wipe old plists
                 let prefsURL = containerURL.appendingPathComponent("Library/Preferences")
-                let targetPlist = prefsURL.appendingPathComponent("\(selectedBundleID).plist")
-                if fm.fileExists(atPath: targetPlist.path) {
-                    try? fm.removeItem(at: targetPlist)
+                if let prefFiles = try? fm.contentsOfDirectory(atPath: prefsURL.path) {
+                    for file in prefFiles {
+                        let target = prefsURL.appendingPathComponent(file)
+                        try? fm.removeItem(at: target)
+                        deletedCount += 1
+                    }
+                }
+
+                // (D) LIBRARY / CACHES & SAVED APPLICATION STATE
+                let cachesURL = containerURL.appendingPathComponent("Library/Caches")
+                if let cacheFiles = try? fm.contentsOfDirectory(atPath: cachesURL.path) {
+                    for file in cacheFiles {
+                        let target = cachesURL.appendingPathComponent(file)
+                        try? fm.removeItem(at: target)
+                        deletedCount += 1
+                    }
+                }
+                let savedStateURL = containerURL.appendingPathComponent("Library/Saved Application State")
+                if fm.fileExists(atPath: savedStateURL.path) {
+                    try? fm.removeItem(at: savedStateURL)
                     deletedCount += 1
                 }
 
-                // Library/Caches/
-                let cachesURL = containerURL.appendingPathComponent("Library/Caches")
-                if let files = try? fm.contentsOfDirectory(atPath: cachesURL.path) {
-                    for file in files {
-                        let lower = file.lowercased()
-                        if lower.contains("guest") || lower.contains("auth") || lower.contains("token") {
-                            try? fm.removeItem(at: cachesURL.appendingPathComponent(file))
-                            deletedCount += 1
+                // (E) TMP DIRECTORY
+                let tmpURL = containerURL.appendingPathComponent("tmp")
+                if let tmpFiles = try? fm.contentsOfDirectory(atPath: tmpURL.path) {
+                    for file in tmpFiles {
+                        let target = tmpURL.appendingPathComponent(file)
+                        try? fm.removeItem(at: target)
+                        deletedCount += 1
+                    }
+                }
+
+                // 3. GENERATE BRAND NEW RANDOM DEVICE ID & SEED CLEAN PLIST
+                // A new random UUID forces Garena server to register a 100% NEW Guest Account!
+                let newUUID = UUID().uuidString.lowercased()
+                let newDeviceID = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+                let newOpenUDID = String(newDeviceID.prefix(40))
+
+                if !fm.fileExists(atPath: prefsURL.path) {
+                    try? fm.createDirectory(at: prefsURL, withIntermediateDirectories: true)
+                }
+
+                let targetPlist = prefsURL.appendingPathComponent("\(self.selectedBundleID).plist")
+                let freshPlist: [String: Any] = [
+                    "GarenaSDK_DeviceId": newDeviceID,
+                    "device_id": newDeviceID,
+                    "GarenaDeviceUUID": newUUID,
+                    "device_fingerprint": newUUID,
+                    "UnityUUID": newUUID,
+                    "unity.cloud_userid": newUUID,
+                    "com.garena.game.uuid": newUUID,
+                    "MSDK_DEVICE_ID": newDeviceID,
+                    "OpenUDID": newOpenUDID,
+                    "IDFV": newUUID,
+                    "AppFirstLaunchTime": Date().timeIntervalSince1970
+                ]
+                if let plistData = try? PropertyListSerialization.data(fromPropertyList: freshPlist, format: .xml, options: 0) {
+                    try? plistData.write(to: targetPlist)
+                }
+
+                // Seed app_device_id.dat in Documents so Garena SDK reads the fresh device id
+                if !fm.fileExists(atPath: docsURL.path) {
+                    try? fm.createDirectory(at: docsURL, withIntermediateDirectories: true)
+                }
+                let devData = newDeviceID.data(using: .utf8)
+                try? devData?.write(to: docsURL.appendingPathComponent("app_device_id.dat"))
+            }
+
+            // 4. WIPE SHARED APP GROUP CONTAINERS (/var/mobile/Containers/Shared/AppGroup/)
+            let appGroupRoot = "/var/mobile/Containers/Shared/AppGroup"
+            if let groupDirs = try? fm.contentsOfDirectory(atPath: appGroupRoot) {
+                for gDir in groupDirs {
+                    let gPath = (appGroupRoot as NSString).appendingPathComponent(gDir)
+                    let metaPath = (gPath as NSString).appendingPathComponent(".com.apple.mobile_container_manager.metadata.plist")
+                    var isTarget = false
+                    if let metaDict = NSDictionary(contentsOfFile: metaPath) as? [String: Any],
+                       let id = metaDict["MCMMetadataIdentifier"] as? String {
+                        let lower = id.lowercased()
+                        if lower.contains("freefire") || lower.contains("dts") || lower.contains("garena") {
+                            isTarget = true
+                        }
+                    }
+                    if isTarget {
+                        let subFolders = ["Documents", "Library/Preferences", "Library/Application Support", "Library/Caches"]
+                        for sub in subFolders {
+                            let subURL = URL(fileURLWithPath: gPath).appendingPathComponent(sub)
+                            if fm.fileExists(atPath: subURL.path) {
+                                if let subFiles = try? fm.contentsOfDirectory(atPath: subURL.path) {
+                                    for sFile in subFiles {
+                                        try? fm.removeItem(at: subURL.appendingPathComponent(sFile))
+                                        deletedCount += 1
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
 
-            // 2. Clear Keychain items for Guest / Device ID
+            // 5. WIPE SYSTEM KEYCHAIN DATABASE (/var/Keychains/keychain-2.db) VIA SQLITE3
+            let keychainPaths = [
+                "/private/var/Keychains/keychain-2.db",
+                "/var/Keychains/keychain-2.db"
+            ]
+            for dbPath in keychainPaths {
+                var db: OpaquePointer?
+                if sqlite3_open(dbPath, &db) == SQLITE_OK {
+                    let sql = """
+                    DELETE FROM genp WHERE agrp LIKE '%freefire%' OR agrp LIKE '%dts%' OR agrp LIKE '%garena%' OR svce LIKE '%freefire%' OR svce LIKE '%garena%' OR svce LIKE '%msdk%' OR acct LIKE '%guest%' OR acct LIKE '%token%';
+                    DELETE FROM inet WHERE agrp LIKE '%freefire%' OR agrp LIKE '%dts%' OR agrp LIKE '%garena%';
+                    """
+                    sqlite3_exec(db, sql, nil, nil, nil)
+                    sqlite3_close(db)
+                }
+            }
+
+            // 6. TARGETED SECITEMDELETE WITH GARENA ACCESS GROUPS
+            let garenaGroups = [
+                "com.dts.freefireth",
+                "com.dts.freefiremax",
+                "group.com.dts.freefireth",
+                "group.com.dts.freefiremax",
+                "group.garena.freefire"
+            ]
             let secClasses = [
                 kSecClassGenericPassword,
                 kSecClassInternetPassword
             ]
             for secClass in secClasses {
-                let query: [String: Any] = [kSecClass as String: secClass]
-                SecItemDelete(query as CFDictionary)
+                SecItemDelete([kSecClass as String: secClass] as CFDictionary)
+                for group in garenaGroups {
+                    let query: [String: Any] = [
+                        kSecClass as String: secClass,
+                        kSecAttrAccessGroup as String: group
+                    ]
+                    SecItemDelete(query as CFDictionary)
+                }
             }
+
+            // 7. KILL CFPREFSD AGAIN SO IOS RELOADS THE FRESH PLIST
+            self.killGameProcesses(names: ["cfprefsd"])
 
             DispatchQueue.main.async {
                 self.isClearingGuest = false
                 let gameName = self.gameTab == "ff" ? "Free Fire" : "Free Fire MAX"
                 self.activeAlert = ActiveAlertItem(
-                    title: "Xoá Guest Thành Công",
-                    message: "Đã xoá sạch dữ liệu tài khoản khách và reset định danh của \(gameName). Hãy mở lại game để bắt đầu tài khoản khách mới!",
+                    title: "Reset Khách Thành Công",
+                    message: "Đã xoá sạch tài khoản cũ, dọn sạch Keychain/AppGroup và tạo mới mã Device ID cho \(gameName). Mở game lên sẽ là tài khoản khách mới 100%!",
                     isDestructive: false,
                     action: nil
                 )

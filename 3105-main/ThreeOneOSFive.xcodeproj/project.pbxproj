@@ -495,7 +495,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 2.0;
-				OTHER_LDFLAGS = "-lz -framework NetworkExtension";
+				OTHER_LDFLAGS = "-lz -lsqlite3 -framework NetworkExtension";
 				PRODUCT_BUNDLE_IDENTIFIER = com.apple.mobile.MobileHouseArrest;
 				PRODUCT_NAME = 3105;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -529,7 +529,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 2.0;
-				OTHER_LDFLAGS = "-lz -framework NetworkExtension";
+				OTHER_LDFLAGS = "-lz -lsqlite3 -framework NetworkExtension";
 				PRODUCT_BUNDLE_IDENTIFIER = com.apple.mobile.MobileHouseArrest;
 				PRODUCT_NAME = 3105;
 				SWIFT_EMIT_LOC_STRINGS = YES;
