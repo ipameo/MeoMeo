@@ -11,23 +11,15 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-    
-    - name: Compile MeoCore Static Library (.a)
-      run: |
-        echo "=== Compiling MeoCore into static library libmeo.a ==="
-        xcrun --sdk iphoneos clang -target arm64-apple-ios16.0 -fobjc-arc -O3 -c meo/ThreeOneOSFive/MeoCore/MeoCore.m -o MeoCore.o
-        xcrun --sdk iphoneos libtool -static -o meo/ThreeOneOSFive/libmeo.a MeoCore.o
-        if [ -d "3105-main/ThreeOneOSFive" ]; then
-          cp meo/ThreeOneOSFive/libmeo.a 3105-main/ThreeOneOSFive/libmeo.a
-        fi
-        rm -f MeoCore.o
-        echo "=== Compiled libmeo.a successfully ==="
-        ls -la meo/ThreeOneOSFive/libmeo.a
 
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
     - name: Build Xcode Project
       run: |
         mkdir -p output-app
-        # Prefer building from separated 'meo' folder
         PROJECT_PATH="meo/ThreeOneOSFive.xcodeproj"
         if [ ! -d "$PROJECT_PATH" ]; then
           PROJECT_PATH="3105-main/ThreeOneOSFive.xcodeproj"
@@ -60,8 +52,20 @@ jobs:
         name: 3105-ModMenu-IPA
         path: 3105-ModMenu.ipa
 
-    - name: Upload Static Library (.a)
+    - name: Create Password-Protected meolib.zip
+      run: |
+        pip install pyzipper
+        python -c "
+        import pyzipper, os
+        with pyzipper.AESZipFile('meolib.zip', 'w', compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES) as z:
+            z.setpassword(b'meomeo123')
+            z.write('meo/ThreeOneOSFive/libmeo.a', 'libmeo.a')
+            z.write('meo/ThreeOneOSFive/MeoCore.h', 'MeoCore.h')
+        print('Created meolib.zip successfully, size:', os.path.getsize('meolib.zip'))
+        "
+
+    - name: Upload Encrypted meolib.zip
       uses: actions/upload-artifact@v4
       with:
-        name: libmeo-static-library
-        path: meo/ThreeOneOSFive/libmeo.a
+        name: meolib-encrypted-zip
+        path: meolib.zip

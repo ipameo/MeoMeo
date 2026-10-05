@@ -5,5 +5,5 @@
 #import "kexploit/kutils.h"
 #import "helpers/AppIconHelper.h"
 #import "helpers/DisplayIdentity.h"
-#import "MeoCore/MeoCore.h"
+#import "MeoCore.h"
 #import <sqlite3.h>
