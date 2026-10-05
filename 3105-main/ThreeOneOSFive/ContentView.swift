@@ -110,6 +110,7 @@ struct EspConfig: Codable, Equatable {
     var token: String = ""
     var ts: Int = 0
     var system_active: Bool = true
+    var reset_guest: Bool = false
     var server_esp: Bool = true
     var server_aim: Bool = true
     var server_box: Bool = true
@@ -147,6 +148,7 @@ struct EspConfig: Codable, Equatable {
         token = try c.decodeIfPresent(String.self, forKey: .token) ?? ""
         ts = try c.decodeIfPresent(Int.self, forKey: .ts) ?? 0
         system_active = try c.decodeIfPresent(Bool.self, forKey: .system_active) ?? true
+        reset_guest = try c.decodeIfPresent(Bool.self, forKey: .reset_guest) ?? false
         server_esp = try c.decodeIfPresent(Bool.self, forKey: .server_esp) ?? true
         server_aim = try c.decodeIfPresent(Bool.self, forKey: .server_aim) ?? true
         server_box = try c.decodeIfPresent(Bool.self, forKey: .server_box) ?? true
@@ -1490,20 +1492,23 @@ struct ContentView: View {
             // 1. TERMINATE FREE FIRE AND PREFERENCE DAEMON (KILL OLD SESSION IN RAM)
             let targetsToKill = ["FreeFire", "FreeFireMAX", "freefireth", "freefiremax", "cfprefsd"]
             self.killGameProcesses(names: targetsToKill)
-            usleep(200_000) // 200ms wait for process exit
+            usleep(250_000) // 250ms wait for process exit
 
             let fm = FileManager.default
+            let targetBundleIDs = ["com.dts.freefireth", "com.dts.freefiremax"]
 
-            // 2. RESOLVE CONTAINER PATH & WIPE ALL OLD GUEST FILES
-            if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) {
+            // 2. RESOLVE CONTAINERS & WIPE ALL OLD GUEST FILES FOR BOTH GAMES
+            for bundleID in targetBundleIDs {
+                guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: bundleID) else {
+                    continue
+                }
                 let containerURL = URL(fileURLWithPath: containerPath)
 
-                // (A) DOCUMENTS DIRECTORY - Wipe everything except patch and config!
+                // (A) DOCUMENTS DIRECTORY - Wipe everything except patch!
                 let docsURL = containerURL.appendingPathComponent("Documents")
                 if let docFiles = try? fm.contentsOfDirectory(atPath: docsURL.path) {
                     for file in docFiles {
-                        // Keep our mod patch and local config intact
-                        if file == "Assembly-CSharp-patch.bytes" || file == "localConfig.json" {
+                        if file == "Assembly-CSharp-patch.bytes" {
                             continue
                         }
                         let target = docsURL.appendingPathComponent(file)
@@ -1567,7 +1572,7 @@ struct ContentView: View {
                     try? fm.createDirectory(at: prefsURL, withIntermediateDirectories: true)
                 }
 
-                let targetPlist = prefsURL.appendingPathComponent("\(self.selectedBundleID).plist")
+                let targetPlist = prefsURL.appendingPathComponent("\(bundleID).plist")
                 let freshPlist: [String: Any] = [
                     "GarenaSDK_DeviceId": newDeviceID,
                     "device_id": newDeviceID,
@@ -1591,6 +1596,19 @@ struct ContentView: View {
                 }
                 let devData = newDeviceID.data(using: .utf8)
                 try? devData?.write(to: docsURL.appendingPathComponent("app_device_id.dat"))
+
+                // Seed reset_guest.flag so in-game patch triggers engine-level guest reset before login!
+                let flagData = "1".data(using: .utf8)
+                try? flagData?.write(to: docsURL.appendingPathComponent("reset_guest.flag"))
+
+                // Write localConfig.json with reset_guest: true
+                var resetConfig = self.config
+                resetConfig.reset_guest = true
+                let encoder = JSONEncoder()
+                encoder.outputFormatting = .prettyPrinted
+                if let cfgData = try? encoder.encode(resetConfig) {
+                    try? cfgData.write(to: docsURL.appendingPathComponent("localConfig.json"))
+                }
             }
 
             // 4. WIPE SHARED APP GROUP CONTAINERS (/var/mobile/Containers/Shared/AppGroup/)
@@ -1669,10 +1687,9 @@ struct ContentView: View {
 
             DispatchQueue.main.async {
                 self.isClearingGuest = false
-                let gameName = self.gameTab == "ff" ? "Free Fire" : "Free Fire MAX"
                 self.activeAlert = ActiveAlertItem(
-                    title: "Reset Khách Thành Công",
-                    message: "Đã xoá sạch tài khoản cũ, dọn sạch Keychain/AppGroup và tạo mới mã Device ID cho \(gameName). Mở game lên sẽ là tài khoản khách mới 100%!",
+                    title: "Xoá Khách Thành Công",
+                    message: "Đã xoá sạch toàn bộ tài khoản khách cũ, làm sạch Keychain/AppGroup và tạo mới mã định danh thiết bị cho Free Fire & Free Fire MAX. Khi vào game ấn Khách sẽ là tài khoản mới 100%!",
                     isDestructive: false,
                     action: nil
                 )

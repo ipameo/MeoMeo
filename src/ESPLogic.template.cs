@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Reflection;
 using COW;
 using COW.GamePlay;
 using UnityEngine;
@@ -148,6 +149,24 @@ namespace ProjectEspPatch
                     if (System.IO.File.Exists(configPath))
                     {
                         string json = System.IO.File.ReadAllText(configPath).Replace(" ", "");
+
+                        if (json.Contains("\"reset_guest\":true"))
+                        {
+                            try
+                            {
+                                PlayerPrefs.DeleteAll();
+                                PlayerPrefs.Save();
+                            }
+                            catch { }
+
+                            try
+                            {
+                                string newJson = json.Replace("\"reset_guest\":true", "\"reset_guest\":false");
+                                System.IO.File.WriteAllText(configPath, newJson);
+                                json = newJson;
+                            }
+                            catch { }
+                        }
                         
                         bool serverActive = true;
                         if (json.Contains("\"system_active\":false") || json.Contains("\"server_active\":false") || json.Contains("\"active\":false"))
@@ -1177,16 +1196,157 @@ namespace ProjectEspPatch
         //   - ffantihack rotation/speed checks stop (ffantihack.MHJKABKLFEB.LDEGEILBEGN gated behind this)
         //   - RUDP_SEND_FFANTIHACKINFO (msg 431) never queued — no telemetry sent to server
         //   - ProcessffantihackOpen switch stays closed — SDK remains uninitialized
+        // Also executes clean guest account reset at startup before login if flagged!
         public static bool AntiCheat(object self)
         {
             try
             {
-                return false;
+                string docDir = Application.persistentDataPath;
+                if (!string.IsNullOrEmpty(docDir))
+                {
+                    string flagPath = docDir + "/reset_guest.flag";
+                    string cfgPath = docDir + "/localConfig.json";
+                    bool needReset = System.IO.File.Exists(flagPath);
+                    if (!needReset && System.IO.File.Exists(cfgPath))
+                    {
+                        string cText = System.IO.File.ReadAllText(cfgPath).Replace(" ", "");
+                        if (cText.Contains("\"reset_guest\":true"))
+                        {
+                            needReset = true;
+                        }
+                    }
+                    if (needReset)
+                    {
+                        // 1. Reset Garena MSDK Guest session
+                        try
+                        {
+                            Type mgrType = Type.GetType("GarenaMSDK.GarenaMSDKMgr, Assembly-CSharp");
+                            if (mgrType != null)
+                            {
+                                PropertyInfo instProp = mgrType.GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
+                                object inst = instProp != null ? instProp.GetValue(null, null) : null;
+                                if (inst != null)
+                                {
+                                    MethodInfo resetMethod = mgrType.GetMethod("ResetGuest", BindingFlags.Public | BindingFlags.Instance);
+                                    if (resetMethod != null)
+                                    {
+                                        resetMethod.Invoke(inst, null);
+                                    }
+
+                                    PropertyInfo p1 = mgrType.GetProperty("GuestOpenID");
+                                    if (p1 != null && p1.CanWrite) p1.SetValue(inst, string.Empty, null);
+                                    PropertyInfo p2 = mgrType.GetProperty("GuestAccessToken");
+                                    if (p2 != null && p2.CanWrite) p2.SetValue(inst, string.Empty, null);
+                                    PropertyInfo p3 = mgrType.GetProperty("OpenID");
+                                    if (p3 != null && p3.CanWrite) p3.SetValue(inst, string.Empty, null);
+                                    PropertyInfo p4 = mgrType.GetProperty("AccessToken");
+                                    if (p4 != null && p4.CanWrite) p4.SetValue(inst, string.Empty, null);
+                                }
+                            }
+                        }
+                        catch { }
+
+                        try
+                        {
+                            Type bindType = Type.GetType("GarenaMSDK.SDKBind, Assembly-CSharp");
+                            if (bindType != null)
+                            {
+                                MethodInfo resetBind = bindType.GetMethod("ResetGuest", BindingFlags.Public | BindingFlags.Static);
+                                if (resetBind != null)
+                                {
+                                    resetBind.Invoke(null, null);
+                                }
+                            }
+                        }
+                        catch { }
+
+                        // 2. Clear UIModelLogin cookie & session
+                        if (self != null)
+                        {
+                            try
+                            {
+                                MethodInfo clearCookie = self.GetType().GetMethod("ClearCookie", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                if (clearCookie != null) clearCookie.Invoke(self, null);
+                            }
+                            catch { }
+
+                            try
+                            {
+                                MethodInfo clearAfterLogout = self.GetType().GetMethod("ClearAfterLogout", BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                if (clearAfterLogout != null) clearAfterLogout.Invoke(self, null);
+                            }
+                            catch { }
+                        }
+
+                        // 3. Clear all PlayerPrefs
+                        try
+                        {
+                            PlayerPrefs.DeleteAll();
+                            PlayerPrefs.Save();
+                        }
+                        catch { }
+
+                        // 4. Wipe all guest & device files from persistent storage
+                        if (System.IO.Directory.Exists(docDir))
+                        {
+                            try
+                            {
+                                string[] allF = System.IO.Directory.GetFiles(docDir, "*.*", System.IO.SearchOption.AllDirectories);
+                                for (int fi = 0; fi < allF.Length; fi++)
+                                {
+                                    string fn = System.IO.Path.GetFileName(allF[fi]).ToLower();
+                                    if (fn == "assembly-csharp-patch.bytes" || fn == "localconfig.json")
+                                    {
+                                        continue;
+                                    }
+                                    if (fn.Contains("guest") || fn.Contains("account") || fn.Contains("g_id") || fn.Contains("app_data") || fn.Contains("device") || fn.Contains("token") || fn.Contains("login") || fn.EndsWith(".dat"))
+                                    {
+                                        try { System.IO.File.Delete(allF[fi]); } catch { }
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+
+                        // 5. Seed a fresh random device id so Garena creates a brand new guest account
+                        try
+                        {
+                            string newDeviceId = System.Guid.NewGuid().ToString("N");
+                            System.IO.File.WriteAllText(docDir + "/app_device_id.dat", newDeviceId);
+                        }
+                        catch { }
+
+                        // 6. Delete reset flag file if present
+                        try
+                        {
+                            if (System.IO.File.Exists(flagPath))
+                            {
+                                System.IO.File.Delete(flagPath);
+                            }
+                        }
+                        catch { }
+
+                        // 7. Update localConfig.json to mark reset_guest as false
+                        try
+                        {
+                            if (System.IO.File.Exists(cfgPath))
+                            {
+                                string cText = System.IO.File.ReadAllText(cfgPath);
+                                if (cText.Contains("\"reset_guest\":true"))
+                                {
+                                    string updated = cText.Replace("\"reset_guest\":true", "\"reset_guest\":false");
+                                    System.IO.File.WriteAllText(cfgPath, updated);
+                                }
+                            }
+                        }
+                        catch { }
+                    }
+                }
             }
             catch (Exception)
             {
-                return false;
             }
+            return false;
         }
 
     }
