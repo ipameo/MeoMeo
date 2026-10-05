@@ -1263,8 +1263,7 @@ struct ContentView: View {
         guard license.isAuthed else { return }
         guard let jsonData = saveConfigLocally() else { return }
         isInjecting = true
-
-        MeoCore.shared().inject(toGameWithBundleID: selectedBundleID, configData: jsonData) { [self] success, error in
+        MeoCore.shared().injectToGame(withBundleID: selectedBundleID, configData: jsonData) { success, error in
             DispatchQueue.main.async {
                 self.isInjecting = false
                 if success {
