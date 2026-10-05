@@ -30,6 +30,12 @@ class MeoUIState: ObservableObject {
     @Published var fovSize: Float = 60.0
     @Published var headshotRate: Float = 60.0
 
+    // Pull AI Player
+    @Published var pullAIEnabled: Bool = false
+    @Published var pullAIFov: Float = 80.0
+    @Published var pullAIStrength: Float = 60.0
+    @Published var pullAIBone: Int = 0
+
     var storedKey: String {
         get { core.storedKey }
         set { core.storedKey = newValue }
@@ -88,6 +94,11 @@ class MeoUIState: ObservableObject {
         aimTarget = core.aimTarget
         fovSize = core.fovSize
         headshotRate = core.headshotRate
+
+        pullAIEnabled   = UserDefaults.standard.bool(forKey: "meo_pullAIEnabled")
+        pullAIFov       = UserDefaults.standard.object(forKey: "meo_pullAIFov") != nil ? UserDefaults.standard.float(forKey: "meo_pullAIFov") : 80.0
+        pullAIStrength  = UserDefaults.standard.object(forKey: "meo_pullAIStrength") != nil ? UserDefaults.standard.float(forKey: "meo_pullAIStrength") : 60.0
+        pullAIBone      = UserDefaults.standard.integer(forKey: "meo_pullAIBone")
     }
 
     func pushToCore(bundleID: String) {
@@ -107,7 +118,51 @@ class MeoUIState: ObservableObject {
         core.fovSize = fovSize
         core.headshotRate = headshotRate
 
+        UserDefaults.standard.set(pullAIEnabled, forKey: "meo_pullAIEnabled")
+        UserDefaults.standard.set(pullAIFov, forKey: "meo_pullAIFov")
+        UserDefaults.standard.set(pullAIStrength, forKey: "meo_pullAIStrength")
+        UserDefaults.standard.set(pullAIBone, forKey: "meo_pullAIBone")
+
         core.saveAndSyncConfig(forBundleID: bundleID)
+        syncPullAIToJson(bundleID: bundleID)
+    }
+
+    private func syncPullAIToJson(bundleID: String) {
+        let fm = FileManager.default
+        var candidatePaths: [String] = []
+
+        if let docsURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
+            candidatePaths.append(docsURL.appendingPathComponent("localConfig.json").path)
+        }
+
+        let containersBase = ["/private/var/mobile/Containers/Data/Application", "/var/mobile/Containers/Data/Application"]
+        for base in containersBase {
+            guard let dirs = try? fm.contentsOfDirectory(atPath: base) else { continue }
+            for uuid in dirs {
+                let metaPath = (base as NSString).appendingPathComponent("\(uuid)/.com.apple.mobile_container_manager.metadata.plist")
+                if let dict = NSDictionary(contentsOfFile: metaPath),
+                   let id = dict["MCMMetadataIdentifier"] as? String,
+                   id == bundleID || (bundleID.isEmpty && (id == "com.dts.freefireth" || id == "com.dts.freefiremax")) {
+                    let gameDocs = (base as NSString).appendingPathComponent("\(uuid)/Documents")
+                    candidatePaths.append((gameDocs as NSString).appendingPathComponent("localConfig.json"))
+                }
+            }
+        }
+
+        for path in candidatePaths {
+            guard fm.fileExists(atPath: path),
+                  let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+                  var dict = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] else { continue }
+
+            dict["PullAIEnabled"] = pullAIEnabled
+            dict["PullAIFov"] = pullAIFov
+            dict["PullAIStrength"] = pullAIStrength
+            dict["PullAIBone"] = pullAIBone
+
+            if let updatedData = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
+                try? updatedData.write(to: URL(fileURLWithPath: path), options: .atomic)
+            }
+        }
     }
 
     func authenticate(key: String, completion: @escaping (Bool, String?) -> Void) {
@@ -588,6 +643,93 @@ struct ContentView: View {
                                 get: { state.noRecoil },
                                 set: { val in state.noRecoil = val; state.pushToCore(bundleID: selectedBundleID) }
                             ))
+                        }
+                    }
+                }
+
+                // ── PULL AI PLAYER ─────────────────────────────────────
+                CardView(title: "PULL AI PLAYER", icon: "magnet.fill") {
+                    VStack(spacing: 14) {
+
+                        // Master switch + badge
+                        HStack(spacing: 10) {
+                            Image(systemName: "magnet.fill")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(state.pullAIEnabled ? .white : Color(white: 0.40))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Pull AI Player")
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .foregroundColor(state.pullAIEnabled ? .white : Color(white: 0.55))
+                                Text("Kéo địch về tâm ngắm khi bắn — không lỗi dame")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(Color(white: 0.45))
+                            }
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { state.pullAIEnabled },
+                                set: { val in state.pullAIEnabled = val; state.pushToCore(bundleID: selectedBundleID) }
+                            ))
+                            .toggleStyle(SlimToggleStyle())
+                            .labelsHidden()
+                        }
+
+                        if state.pullAIEnabled {
+                            Divider().background(Color(white: 0.20))
+
+                            // FOV slider
+                            SliderRow(label: "Pull FOV", value: Binding(
+                                get: { state.pullAIFov },
+                                set: { val in state.pullAIFov = val; state.pushToCore(bundleID: selectedBundleID) }
+                            ), range: 1...400, isPercent: false)
+
+                            // Strength slider
+                            SliderRow(label: "Cường Độ Kéo", value: Binding(
+                                get: { state.pullAIStrength },
+                                set: { val in state.pullAIStrength = val; state.pushToCore(bundleID: selectedBundleID) }
+                            ), range: 0...100, isPercent: true)
+
+                            // Target bone selector
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Kéo Về Xương")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .foregroundColor(Color(white: 0.65))
+
+                                HStack(spacing: 8) {
+                                    ForEach(0..<3, id: \.self) { idx in
+                                        let boneName = idx == 0 ? "Đầu" : (idx == 1 ? "Cổ" : "Thân")
+                                        Button(action: {
+                                            state.pullAIBone = idx
+                                            state.pushToCore(bundleID: selectedBundleID)
+                                        }) {
+                                            Text(boneName)
+                                                .font(.system(size: 13, weight: .bold))
+                                                .foregroundColor(state.pullAIBone == idx ? Color.black : Color.white)
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 36)
+                                                .background(state.pullAIBone == idx ? Color.white : Color(white: 0.05))
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 8)
+                                                        .stroke(Color(white: 0.25), lineWidth: 1)
+                                                )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Info note — lỗi dame warning
+                            HStack(spacing: 8) {
+                                Image(systemName: "info.circle")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(Color(white: 0.45))
+                                Text("Cường độ cao khi địch sát mặt có thể lỗi dame. Dùng 40-70% là tối ưu.")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(Color(white: 0.45))
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(10)
+                            .background(Color(white: 0.06))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
                     }
                 }

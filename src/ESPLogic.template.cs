@@ -44,6 +44,11 @@ namespace ProjectEspPatch
         private const int AuxSkeleton = 1;
         private const int AuxFovRadiusMask = 248;
         private const int AuxFovRadiusShift = 3;
+        private const int AuxPullAIEnabled = 32768;
+        private const int AuxPullAIBoneShift = 16;
+        private const int AuxPullAIBoneMask = 196608;
+        private const int AuxPullAIFovShift = 18;
+        private const int AuxPullAIFovMask = 8126464;
         private const int AuxMask = 255;
         private const int AuxTickShift = 8;
         private const float AuxStateMarker = 1000000f;
@@ -544,6 +549,38 @@ namespace ProjectEspPatch
                             if (scaledFov < 1) scaledFov = 1;
                             int a = (scaledFov << AuxFovRadiusShift) | (headRateVal << 8);
                             if (allowSkeleton && json.Contains("\"EspSkeleton\":true")) a |= AuxSkeleton;
+
+                            // ── Pull AI Player configuration parsing ──
+                            bool allowPullAI = allowAim && (json.Contains("\"PullAIEnabled\":true") || json.Contains("\"pullAIEnabled\":true"));
+                            if (allowPullAI)
+                            {
+                                int pullBone = 0; // 0=Head, 1=Neck, 2=Body
+                                if (json.Contains("\"PullAIBone\":1") || json.Contains("\"pullAIBone\":1")) pullBone = 1;
+                                else if (json.Contains("\"PullAIBone\":2") || json.Contains("\"pullAIBone\":2")) pullBone = 2;
+
+                                float pullFov = 80f;
+                                int pFovIdx = json.IndexOf("\"PullAIFov\":");
+                                if (pFovIdx == -1) pFovIdx = json.IndexOf("\"pullAIFov\":");
+                                if (pFovIdx != -1)
+                                {
+                                    int pStart = pFovIdx + (json.Contains("\"PullAIFov\":") ? 12 : 12);
+                                    int pEnd = json.IndexOfAny(new char[] { ',', '}' }, pStart);
+                                    if (pEnd != -1)
+                                    {
+                                        float.TryParse(json.Substring(pStart, pEnd - pStart).Trim(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out pullFov);
+                                    }
+                                }
+                                if (pullFov < 10f) pullFov = 10f;
+                                if (pullFov > 400f) pullFov = 400f;
+                                int scaledPullFov = (int)((pullFov - 10f) / 12.5f);
+                                if (scaledPullFov < 0) scaledPullFov = 0;
+                                if (scaledPullFov > 31) scaledPullFov = 31;
+
+                                a |= AuxPullAIEnabled;
+                                a |= (pullBone & 0x3) << AuxPullAIBoneShift;
+                                a |= (scaledPullFov & 0x1F) << AuxPullAIFovShift;
+                                s |= AimSystemEnabled;
+                            }
                             
                             self.{{SCENE_POSITION_FIELD}} = new Vector2((float)s, (float)a);
                         }
@@ -672,6 +709,36 @@ namespace ProjectEspPatch
                             float y0 = circleY + Mathf.Sin(angle0) * fovRadius;
                             float x1 = circleX + Mathf.Cos(angle1) * fovRadius;
                             float y1 = circleY + Mathf.Sin(angle1) * fovRadius;
+                            float dx = x1 - x0;
+                            float dy = y1 - y0;
+                            float length = Mathf.Sqrt(dx * dx + dy * dy);
+                            float angle = Mathf.Atan2(dy, dx) * 57.29578f;
+                            GUI.matrix = Matrix4x4.TRS(
+                                        new Vector3(x0, y0, 0f),
+                                        Quaternion.Euler(0f, 0f, angle),
+                                        Vector3.one);
+                            GUI.DrawTexture(new Rect(0f, -0.75f, length, 1.5f), pixel);
+                        }
+                        GUI.matrix = Matrix4x4.identity;
+                    }
+
+                    if ((auxState & AuxPullAIEnabled) != 0)
+                    {
+                        int pFovIdx = (auxState & AuxPullAIFovMask) >> AuxPullAIFovShift;
+                        float pullRadius = (float)pFovIdx * 12.5f + 10f;
+                        GUI.color = new Color(0.2f, 0.85f, 1f, 0.8f);
+                        float circleX = (float)screenWidth * 0.5f;
+                        float circleY = (float)screenHeight * 0.5f;
+                        int fovSegments = isIOS ? 24 : 64;
+                        float fovStep = 6.2831853f / (float)fovSegments;
+                        for (int segment = 0; segment < fovSegments; segment++)
+                        {
+                            float angle0 = (float)segment * fovStep;
+                            float angle1 = (float)(segment + 1) * fovStep;
+                            float x0 = circleX + Mathf.Cos(angle0) * pullRadius;
+                            float y0 = circleY + Mathf.Sin(angle0) * pullRadius;
+                            float x1 = circleX + Mathf.Cos(angle1) * pullRadius;
+                            float y1 = circleY + Mathf.Sin(angle1) * pullRadius;
                             float dx = x1 - x0;
                             float dy = y1 - y0;
                             float length = Mathf.Sqrt(dx * dx + dy * dy);
@@ -1255,7 +1322,8 @@ namespace ProjectEspPatch
                     }
                 }
 
-                if (Vector3.Distance(hitPosition, aimStart) > 150f)
+                float hitDist = Vector3.Distance(hitPosition, aimStart);
+                if (hitDist > 150f || hitDist < 2.5f)
                 {
                     continue;
                 }
@@ -1319,7 +1387,8 @@ namespace ProjectEspPatch
                 ? null
                 : (SceneEditBoxSelectTool)driver.GetComponent(typeof(SceneEditBoxSelectTool));
             int state = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.x;
-            if ((state & AimSystemEnabled) == 0
+            int aux = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.y;
+            if (((state & AimSystemEnabled) == 0 && (aux & AuxPullAIEnabled) == 0)
                 || self.gameObject == null || !self.gameObject.activeInHierarchy
                 || self.IsLocalPlayer() || self.CurHP <= 0
                 || self.IsLocalTeammate(false) || self.IsLocalTeammate(true))
@@ -1327,22 +1396,55 @@ namespace ProjectEspPatch
                 return original;
             }
 
-            int targetBone = (state & AimModeMask) >> AimModeShift;
-            int aux = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.y;
-            int headRate = (aux >> 8) & 0xFF;
-            bool aimAtHead = (targetBone == 0) && (UnityEngine.Random.Range(0, 100) < headRate);
+            Camera camera = Camera.main;
+            if (camera == null)
+            {
+                return original;
+            }
 
+            bool isPullAI = (aux & AuxPullAIEnabled) != 0;
+            int targetBone = isPullAI
+                ? ((aux & AuxPullAIBoneMask) >> AuxPullAIBoneShift)
+                : ((state & AimModeMask) >> AimModeShift);
+
+            int headRate = (aux >> 8) & 0x7F;
+            bool aimAtHead = isPullAI ? (targetBone == 0) : ((targetBone == 0) && (UnityEngine.Random.Range(0, 100) < headRate));
+            bool aimAtNeck = (targetBone == 1);
+
+            Vector3 targetPos = Vector3.zero;
             Collider targetCollider = null;
+
             if (aimAtHead)
             {
+                Transform head = self.GetHeadTF();
                 targetCollider = self.HeadCollider;
+                targetPos = head != null ? head.position : (self.RootTransform != null ? self.RootTransform.position + new Vector3(0f, 1.6f, 0f) : Vector3.zero);
+            }
+            else if (aimAtNeck)
+            {
+                Transform neck = self.NeckBone;
+                if (neck != null)
+                {
+                    targetPos = neck.position;
+                    targetCollider = (Collider)neck.GetComponent(typeof(Collider));
+                }
+                if (targetCollider == null)
+                {
+                    targetCollider = self.HeadCollider;
+                }
+                if (targetPos == Vector3.zero)
+                {
+                    targetPos = self.RootTransform != null ? self.RootTransform.position + new Vector3(0f, 1.35f, 0f) : Vector3.zero;
+                }
             }
             else
             {
                 Transform neck = self.NeckBone;
                 IList fireColliders = self.FireColliders;
                 float nearestDistance = 10000f;
-                if (neck != null && fireColliders != null)
+                Vector3 refPos = neck != null ? neck.position : (self.RootTransform != null ? self.RootTransform.position + new Vector3(0f, 1.0f, 0f) : Vector3.zero);
+                targetPos = refPos;
+                if (fireColliders != null)
                 {
                     for (int index = 0; index < fireColliders.Count; index++)
                     {
@@ -1353,7 +1455,7 @@ namespace ProjectEspPatch
                         }
 
                         float distance = Vector3.Distance(
-                            candidateCollider.transform.position, neck.position);
+                            candidateCollider.transform.position, refPos);
                         if (distance < nearestDistance)
                         {
                             nearestDistance = distance;
@@ -1379,20 +1481,55 @@ namespace ProjectEspPatch
                 }
             }
 
+            // ── ANTI-LỖI DAME GUARD ──
+            // Nếu địch quá gần (< 2.8m), không khoá LockedAimingCollider để server tính dame tự nhiên
+            Player localPlayer = GameFacade.CurrentLocalPlayer();
+            Transform localRoot = localPlayer == null ? null : localPlayer.RootTransform;
+            if (localRoot != null && targetPos != Vector3.zero)
+            {
+                float distToPlayer = Vector3.Distance(localRoot.position, targetPos);
+                if (distToPlayer < 2.8f)
+                {
+                    return original;
+                }
+            }
+
+            // ── FOV CHECK CHO PULL AI PLAYER ──
+            if (isPullAI && targetPos != Vector3.zero)
+            {
+                Vector3 screen = camera.WorldToScreenPoint(targetPos);
+                if (screen.z <= 0.5f
+                    || float.IsNaN(screen.x) || float.IsNaN(screen.y)
+                    || float.IsInfinity(screen.x) || float.IsInfinity(screen.y))
+                {
+                    return original;
+                }
+                float dx = screen.x - (float)Screen.width * 0.5f;
+                float dy = screen.y - (float)Screen.height * 0.5f;
+                float dist2DSqr = dx * dx + dy * dy;
+
+                int pFovIdx = (aux & AuxPullAIFovMask) >> AuxPullAIFovShift;
+                float pullFovRadius = (float)pFovIdx * 12.5f + 10f;
+                if (dist2DSqr > pullFovRadius * pullFovRadius)
+                {
+                    return original;
+                }
+            }
+
             if (targetCollider == null)
             {
                 return original;
             }
             self.EspLockedAimingCollider = targetCollider;
-                return true;
-            }
-            catch (Exception)
-            {
-                return original;
-            }
+            return true;
         }
+        catch (Exception)
+        {
+            return original;
+        }
+    }
 
-        public static float ScatterRate(PlayerAttributes self)
+    public static float ScatterRate(PlayerAttributes self)
         {
             if (self == null)
             {
