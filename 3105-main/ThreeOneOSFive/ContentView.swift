@@ -1472,9 +1472,10 @@ struct ContentView: View {
                 let pid = p.kp_proc.p_pid
                 if pid <= 1 || pid == getpid() { continue }
                 var comm = p.kp_proc.p_comm
-                let name = withUnsafePointer(to: &comm) {
-                    $0.withMemoryRebound(to: CChar.self, capacity: MemoryLayout.size(ofValue: comm)) {
-                        String(cString: $0)
+                let commCapacity = MemoryLayout.size(ofValue: p.kp_proc.p_comm)
+                let name = withUnsafePointer(to: &comm) { pointer in
+                    pointer.withMemoryRebound(to: CChar.self, capacity: commCapacity) { cStr in
+                        String(cString: cStr)
                     }
                 }
                 let lower = name.lowercased()
