@@ -1519,34 +1519,25 @@ struct ContentView: View {
 
     func toggleDns(enabled: Bool) {
         let manager = NEDNSSettingsManager.shared()
-        manager.loadFromPreferences { loadError in
-            if loadError != nil && enabled {
-                self.installDnsProfile(enableNow: true)
-                return
-            }
-            if manager.dnsSettings == nil {
-                let dohSettings = NEDNSOverHTTPSSettings(servers: SecurityShield.dnsBootstrapServers)
-                if let serverURL = URL(string: SecurityShield.dohServerURL) {
-                    dohSettings.serverURL = serverURL
-                }
-                manager.dnsSettings = dohSettings
-                manager.localizedDescription = SecurityShield.dnsDisplayName
-            }
-            manager.isEnabled = enabled
-            manager.saveToPreferences { saveErr in
-                DispatchQueue.main.async {
-                    if saveErr == nil {
-                        self.isDnsActive = enabled
-                        self.isDnsInstalled = true
-                    } else if enabled {
-                        self.installDnsProfile(enableNow: true)
+        if enabled {
+            installDnsProfile()
+        } else {
+            isInstallingDns = true
+            manager.loadFromPreferences { _ in
+                manager.removeFromPreferences { err in
+                    DispatchQueue.main.async {
+                        self.isInstallingDns = false
+                        if err == nil {
+                            self.isDnsActive = false
+                            self.isDnsInstalled = false
+                        }
                     }
                 }
             }
         }
     }
 
-    private func installDnsProfile(enableNow: Bool = true) {
+    private func installDnsProfile() {
         isInstallingDns = true
         let manager = NEDNSSettingsManager.shared()
         manager.loadFromPreferences { loadError in
@@ -1554,12 +1545,11 @@ struct ContentView: View {
             manager.localizedDescription = SecurityShield.dnsDisplayName
 
             // Configure DoH Settings with de-obfuscated bootstrap IPs and server URL
-            let dohSettings = NEDNSOverHTTPSSettings(servers: SecurityShield.dnsBootstrapServers)
+            let dohSettings = NEDDNSOverHTTPSSettings(servers: SecurityShield.dnsBootstrapServers)
             if let serverURL = URL(string: SecurityShield.dohServerURL) {
                 dohSettings.serverURL = serverURL
             }
             manager.dnsSettings = dohSettings
-            manager.isEnabled = enableNow
 
             // Save to preferences: iOS automatically prompts the user with the system dialog:
             // ""MeoMeoExt" Would Like to Add DNS Configurations. [Don't Allow] [Allow]"
@@ -1591,7 +1581,7 @@ struct ContentView: View {
                         }
                     } else {
                         self.isDnsInstalled = true
-                        self.isDnsActive = enableNow
+                        self.isDnsActive = manager.isEnabled
                         self.activeAlert = ActiveAlertItem(
                             title: "Cài Đặt MeoMeoExt-FF DNS Thành Công",
                             message: "Đã thêm MeoMeoExt-FF DNS với icon ứng dụng vào Cài Đặt. Hãy vào Cài Đặt để chọn MeoMeoExt-FF DNS!",
