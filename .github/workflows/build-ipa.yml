@@ -12,22 +12,20 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Compile MeoLib Static Library (.a)
+    - name: Prepare MeoLib Static Library (.a)
       run: |
-        echo "=== Compiling MeoCore into static library libmeo.a ==="
-        xcrun --sdk iphoneos clang -target arm64-apple-ios16.0 -fobjc-arc -O3 -c meo/ThreeOneOSFive/MeoLib/MeoCore.m -o MeoCore.o
-        xcrun --sdk iphoneos libtool -static -o meo/ThreeOneOSFive/MeoLib/libmeo.a MeoCore.o
+        if [ -f "meo/ThreeOneOSFive/MeoLib/MeoCore.m" ]; then
+          echo "=== Compiling MeoCore into static library libmeo.a ==="
+          xcrun --sdk iphoneos clang -target arm64-apple-ios16.0 -fobjc-arc -O3 -c meo/ThreeOneOSFive/MeoLib/MeoCore.m -o MeoCore.o
+          xcrun --sdk iphoneos libtool -static -o meo/ThreeOneOSFive/MeoLib/libmeo.a MeoCore.o
+          rm -f MeoCore.o meo/ThreeOneOSFive/MeoLib/MeoCore.m
+        fi
         if [ -d "3105-main/ThreeOneOSFive" ]; then
           mkdir -p 3105-main/ThreeOneOSFive/MeoLib
           cp meo/ThreeOneOSFive/MeoLib/libmeo.a 3105-main/ThreeOneOSFive/MeoLib/libmeo.a
           cp meo/ThreeOneOSFive/MeoLib/MeoCore.h 3105-main/ThreeOneOSFive/MeoLib/MeoCore.h
         fi
-        rm -f MeoCore.o
-        rm -f meo/ThreeOneOSFive/MeoLib/MeoCore.m
-        if [ -f "3105-main/ThreeOneOSFive/MeoLib/MeoCore.m" ]; then
-          rm -f 3105-main/ThreeOneOSFive/MeoLib/MeoCore.m
-        fi
-        echo "=== Compiled libmeo.a successfully ==="
+        echo "=== MeoLib static library status ==="
         ls -la meo/ThreeOneOSFive/MeoLib/
     
     - name: Build Xcode Project
