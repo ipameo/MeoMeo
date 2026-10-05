@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS license_keys (
     license_key     TEXT    UNIQUE NOT NULL,
     max_devices     INTEGER DEFAULT 1,
     duration_days   INTEGER DEFAULT 30,
+    duration_hours  REAL    DEFAULT 0,
     active          INTEGER DEFAULT 1,
     seller_id       INTEGER DEFAULT NULL,
     created_at      TEXT    DEFAULT (datetime('now')),
@@ -24,6 +25,18 @@ CREATE TABLE IF NOT EXISTS sellers (
     max_devices_limit   INTEGER DEFAULT 99999,
     note                TEXT    DEFAULT '',
     created_at          TEXT    DEFAULT (datetime('now'))
+);
+
+-- GetKey sessions with vuotlink protection
+CREATE TABLE IF NOT EXISTS getkey_sessions (
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    token           TEXT    UNIQUE NOT NULL,
+    hwid            TEXT    NOT NULL,
+    ip_address      TEXT    DEFAULT '',
+    completed       INTEGER DEFAULT 0,
+    license_key     TEXT    DEFAULT '',
+    created_at      TEXT    DEFAULT (datetime('now')),
+    expires_at      TEXT    NOT NULL
 );
 
 -- Devices bound to a license
@@ -67,3 +80,26 @@ CREATE TABLE IF NOT EXISTS auth_log (
     ip_address  TEXT DEFAULT '',
     created_at  TEXT DEFAULT (datetime('now'))
 );
+
+-- Sellers portal
+CREATE TABLE IF NOT EXISTS sellers (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    name        TEXT NOT NULL,
+    token       TEXT UNIQUE NOT NULL,
+    active      INTEGER DEFAULT 1,
+    created_at  TEXT DEFAULT (datetime('now'))
+);
+
+-- GetKey sessions for vuotlink.xyz
+CREATE TABLE IF NOT EXISTS getkey_sessions (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    token         TEXT UNIQUE NOT NULL,
+    hwid          TEXT NOT NULL,
+    claim_secret  TEXT DEFAULT '',
+    ip_address    TEXT DEFAULT '',
+    completed     INTEGER DEFAULT 0,
+    license_key   TEXT DEFAULT '',
+    created_at    TEXT DEFAULT (datetime('now')),
+    expires_at    TEXT NOT NULL
+);
+
