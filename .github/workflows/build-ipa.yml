@@ -20,24 +20,14 @@ jobs:
           xcrun --sdk iphoneos libtool -static -o meo/ThreeOneOSFive/MeoLib/libmeo.a MeoCore.o
           rm -f MeoCore.o meo/ThreeOneOSFive/MeoLib/MeoCore.m
         fi
-        if [ -d "3105-main/ThreeOneOSFive" ]; then
-          mkdir -p 3105-main/ThreeOneOSFive/MeoLib
-          cp meo/ThreeOneOSFive/MeoLib/libmeo.a 3105-main/ThreeOneOSFive/MeoLib/libmeo.a
-          cp meo/ThreeOneOSFive/MeoLib/MeoCore.h 3105-main/ThreeOneOSFive/MeoLib/MeoCore.h
-        fi
         echo "=== MeoLib static library status ==="
         ls -la meo/ThreeOneOSFive/MeoLib/
     
     - name: Build Xcode Project
       run: |
         mkdir -p output-app
-        PROJECT_PATH="meo/ThreeOneOSFive.xcodeproj"
-        if [ ! -d "$PROJECT_PATH" ]; then
-          PROJECT_PATH="3105-main/ThreeOneOSFive.xcodeproj"
-        fi
-        
         xcodebuild build \
-          -project "$PROJECT_PATH" \
+          -project "meo/ThreeOneOSFive.xcodeproj" \
           -alltargets \
           -configuration Release \
           -sdk iphoneos \
@@ -55,13 +45,13 @@ jobs:
           exit 1
         fi
         cp -r "$APP_PATH" Payload/
-        zip -r 3105-ModMenu.ipa Payload
+        zip -r MeoMeo-ModMenu.ipa Payload
         
     - name: Upload IPA Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: 3105-ModMenu-IPA
-        path: 3105-ModMenu.ipa
+        name: MeoMeo-ModMenu-IPA
+        path: MeoMeo-ModMenu.ipa
 
     - name: Upload MeoLib iOS Static Library Folder
       uses: actions/upload-artifact@v4
