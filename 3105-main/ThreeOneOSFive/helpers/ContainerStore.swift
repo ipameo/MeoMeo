@@ -101,9 +101,16 @@ enum ContainerStore {
             return path
         }
         let detail = lookupError.map(String.init) ?? "unavailable"
-        log("patch: MHA-C2 could not resolve \(bundleID), detail=\(detail)")
+        // Fallback 1: LaunchServices / LSApplicationProxy via installedAppInfo
+        if let info = installedAppInfo()[bundleID],
+           let container = info["container"] as? String,
+           !container.isEmpty,
+           isApplicationContainerPath(container) {
+            log("patch: LaunchServices resolved \(bundleID) -> \(container)")
+            return container
+        }
 
-        // Fallback for iOS builds where MCM refuses to hand out sandbox
+        // Fallback 2 for iOS builds where MCM refuses to hand out sandbox
         // tokens (e.g. iOS 18.1.x): scan the app-data root with the inode
         // walk and read each container's MCM metadata plist directly. The
         // raw reads only succeed when the sandbox escape is active.

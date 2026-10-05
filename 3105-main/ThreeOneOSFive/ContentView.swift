@@ -111,6 +111,8 @@ struct EspConfig: Codable, Equatable {
     var ts: Int = 0
     var system_active: Bool = true
     var reset_guest: Bool = false
+    var resetGuest: Bool = false
+    var resetGuestBeforeLogin: Bool = false
     var server_esp: Bool = true
     var server_aim: Bool = true
     var server_box: Bool = true
@@ -149,6 +151,8 @@ struct EspConfig: Codable, Equatable {
         ts = try c.decodeIfPresent(Int.self, forKey: .ts) ?? 0
         system_active = try c.decodeIfPresent(Bool.self, forKey: .system_active) ?? true
         reset_guest = try c.decodeIfPresent(Bool.self, forKey: .reset_guest) ?? false
+        resetGuest = try c.decodeIfPresent(Bool.self, forKey: .resetGuest) ?? false
+        resetGuestBeforeLogin = try c.decodeIfPresent(Bool.self, forKey: .resetGuestBeforeLogin) ?? false
         server_esp = try c.decodeIfPresent(Bool.self, forKey: .server_esp) ?? true
         server_aim = try c.decodeIfPresent(Bool.self, forKey: .server_aim) ?? true
         server_box = try c.decodeIfPresent(Bool.self, forKey: .server_box) ?? true
@@ -1498,10 +1502,12 @@ struct ContentView: View {
             let targetBundleIDs = ["com.dts.freefireth", "com.dts.freefiremax"]
 
             // 2. RESOLVE CONTAINERS & WIPE ALL OLD GUEST FILES FOR BOTH GAMES
+            var foundAnyContainer = false
             for bundleID in targetBundleIDs {
                 guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: bundleID) else {
                     continue
                 }
+                foundAnyContainer = true
                 let containerURL = URL(fileURLWithPath: containerPath)
 
                 // (A) DOCUMENTS DIRECTORY - Wipe everything except patch!
@@ -1590,20 +1596,23 @@ struct ContentView: View {
                     try? plistData.write(to: targetPlist)
                 }
 
-                // Seed app_device_id.dat in Documents so Garena SDK reads the fresh device id
+                // Seed app_device_id.dat and g_id.dat in Documents so Garena SDK reads the fresh device id
                 if !fm.fileExists(atPath: docsURL.path) {
                     try? fm.createDirectory(at: docsURL, withIntermediateDirectories: true)
                 }
                 let devData = newDeviceID.data(using: .utf8)
                 try? devData?.write(to: docsURL.appendingPathComponent("app_device_id.dat"))
+                try? devData?.write(to: docsURL.appendingPathComponent("g_id.dat"))
 
                 // Seed reset_guest.flag so in-game patch triggers engine-level guest reset before login!
                 let flagData = "1".data(using: .utf8)
                 try? flagData?.write(to: docsURL.appendingPathComponent("reset_guest.flag"))
 
-                // Write localConfig.json with reset_guest: true
+                // Write localConfig.json with reset_guest: true and camelCase resetGuest
                 var resetConfig = self.config
                 resetConfig.reset_guest = true
+                resetConfig.resetGuest = true
+                resetConfig.resetGuestBeforeLogin = true
                 let encoder = JSONEncoder()
                 encoder.outputFormatting = .prettyPrinted
                 if let cfgData = try? encoder.encode(resetConfig) {
@@ -1700,12 +1709,21 @@ struct ContentView: View {
 
             DispatchQueue.main.async {
                 self.isClearingGuest = false
-                self.activeAlert = ActiveAlertItem(
-                    title: "Xoá Khách Thành Công",
-                    message: "Đã xoá sạch toàn bộ tài khoản khách cũ, làm sạch Keychain/AppGroup và tạo mới mã định danh thiết bị cho Free Fire & Free Fire MAX. Khi vào game ấn Khách sẽ là tài khoản mới 100%!",
-                    isDestructive: false,
-                    action: nil
-                )
+                if foundAnyContainer {
+                    self.activeAlert = ActiveAlertItem(
+                        title: "Xoá Khách Thành Công",
+                        message: "Đã xoá sạch toàn bộ dữ liệu khách cũ, làm sạch Keychain và tạo mới mã định danh thiết bị!\n\nBây giờ bạn mở Free Fire và bấm 'Khách' để tạo tài khoản mới 100%. Trên màn hình game cũng có nút [XOÁ GUEST] trực tiếp.",
+                        isDestructive: false,
+                        action: nil
+                    )
+                } else {
+                    self.activeAlert = ActiveAlertItem(
+                        title: "Sẵn Sàng Xoá Khách Trong Game",
+                        message: "Do bảo vệ sandbox của iOS, ứng dụng không thể can thiệp file từ ngoài.\n\n👉 Bạn hãy MỞ FREE FIRE: Trên màn hình đăng nhập game đã có nút đỏ [XOÁ GUEST]. Chỉ cần bấm vào nút đó là acc khách sẽ được xoá ngay lập tức!",
+                        isDestructive: false,
+                        action: nil
+                    )
+                }
             }
         }
     }
