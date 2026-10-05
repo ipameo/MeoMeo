@@ -774,6 +774,46 @@ struct ContentView: View {
                     }
                 }
 
+                // ── TIỆN ÍCH TÀI KHOẢN (RESET GUEST) ────────────────────
+                CardView(title: "TIỆN ÍCH TÀI KHOẢN", icon: "person.crop.circle.badge.exclamationmark") {
+                    VStack(spacing: 12) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "arrow.counterclockwise.circle.fill")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Reset Acc Khách (Guest)")
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                Text("Xoá acc khách bị khoá, đổi Device ID & làm mới MSDK")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(Color(white: 0.45))
+                            }
+                            Spacer()
+                        }
+
+                        Button(action: {
+                            confirmResetGuest()
+                        }) {
+                            HStack {
+                                Image(systemName: "trash.circle.fill")
+                                    .font(.system(size: 15, weight: .bold))
+                                Text("Xoá Acc Khách & Đổi ID Máy")
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 42)
+                            .foregroundColor(.white)
+                            .background(Color(white: 0.15))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(white: 0.30), lineWidth: 1)
+                            )
+                        }
+                    }
+                }
+
                 // ── INJECT / UNINSTALL ─────────────────────────────────
                 if !hasInjected {
                     Button(action: { injectGame() }) {
@@ -1266,6 +1306,109 @@ struct ContentView: View {
     }
 
     // MARK: - GUI Actions (Calling MeoCore in libmeo.a)
+    private func confirmResetGuest() {
+        activeAlert = ActiveAlertItem(
+            title: "Xác Nhận Reset Acc Khách",
+            message: "Hệ thống sẽ xoá token acc khách bị khoá, làm mới Device UUID và đặt cờ reset Garena MSDK. Bạn có muốn tiếp tục?",
+            isDestructive: true,
+            action: {
+                performResetGuest(bundleID: selectedBundleID)
+            }
+        )
+    }
+
+    private func performResetGuest(bundleID: String) {
+        let fm = FileManager.default
+
+        // 1. Clear iOS Keychain items for Garena / Guest
+        let secClasses = [
+            kSecClassGenericPassword,
+            kSecClassInternetPassword
+        ]
+        for secClass in secClasses {
+            let query: [String: Any] = [kSecClass as String: secClass]
+            SecItemDelete(query as CFDictionary)
+        }
+
+        // 2. Locate Free Fire container directories
+        var gameDocDirs: [String] = []
+        let containersBase = ["/private/var/mobile/Containers/Data/Application", "/var/mobile/Containers/Data/Application"]
+        for base in containersBase {
+            guard let dirs = try? fm.contentsOfDirectory(atPath: base) else { continue }
+            for uuid in dirs {
+                let metaPath = (base as NSString).appendingPathComponent("\(uuid)/.com.apple.mobile_container_manager.metadata.plist")
+                if let dict = NSDictionary(contentsOfFile: metaPath),
+                   let id = dict["MCMMetadataIdentifier"] as? String,
+                   id == bundleID || (bundleID.isEmpty && (id == "com.dts.freefireth" || id == "com.dts.freefiremax")) {
+                    let docs = (base as NSString).appendingPathComponent("\(uuid)/Documents")
+                    let libPref = (base as NSString).appendingPathComponent("\(uuid)/Library/Preferences")
+                    gameDocDirs.append(docs)
+                    gameDocDirs.append(libPref)
+                }
+            }
+        }
+
+        if let localDocs = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
+            gameDocDirs.append(localDocs.path)
+        }
+
+        let newUUID = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+
+        for dir in gameDocDirs {
+            guard fm.fileExists(atPath: dir) else { continue }
+
+            let targetFiles = [
+                "app_device_id.dat", "g_id.dat", "app_appdata.dat", "ff_guest_uuid",
+                "com.garena.msdk", "msdk_identity", "guest_account.dat"
+            ]
+            for tf in targetFiles {
+                let p = (dir as NSString).appendingPathComponent(tf)
+                if fm.fileExists(atPath: p) {
+                    try? fm.removeItem(atPath: p)
+                }
+            }
+
+            if let files = try? fm.contentsOfDirectory(atPath: dir) {
+                for file in files {
+                    let fn = file.lowercased()
+                    if fn.contains("guest") || fn.contains("account") || fn.contains("g_id") || fn.contains("garena") || fn.contains("device_id") {
+                        if fn != "assembly-csharp-patch.bytes" && fn != "localconfig.json" {
+                            let p = (dir as NSString).appendingPathComponent(file)
+                            try? fm.removeItem(atPath: p)
+                        }
+                    }
+                }
+            }
+
+            let idPath = (dir as NSString).appendingPathComponent("app_device_id.dat")
+            let gidPath = (dir as NSString).appendingPathComponent("g_id.dat")
+            try? newUUID.write(toFile: idPath, atomically: true, encoding: .utf8)
+            try? newUUID.write(toFile: gidPath, atomically: true, encoding: .utf8)
+
+            let flagPath = (dir as NSString).appendingPathComponent("reset_guest.flag")
+            try? "1".write(toFile: flagPath, atomically: true, encoding: .utf8)
+
+            let cfgPath = (dir as NSString).appendingPathComponent("localConfig.json")
+            if fm.fileExists(atPath: cfgPath),
+               let data = try? Data(contentsOf: URL(fileURLWithPath: cfgPath)),
+               var dict = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] {
+                dict["reset_guest"] = true
+                dict["resetGuest"] = true
+                dict["resetGuestBeforeLogin"] = true
+                if let updated = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
+                    try? updated.write(to: URL(fileURLWithPath: cfgPath), options: .atomic)
+                }
+            }
+        }
+
+        activeAlert = ActiveAlertItem(
+            title: "Reset Guest Hoàn Tất",
+            message: "Đã xoá dữ liệu acc khách cũ, đổi Device ID ngẫu nhiên và đặt cờ reset Garena MSDK. Mở Free Fire và bấm 'Khách' để tạo tài khoản mới!",
+            isDestructive: false,
+            action: nil
+        )
+    }
+
     private func uninstallMod() {
         MeoCore.shared().uninstallModFromGame(withBundleID: selectedBundleID)
         hasInjected = false
