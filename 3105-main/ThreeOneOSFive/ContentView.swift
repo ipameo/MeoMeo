@@ -1,139 +1,34 @@
 import SwiftUI
 import UIKit
 import Foundation
-import CommonCrypto
-import MachO
-import Darwin
-import Security
 import NetworkExtension
 
-// MARK: - Config Model
-struct EspConfig: Codable, Equatable {
-    var meomeo: String = ""
-    var sig: String = ""
-    var token: String = ""
-    var ts: Int = 0
-    var system_active: Bool = true
-    var reset_guest: Bool = false
-    var resetGuest: Bool = false
-    var resetGuestBeforeLogin: Bool = false
-    var server_esp: Bool = true
-    var server_aim: Bool = true
-    var server_box: Bool = true
-    var server_line: Bool = true
-    var server_skeleton: Bool = true
-    var server_name: Bool = true
-    var server_distance: Bool = true
-    var server_health: Bool = true
-    var server_headshot: Bool = true
-    var testCodePatch: Bool = true
-    // ESP
-    var EspMaster: Bool = false
-    var EspBox: Bool = false
-    var EspLine: Bool = false
-    var EspName: Bool = false
-    var EspHealth: Bool = false
-    var EspDistance: Bool = false
-    var EspTracer: Bool = false
-    var EspSkeleton: Bool = false
-    // Aim
-    var AimEnabled: Bool = false       // Silent Aim
-    var AimSystemEnabled: Bool = false // Aim System
-    var EspFov: Bool = false
-    var NoRecoil: Bool = false
-    var AimTarget: Int = 0             // 0=Head, 1=Neck, 2=Body
-    var FovSize: Float = 60.0
-    var HeadshotRate: Float = 60.0
-
-    init() {}
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        meomeo = try c.decodeIfPresent(String.self, forKey: .meomeo) ?? ""
-        sig = try c.decodeIfPresent(String.self, forKey: .sig) ?? ""
-        token = try c.decodeIfPresent(String.self, forKey: .token) ?? ""
-        ts = try c.decodeIfPresent(Int.self, forKey: .ts) ?? 0
-        system_active = try c.decodeIfPresent(Bool.self, forKey: .system_active) ?? true
-        reset_guest = try c.decodeIfPresent(Bool.self, forKey: .reset_guest) ?? false
-        resetGuest = try c.decodeIfPresent(Bool.self, forKey: .resetGuest) ?? false
-        resetGuestBeforeLogin = try c.decodeIfPresent(Bool.self, forKey: .resetGuestBeforeLogin) ?? false
-        server_esp = try c.decodeIfPresent(Bool.self, forKey: .server_esp) ?? true
-        server_aim = try c.decodeIfPresent(Bool.self, forKey: .server_aim) ?? true
-        server_box = try c.decodeIfPresent(Bool.self, forKey: .server_box) ?? true
-        server_line = try c.decodeIfPresent(Bool.self, forKey: .server_line) ?? true
-        server_skeleton = try c.decodeIfPresent(Bool.self, forKey: .server_skeleton) ?? true
-        server_name = try c.decodeIfPresent(Bool.self, forKey: .server_name) ?? true
-        server_distance = try c.decodeIfPresent(Bool.self, forKey: .server_distance) ?? true
-        server_health = try c.decodeIfPresent(Bool.self, forKey: .server_health) ?? true
-        server_headshot = try c.decodeIfPresent(Bool.self, forKey: .server_headshot) ?? true
-        testCodePatch = try c.decodeIfPresent(Bool.self, forKey: .testCodePatch) ?? true
-        EspMaster = try c.decodeIfPresent(Bool.self, forKey: .EspMaster) ?? false
-        EspBox = try c.decodeIfPresent(Bool.self, forKey: .EspBox) ?? false
-        EspLine = try c.decodeIfPresent(Bool.self, forKey: .EspLine) ?? false
-        EspName = try c.decodeIfPresent(Bool.self, forKey: .EspName) ?? false
-        EspHealth = try c.decodeIfPresent(Bool.self, forKey: .EspHealth) ?? false
-        EspDistance = try c.decodeIfPresent(Bool.self, forKey: .EspDistance) ?? false
-        EspTracer = try c.decodeIfPresent(Bool.self, forKey: .EspTracer) ?? false
-        EspSkeleton = try c.decodeIfPresent(Bool.self, forKey: .EspSkeleton) ?? false
-        AimEnabled = try c.decodeIfPresent(Bool.self, forKey: .AimEnabled) ?? false
-        AimSystemEnabled = try c.decodeIfPresent(Bool.self, forKey: .AimSystemEnabled) ?? false
-        EspFov = try c.decodeIfPresent(Bool.self, forKey: .EspFov) ?? false
-        NoRecoil = try c.decodeIfPresent(Bool.self, forKey: .NoRecoil) ?? false
-        AimTarget = try c.decodeIfPresent(Int.self, forKey: .AimTarget) ?? 0
-        FovSize = try c.decodeIfPresent(Float.self, forKey: .FovSize) ?? 60.0
-        HeadshotRate = try c.decodeIfPresent(Float.self, forKey: .HeadshotRate) ?? 60.0
-    }
-}
-
-// MARK: - License Manager (Powered by Encrypted MeoCore .a Static Library)
-class LicenseManager: ObservableObject {
-    static let shared = LicenseManager()
-    private let core = MeoCore.shared()
+// MARK: - MeoUIState (Pure GUI State Adapter - Powered by MeoLib .a Static Library)
+class MeoUIState: ObservableObject {
+    static let shared = MeoUIState()
+    let core = MeoCore.shared()
 
     @Published var isAuthed: Bool = false
     @Published var authError: String? = nil
     @Published var deviceExpires: String = ""
     @Published var systemActive: Bool = true
-    @Published var serverFeatures: [String: Bool] = [:]
 
-    var onLiveStateChanged: ((Bool) -> Void)? {
-        didSet {
-            core.onLiveStateChanged = { [weak self] active in
-                DispatchQueue.main.async {
-                    self?.systemActive = active
-                    self?.isAuthed = active
-                    self?.onLiveStateChanged?(active)
-                }
-            }
-        }
-    }
+    // Visuals & Aim Mod Options (Synchronized with libmeo.a)
+    @Published var espMaster: Bool = false
+    @Published var espBox: Bool = false
+    @Published var espLine: Bool = false
+    @Published var espName: Bool = false
+    @Published var espHealth: Bool = false
+    @Published var espDistance: Bool = false
+    @Published var espSkeleton: Bool = false
 
-    var onTokenRefreshed: (() -> Void)? {
-        didSet {
-            core.onTokenRefreshed = { [weak self] in
-                DispatchQueue.main.async {
-                    guard let self = self else { return }
-                    self.systemActive = self.core.systemActive
-                    self.isAuthed = self.core.isAuthed
-                    self.deviceExpires = self.core.deviceExpires
-                    self.serverFeatures = (self.core.serverFeatures as? [String: Bool]) ?? [:]
-                    self.onTokenRefreshed?()
-                }
-            }
-        }
-    }
-
-    var onLicenseTerminated: ((String) -> Void)? {
-        didSet {
-            core.onLicenseTerminated = { [weak self] reason in
-                DispatchQueue.main.async {
-                    self?.isAuthed = false
-                    self?.systemActive = false
-                    self?.onLicenseTerminated?(reason)
-                }
-            }
-        }
-    }
+    @Published var aimEnabled: Bool = false
+    @Published var aimSystemEnabled: Bool = false
+    @Published var espFov: Bool = false
+    @Published var noRecoil: Bool = false
+    @Published var aimTarget: Int = 0
+    @Published var fovSize: Float = 60.0
+    @Published var headshotRate: Float = 60.0
 
     var storedKey: String {
         get { core.storedKey }
@@ -145,27 +40,18 @@ class LicenseManager: ObservableObject {
     }
 
     init() {
-        self.isAuthed = core.isAuthed
-        self.systemActive = core.systemActive
-        self.deviceExpires = core.deviceExpires
-        self.serverFeatures = (core.serverFeatures as? [String: Bool]) ?? [:]
+        syncFromCore()
 
         core.onLiveStateChanged = { [weak self] active in
             DispatchQueue.main.async {
                 self?.systemActive = active
                 self?.isAuthed = active
-                self?.onLiveStateChanged?(active)
             }
         }
 
         core.onTokenRefreshed = { [weak self] in
             DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.systemActive = self.core.systemActive
-                self.isAuthed = self.core.isAuthed
-                self.deviceExpires = self.core.deviceExpires
-                self.serverFeatures = (self.core.serverFeatures as? [String: Bool]) ?? [:]
-                self.onTokenRefreshed?()
+                self?.syncFromCore()
             }
         }
 
@@ -173,20 +59,63 @@ class LicenseManager: ObservableObject {
             DispatchQueue.main.async {
                 self?.isAuthed = false
                 self?.systemActive = false
-                self?.onLicenseTerminated?(reason)
+                self?.syncFromCore()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    exit(0)
+                }
             }
         }
+    }
+
+    func syncFromCore() {
+        core.loadConfig()
+        isAuthed = core.isAuthed
+        systemActive = core.systemActive
+        deviceExpires = core.deviceExpires
+
+        espMaster = core.espMaster
+        espBox = core.espBox
+        espLine = core.espLine
+        espName = core.espName
+        espHealth = core.espHealth
+        espDistance = core.espDistance
+        espSkeleton = core.espSkeleton
+
+        aimEnabled = core.aimEnabled
+        aimSystemEnabled = core.aimSystemEnabled
+        espFov = core.espFov
+        noRecoil = core.noRecoil
+        aimTarget = core.aimTarget
+        fovSize = core.fovSize
+        headshotRate = core.headshotRate
+    }
+
+    func pushToCore(bundleID: String) {
+        core.espMaster = espMaster
+        core.espBox = espBox
+        core.espLine = espLine
+        core.espName = espName
+        core.espHealth = espHealth
+        core.espDistance = espDistance
+        core.espSkeleton = espSkeleton
+
+        core.aimEnabled = aimEnabled
+        core.aimSystemEnabled = aimSystemEnabled
+        core.espFov = espFov
+        core.noRecoil = noRecoil
+        core.aimTarget = aimTarget
+        core.fovSize = fovSize
+        core.headshotRate = headshotRate
+
+        core.saveAndSyncConfig(forBundleID: bundleID)
     }
 
     func authenticate(key: String, completion: @escaping (Bool, String?) -> Void) {
         core.authenticate(withKey: key) { [weak self] ok, err in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                self.isAuthed = self.core.isAuthed
+                self.syncFromCore()
                 self.authError = err
-                self.systemActive = self.core.systemActive
-                self.deviceExpires = self.core.deviceExpires
-                self.serverFeatures = (self.core.serverFeatures as? [String: Bool]) ?? [:]
                 completion(ok, err)
             }
         }
@@ -194,22 +123,6 @@ class LicenseManager: ObservableObject {
 
     func startHeartbeat() { core.startHeartbeat() }
     func stopHeartbeat() { core.stopHeartbeat() }
-
-    func checkStatus(completion: @escaping (Bool) -> Void) {
-        core.checkStatus { [weak self] ok in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.isAuthed = self.core.isAuthed
-                self.serverFeatures = (self.core.serverFeatures as? [String: Bool]) ?? [:]
-                completion(ok)
-            }
-        }
-    }
-
-    func getMeomeo() -> String { core.getMeomeo() }
-    func getSig() -> String { core.getSig() }
-    func getToken() -> String { core.getToken() }
-    func getTs() -> Int { core.getTs() }
 }
 
 // MARK: - Custom Toggle Style (Black & White Minimalist)
@@ -242,15 +155,14 @@ struct ActiveAlertItem: Identifiable {
     let action: (() -> Void)?
 }
 
-// MARK: - Main View
+// MARK: - Main GUI View
 struct ContentView: View {
     @Environment(\.appLanguage) private var language
     @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
     @EnvironmentObject private var patchStore: PatchProjectStore
     @EnvironmentObject private var repositoryStore: PackageRepositoryStore
-    @ObservedObject private var license = LicenseManager.shared
+    @ObservedObject private var state = MeoUIState.shared
 
-    @State private var config = EspConfig()
     @State private var isInjecting = false
     @State private var hasInjected = false
     @State private var currentTab: String = "Function"   // "Function" | "Profile" | "DnsApp"
@@ -271,7 +183,7 @@ struct ContentView: View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if !license.isAuthed {
+            if !state.isAuthed {
                 // ── MÀN HÌNH NHẬP KEY TRƯỚC (HIDE TOÀN BỘ GUI CHO ĐẾN KHI KEY HỢP LỆ) ──
                 VStack(spacing: 0) {
                     VStack(spacing: 4) {
@@ -320,7 +232,7 @@ struct ContentView: View {
                                         let label = (id == "ff") ? "Free Fire" : "Free Fire MAX"
                                         Button(action: {
                                             gameTab = id
-                                            if hasInjected { syncConfig() }
+                                            if hasInjected { state.pushToCore(bundleID: selectedBundleID) }
                                         }) {
                                             Text(label)
                                                 .font(.system(size: 13, weight: .bold, design: .rounded))
@@ -336,7 +248,7 @@ struct ContentView: View {
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8)
                                         .stroke(Color(white: 0.25), lineWidth: 1)
-                                )
+                                 )
                                 .padding(.horizontal, 16)
                                 .padding(.bottom, 12)
 
@@ -374,45 +286,19 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            loadConfig()
-            licenseKeyInput = license.storedKey
+            state.syncFromCore()
+            licenseKeyInput = state.storedKey
             hasInjected = MeoCore.shared().isModInjected(forBundleID: selectedBundleID)
-            // Setup server listener
-            license.onLiveStateChanged = { active in
-                self.syncConfig()
-            }
-            license.onTokenRefreshed = {
-                self.syncConfig()
-            }
-            license.onLicenseTerminated = { reason in
-                self.config.system_active = false
-                self.config.EspMaster = false
-                self.config.AimEnabled = false
-                self.config.AimSystemEnabled = false
-                self.config.server_esp = false
-                self.config.server_aim = false
-                self.syncConfig()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    exit(0)
-                }
-            }
 
             // Auto-auth if key is stored
-            if !license.storedKey.isEmpty {
+            if !state.storedKey.isEmpty {
                 isAuthenticating = true
-                license.authenticate(key: license.storedKey) { ok, err in
+                state.authenticate(key: state.storedKey) { ok, err in
                     isAuthenticating = false
                     if ok {
-                        syncConfig()
-                        self.license.startHeartbeat()
+                        state.pushToCore(bundleID: selectedBundleID)
+                        self.state.startHeartbeat()
                     } else {
-                        self.config.system_active = false
-                        self.config.EspMaster = false
-                        self.config.AimEnabled = false
-                        self.config.AimSystemEnabled = false
-                        self.config.server_esp = false
-                        self.config.server_aim = false
-                        self.syncConfig()
                         if err == "license_expired" || err == "key_banned" || err == "device_disabled" {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                                 exit(0)
@@ -428,9 +314,6 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .NEDNSSettingsConfigurationDidChange)) { _ in
             checkDnsStatus()
-        }
-        .onChange(of: config) { _ in
-            syncConfig()
         }
     }
 
@@ -467,7 +350,7 @@ struct ContentView: View {
                                 .stroke(Color(white: 0.25), lineWidth: 1)
                         )
 
-                        if let err = license.authError {
+                        if let err = state.authError {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundColor(.red)
@@ -481,11 +364,11 @@ struct ContentView: View {
                             let key = licenseKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !key.isEmpty else { return }
                             isAuthenticating = true
-                            license.authenticate(key: key) { ok, err in
+                            state.authenticate(key: key) { ok, err in
                                 isAuthenticating = false
                                 if ok {
-                                    syncConfig()
-                                    self.license.startHeartbeat()
+                                    state.pushToCore(bundleID: selectedBundleID)
+                                    self.state.startHeartbeat()
                                 }
                             }
                         }) {
@@ -517,14 +400,14 @@ struct ContentView: View {
                             .foregroundColor(Color(white: 0.65))
 
                         HStack {
-                            Text(license.deviceId)
+                            Text(state.deviceId)
                                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                                 .foregroundColor(Color(white: 0.85))
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                             Spacer()
                             Button(action: {
-                                UIPasteboard.general.string = license.deviceId
+                                UIPasteboard.general.string = state.deviceId
                             }) {
                                 Image(systemName: "doc.on.doc")
                                     .foregroundColor(.white)
@@ -612,13 +495,25 @@ struct ContentView: View {
                 // ── SILENT AIM ─────────────────────────────────────────
                 CardView(title: "SILENT AIM", icon: "scope") {
                     VStack(spacing: 14) {
-                        ToggleRow(label: "Silent Aim", icon: "wind", on: $config.AimEnabled)
+                        ToggleRow(label: "Silent Aim", icon: "wind", on: Binding(
+                            get: { state.aimEnabled },
+                            set: { val in state.aimEnabled = val; state.pushToCore(bundleID: selectedBundleID) }
+                        ))
 
-                        if config.AimEnabled {
+                        if state.aimEnabled {
                             Divider().background(Color(white: 0.20))
-                            ToggleRow(label: "Hiện Vòng FOV", icon: "circle.dashed", on: $config.EspFov)
-                            SliderRow(label: "Silent FOV", value: $config.FovSize, range: 1...400, isPercent: false)
-                            SliderRow(label: "Tỉ Lệ Headshot", value: $config.HeadshotRate, range: 0...100, isPercent: true)
+                            ToggleRow(label: "Hiện Vòng FOV", icon: "circle.dashed", on: Binding(
+                                get: { state.espFov },
+                                set: { val in state.espFov = val; state.pushToCore(bundleID: selectedBundleID) }
+                            ))
+                            SliderRow(label: "Silent FOV", value: Binding(
+                                get: { state.fovSize },
+                                set: { val in state.fovSize = val; state.pushToCore(bundleID: selectedBundleID) }
+                            ), range: 1...400, isPercent: false)
+                            SliderRow(label: "Tỉ Lệ Headshot", value: Binding(
+                                get: { state.headshotRate },
+                                set: { val in state.headshotRate = val; state.pushToCore(bundleID: selectedBundleID) }
+                            ), range: 0...100, isPercent: true)
 
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Vị Trí Ngắm (Target Bone)")
@@ -628,13 +523,16 @@ struct ContentView: View {
                                 HStack(spacing: 8) {
                                     ForEach(0..<3, id: \.self) { idx in
                                         let name = idx == 0 ? "Đầu (Head)" : (idx == 1 ? "Cổ (Neck)" : "Người (Body)")
-                                        Button(action: { config.AimTarget = idx }) {
+                                        Button(action: {
+                                            state.aimTarget = idx
+                                            state.pushToCore(bundleID: selectedBundleID)
+                                        }) {
                                             Text(name)
                                                 .font(.system(size: 13, weight: .bold))
-                                                .foregroundColor(config.AimTarget == idx ? Color.black : Color.white)
+                                                .foregroundColor(state.aimTarget == idx ? Color.black : Color.white)
                                                 .frame(maxWidth: .infinity)
                                                 .frame(height: 36)
-                                                .background(config.AimTarget == idx ? Color.white : Color(white: 0.05))
+                                                .background(state.aimTarget == idx ? Color.white : Color(white: 0.05))
                                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 8)
@@ -651,9 +549,12 @@ struct ContentView: View {
                 // ── AIM SYSTEM ─────────────────────────────────────────
                 CardView(title: "AIM SYSTEM", icon: "target") {
                     VStack(spacing: 14) {
-                        ToggleRow(label: "Hệ Thống Aimbot", icon: "flame", on: $config.AimSystemEnabled)
+                        ToggleRow(label: "Hệ Thống Aimbot", icon: "flame", on: Binding(
+                            get: { state.aimSystemEnabled },
+                            set: { val in state.aimSystemEnabled = val; state.pushToCore(bundleID: selectedBundleID) }
+                        ))
 
-                        if config.AimSystemEnabled {
+                        if state.aimSystemEnabled {
                             Divider().background(Color(white: 0.20))
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Vị Trí Ngắm")
@@ -663,13 +564,16 @@ struct ContentView: View {
                                 HStack(spacing: 8) {
                                     ForEach(0..<3, id: \.self) { idx in
                                         let name = idx == 0 ? "Đầu (Head)" : (idx == 1 ? "Cổ (Neck)" : "Người (Body)")
-                                        Button(action: { config.AimTarget = idx }) {
+                                        Button(action: {
+                                            state.aimTarget = idx
+                                            state.pushToCore(bundleID: selectedBundleID)
+                                        }) {
                                             Text(name)
                                                 .font(.system(size: 13, weight: .bold))
-                                                .foregroundColor(config.AimTarget == idx ? Color.black : Color.white)
+                                                .foregroundColor(state.aimTarget == idx ? Color.black : Color.white)
                                                 .frame(maxWidth: .infinity)
                                                 .frame(height: 36)
-                                                .background(config.AimTarget == idx ? Color.white : Color(white: 0.05))
+                                                .background(state.aimTarget == idx ? Color.white : Color(white: 0.05))
                                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 8)
@@ -680,7 +584,10 @@ struct ContentView: View {
                                 }
                             }
 
-                            ToggleRow(label: "Giảm Giật (No Recoil)", icon: "minus.circle", on: $config.NoRecoil)
+                            ToggleRow(label: "Giảm Giật (No Recoil)", icon: "minus.circle", on: Binding(
+                                get: { state.noRecoil },
+                                set: { val in state.noRecoil = val; state.pushToCore(bundleID: selectedBundleID) }
+                            ))
                         }
                     }
                 }
@@ -688,19 +595,40 @@ struct ContentView: View {
                 // ── VISUALS ────────────────────────────────────────────
                 CardView(title: "VISUALS (ESP)", icon: "eye") {
                     VStack(spacing: 14) {
-                        ToggleRow(label: "Bật ESP Tổng", icon: "eye.fill", on: $config.EspMaster)
+                        ToggleRow(label: "Bật ESP Tổng", icon: "eye.fill", on: Binding(
+                            get: { state.espMaster },
+                            set: { val in state.espMaster = val; state.pushToCore(bundleID: selectedBundleID) }
+                        ))
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Khung (Box)", icon: "person.crop.square", on: $config.EspBox)
+                        ToggleRow(label: "Hiện Khung (Box)", icon: "person.crop.square", on: Binding(
+                            get: { state.espBox },
+                            set: { val in state.espBox = val; state.pushToCore(bundleID: selectedBundleID) }
+                        ))
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Dây Kẻ (Line)", icon: "line.diagonal", on: $config.EspLine)
+                        ToggleRow(label: "Hiện Dây Kẻ (Line)", icon: "line.diagonal", on: Binding(
+                            get: { state.espLine },
+                            set: { val in state.espLine = val; state.pushToCore(bundleID: selectedBundleID) }
+                        ))
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Tên (Name)", icon: "textformat", on: $config.EspName)
+                        ToggleRow(label: "Hiện Tên (Name)", icon: "textformat", on: Binding(
+                            get: { state.espName },
+                            set: { val in state.espName = val; state.pushToCore(bundleID: selectedBundleID) }
+                        ))
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Thanh Máu (Health)", icon: "heart.fill", on: $config.EspHealth)
+                        ToggleRow(label: "Hiện Thanh Máu (Health)", icon: "heart.fill", on: Binding(
+                            get: { state.espHealth },
+                            set: { val in state.espHealth = val; state.pushToCore(bundleID: selectedBundleID) }
+                        ))
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Khoảng Cách (Distance)", icon: "ruler", on: $config.EspDistance)
+                        ToggleRow(label: "Hiện Khoảng Cách (Distance)", icon: "ruler", on: Binding(
+                            get: { state.espDistance },
+                            set: { val in state.espDistance = val; state.pushToCore(bundleID: selectedBundleID) }
+                        ))
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Khung Xương (Skeleton)", icon: "figure.walk", on: $config.EspSkeleton)
+                        ToggleRow(label: "Hiện Khung Xương (Skeleton)", icon: "figure.walk", on: Binding(
+                            get: { state.espSkeleton },
+                            set: { val in state.espSkeleton = val; state.pushToCore(bundleID: selectedBundleID) }
+                        ))
                     }
                 }
 
@@ -760,14 +688,14 @@ struct ContentView: View {
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(Color(white: 0.65))
                             HStack {
-                                Text(license.storedKey.isEmpty ? "Chưa kích hoạt" : license.storedKey)
+                                Text(state.storedKey.isEmpty ? "Chưa kích hoạt" : state.storedKey)
                                     .font(.system(size: 13, weight: .bold, design: .monospaced))
                                     .foregroundColor(.white)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.8)
                                 Spacer()
                                 Button(action: {
-                                    UIPasteboard.general.string = license.storedKey
+                                    UIPasteboard.general.string = state.storedKey
                                 }) {
                                     Image(systemName: "doc.on.doc")
                                         .foregroundColor(.white)
@@ -787,14 +715,14 @@ struct ContentView: View {
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(Color(white: 0.65))
                             HStack {
-                                Text(license.deviceId)
+                                Text(state.deviceId)
                                     .font(.system(size: 12, weight: .medium, design: .monospaced))
                                     .foregroundColor(Color(white: 0.85))
                                     .lineLimit(1)
                                     .truncationMode(.middle)
                                 Spacer()
                                 Button(action: {
-                                    UIPasteboard.general.string = license.deviceId
+                                    UIPasteboard.general.string = state.deviceId
                                 }) {
                                     Image(systemName: "doc.on.doc")
                                         .foregroundColor(.white)
@@ -816,7 +744,7 @@ struct ContentView: View {
                             HStack {
                                 Image(systemName: "calendar.badge.clock")
                                     .foregroundColor(.white)
-                                Text(license.deviceExpires.isEmpty ? "Vĩnh viễn / Theo key" : license.deviceExpires)
+                                Text(state.deviceExpires.isEmpty ? "Vĩnh viễn / Theo key" : state.deviceExpires)
                                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
                                     .foregroundColor(.white)
                                 Spacer()
@@ -829,11 +757,11 @@ struct ContentView: View {
                         // Status Row
                         HStack {
                             Circle()
-                                .fill(license.isAuthed ? Color.white : Color.red)
+                                .fill(state.isAuthed ? Color.white : Color.red)
                                 .frame(width: 8, height: 8)
-                            Text(license.isAuthed ? "TRẠNG THÁI: HOẠT ĐỘNG" : "TRẠNG THÁI: HẾT HẠN")
+                            Text(state.isAuthed ? "TRẠNG THÁI: HOẠT ĐỘNG" : "TRẠNG THÁI: HẾT HẠN")
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundColor(license.isAuthed ? .white : .red)
+                                .foregroundColor(state.isAuthed ? .white : .red)
                             Spacer()
                         }
                         .padding(.top, 4)
@@ -913,11 +841,9 @@ struct ContentView: View {
 
                 // Change Key Button
                 Button(action: {
-                    license.storedKey = ""
-                    license.isAuthed = false
-                    license.stopHeartbeat()
-                    config.system_active = false
-                    syncConfig()
+                    state.storedKey = ""
+                    state.isAuthed = false
+                    state.stopHeartbeat()
                     currentTab = "Function"
                 }) {
                     HStack {
@@ -1057,7 +983,6 @@ struct ContentView: View {
 
                         Divider().background(Color(white: 0.20))
 
-                        // Selected reflects the iOS DNS preference...
                         Text("Selected reflects the iOS DNS preference; it does not confirm routing for every connection.")
                             .font(.system(size: 13, weight: .regular))
                             .foregroundColor(Color(white: 0.70))
@@ -1198,72 +1123,19 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Logic
-    private func log(_ msg: String) {
-        let ts = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
-        logs.append("[\(ts)] \(msg)")
-    }
-
-    private func loadConfig() {
-        do {
-            let fm = FileManager.default
-            let docsURL = try fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
-            let configURL = docsURL.appendingPathComponent("localConfig.json")
-            if fm.fileExists(atPath: configURL.path) {
-                let data = try Data(contentsOf: configURL)
-                config = try JSONDecoder().decode(EspConfig.self, from: data)
-            }
-        } catch { }
-    }
-
-    private func saveConfigLocally() -> Data? {
-        do {
-            if !license.getMeomeo().isEmpty { config.meomeo = license.getMeomeo() }
-            if !license.getSig().isEmpty { config.sig = license.getSig() }
-            if !license.getToken().isEmpty { config.token = license.getToken() }
-            if license.getTs() != 0 { config.ts = license.getTs() }
-            config.system_active = license.systemActive
-            config.server_esp = license.serverFeatures["server_esp"] ?? true
-            config.server_aim = license.serverFeatures["server_aim"] ?? true
-            config.server_box = license.serverFeatures["server_box"] ?? true
-            config.server_line = license.serverFeatures["server_line"] ?? true
-            config.server_skeleton = license.serverFeatures["server_skeleton"] ?? true
-            config.server_name = license.serverFeatures["server_name"] ?? true
-            config.server_distance = license.serverFeatures["server_distance"] ?? true
-            config.server_health = license.serverFeatures["server_health"] ?? true
-            config.server_headshot = license.serverFeatures["server_headshot"] ?? true
-
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = .prettyPrinted
-            let data = try encoder.encode(config)
-            let fm = FileManager.default
-            let docsURL = try fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
-            try data.write(to: docsURL.appendingPathComponent("localConfig.json"))
-            return data
-        } catch { return nil }
-    }
-
-    private func syncConfig() {
-        guard let jsonData = saveConfigLocally() else { return }
-        if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) {
-            let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
-            let configURL = docsURL.appendingPathComponent("localConfig.json")
-            try? jsonData.write(to: configURL)
-        }
-    }
-
+    // MARK: - GUI Actions (Calling MeoCore in libmeo.a)
     private func uninstallMod() {
         MeoCore.shared().uninstallModFromGame(withBundleID: selectedBundleID)
         hasInjected = false
-        license.stopHeartbeat()
+        state.stopHeartbeat()
     }
 
     private func injectGame() {
         if MeoCore.isDebuggerAttached() { return }
-        guard license.isAuthed else { return }
-        guard let jsonData = saveConfigLocally() else { return }
+        guard state.isAuthed else { return }
+        state.pushToCore(bundleID: selectedBundleID)
         isInjecting = true
-        MeoCore.shared().injectToGame(withBundleID: selectedBundleID, configData: jsonData) { success, error in
+        MeoCore.shared().injectToGame(withBundleID: selectedBundleID) { success, error in
             DispatchQueue.main.async {
                 self.isInjecting = false
                 if success {
@@ -1385,7 +1257,7 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Reusable Components (Đen Trắng)
+// MARK: - Reusable UI Components (Đen Trắng)
 struct CardView<Content: View>: View {
     var title: String
     var icon: String

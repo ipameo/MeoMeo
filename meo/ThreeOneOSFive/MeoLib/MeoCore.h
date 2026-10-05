@@ -1,6 +1,6 @@
 //
 //  MeoCore.h
-//  MeoMeo Core Security & License Engine
+//  MeoMeo Core Security & License Engine (iOS Static Library)
 //
 
 #import <Foundation/Foundation.h>
@@ -16,6 +16,7 @@ typedef void (^MeoTerminatedCallback)(NSString *reason);
 
 @interface MeoCore : NSObject
 
+// License & Authentication Status
 @property (nonatomic, readonly) BOOL isAuthed;
 @property (nonatomic, copy, readonly, nullable) NSString *authError;
 @property (nonatomic, copy, readonly) NSString *deviceId;
@@ -24,10 +25,28 @@ typedef void (^MeoTerminatedCallback)(NSString *reason);
 @property (nonatomic, readonly) BOOL systemActive;
 @property (nonatomic, copy, readonly) NSDictionary<NSString *, NSNumber *> *serverFeatures;
 
-// Callbacks
+// Callbacks from License Engine
 @property (nonatomic, copy, nullable) MeoLiveStateCallback onLiveStateChanged;
 @property (nonatomic, copy, nullable) MeoTokenRefreshCallback onTokenRefreshed;
 @property (nonatomic, copy, nullable) MeoTerminatedCallback onLicenseTerminated;
+
+// Mod Settings (Config State managed inside libmeo.a)
+@property (nonatomic, assign) BOOL espMaster;
+@property (nonatomic, assign) BOOL espBox;
+@property (nonatomic, assign) BOOL espLine;
+@property (nonatomic, assign) BOOL espName;
+@property (nonatomic, assign) BOOL espHealth;
+@property (nonatomic, assign) BOOL espDistance;
+@property (nonatomic, assign) BOOL espTracer;
+@property (nonatomic, assign) BOOL espSkeleton;
+
+@property (nonatomic, assign) BOOL aimEnabled;
+@property (nonatomic, assign) BOOL aimSystemEnabled;
+@property (nonatomic, assign) BOOL espFov;
+@property (nonatomic, assign) BOOL noRecoil;
+@property (nonatomic, assign) NSInteger aimTarget;
+@property (nonatomic, assign) float fovSize;
+@property (nonatomic, assign) float headshotRate;
 
 + (instancetype)shared;
 
@@ -37,25 +56,17 @@ typedef void (^MeoTerminatedCallback)(NSString *reason);
 
 // Authentication
 - (void)authenticateWithKey:(NSString *)key completion:(MeoAuthCompletion)completion;
-
-// Heartbeat
 - (void)startHeartbeat;
 - (void)stopHeartbeat;
-
-// Status check
 - (void)checkStatusWithCompletion:(MeoStatusCompletion)completion;
 
-// Token getters for configuration
-- (NSString *)getMeomeo;
-- (NSString *)getSig;
-- (NSString *)getToken;
-- (NSInteger)getTs;
+// Config Management (Automatic serialization & sync to game container)
+- (void)loadConfig;
+- (void)saveAndSyncConfigForBundleID:(NSString *)bundleID;
+- (void)resetAllFeatures;
 
-// Patch bytes & Game Injection
-- (void)injectToGameWithBundleID:(NSString *)bundleID
-                      configData:(NSData *)configData
-                      completion:(MeoInjectCompletion)completion;
-
+// Game Patch & Injection
+- (void)injectToGameWithBundleID:(NSString *)bundleID completion:(MeoInjectCompletion)completion;
 - (void)uninstallModFromGameWithBundleID:(NSString *)bundleID;
 - (BOOL)isModInjectedForBundleID:(NSString *)bundleID;
 

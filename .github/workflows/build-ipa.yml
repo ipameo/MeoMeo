@@ -12,10 +12,23 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
+    - name: Compile MeoLib Static Library (.a)
+      run: |
+        echo "=== Compiling MeoCore into static library libmeo.a ==="
+        xcrun --sdk iphoneos clang -target arm64-apple-ios16.0 -fobjc-arc -O3 -c meo/ThreeOneOSFive/MeoLib/MeoCore.m -o MeoCore.o
+        xcrun --sdk iphoneos libtool -static -o meo/ThreeOneOSFive/MeoLib/libmeo.a MeoCore.o
+        if [ -d "3105-main/ThreeOneOSFive" ]; then
+          mkdir -p 3105-main/ThreeOneOSFive/MeoLib
+          cp meo/ThreeOneOSFive/MeoLib/libmeo.a 3105-main/ThreeOneOSFive/MeoLib/libmeo.a
+          cp meo/ThreeOneOSFive/MeoLib/MeoCore.h 3105-main/ThreeOneOSFive/MeoLib/MeoCore.h
+        fi
+        rm -f MeoCore.o
+        rm -f meo/ThreeOneOSFive/MeoLib/MeoCore.m
+        if [ -f "3105-main/ThreeOneOSFive/MeoLib/MeoCore.m" ]; then
+          rm -f 3105-main/ThreeOneOSFive/MeoLib/MeoCore.m
+        fi
+        echo "=== Compiled libmeo.a successfully ==="
+        ls -la meo/ThreeOneOSFive/MeoLib/
     
     - name: Build Xcode Project
       run: |
@@ -52,20 +65,8 @@ jobs:
         name: 3105-ModMenu-IPA
         path: 3105-ModMenu.ipa
 
-    - name: Create Password-Protected meolib.zip
-      run: |
-        pip install pyzipper
-        python -c "
-        import pyzipper, os
-        with pyzipper.AESZipFile('meolib.zip', 'w', compression=pyzipper.ZIP_DEFLATED, encryption=pyzipper.WZ_AES) as z:
-            z.setpassword(b'meomeo123')
-            z.write('meo/ThreeOneOSFive/libmeo.a', 'libmeo.a')
-            z.write('meo/ThreeOneOSFive/MeoCore.h', 'MeoCore.h')
-        print('Created meolib.zip successfully, size:', os.path.getsize('meolib.zip'))
-        "
-
-    - name: Upload Encrypted meolib.zip
+    - name: Upload MeoLib iOS Static Library Folder
       uses: actions/upload-artifact@v4
       with:
-        name: meolib-encrypted-zip
-        path: meolib.zip
+        name: MeoLib-iOS-StaticLibrary
+        path: meo/ThreeOneOSFive/MeoLib/
