@@ -304,8 +304,6 @@ struct ContentView: View {
 
                                 functionView
                             }
-                        } else if currentTab == "Profile" {
-                            profileView
                         } else {
                             dnsAppView
                         }
@@ -1172,7 +1170,6 @@ struct ContentView: View {
     private var bottomTabBar: some View {
         HStack(spacing: 0) {
             bottomTabItem(title: "Function", icon: "slider.horizontal.3", tab: "Function")
-            bottomTabItem(title: "Profile", icon: "person.crop.circle.fill", tab: "Profile")
             bottomTabItem(title: "DnsApp", icon: "pawprint.fill", tab: "DnsApp")
         }
         .padding(.top, 10)
