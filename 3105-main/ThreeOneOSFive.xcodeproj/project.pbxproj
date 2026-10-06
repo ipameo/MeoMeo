@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		3105M200 = {isa = PBXBuildFile; fileRef = 3105M100; };
 		'3105A200' = {isa = PBXBuildFile; fileRef = 3105A020; };
 		'3105A201' = {isa = PBXBuildFile; fileRef = 3105A021; };
 		'3105A203' = {isa = PBXBuildFile; fileRef = 3105A023; };
@@ -79,6 +80,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		3105M100 = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MeoCore.m; sourceTree = "<group>"; };
+		3105M101 = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = MeoCore.h; sourceTree = "<group>"; };
 		'3105A010' = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = 3105.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		'3105A020' = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App.swift; sourceTree = "<group>"; };
 		'3105A021' = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -179,6 +182,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		3105M400 = {
+			isa = PBXGroup;
+			children = (
+				3105M101,
+				3105M100,
+			);
+			path = MeoLib;
+			sourceTree = "<group>";
+		};
 		'3105A400' = {
 			isa = PBXGroup;
 			children = (
@@ -195,6 +207,7 @@
 				3105A060,
 				3105A020,
 				3105A021,
+				3105M400,
 				3105A403,
 				3105A404,
 				3105A405,
@@ -452,6 +465,7 @@
 				3105L203,
 				3105L204,
 				3105L205,
+				3105M200,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -505,7 +519,7 @@
 					"$(PROJECT_DIR)/ThreeOneOSFive/MeoLib",
 				);
 				MARKETING_VERSION = 2.0;
-				OTHER_LDFLAGS = "-lz -lsqlite3 -framework NetworkExtension -L$(PROJECT_DIR)/ThreeOneOSFive/MeoLib -L$(PROJECT_DIR)/ThreeOneOSFive -lmeo";
+				OTHER_LDFLAGS = "-lz -lsqlite3 -framework NetworkExtension";
 				PRODUCT_BUNDLE_IDENTIFIER = com.apple.mobile.MobileHouseArrest;
 				PRODUCT_NAME = 3105;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -549,7 +563,7 @@
 					"$(PROJECT_DIR)/ThreeOneOSFive/MeoLib",
 				);
 				MARKETING_VERSION = 2.0;
-				OTHER_LDFLAGS = "-lz -lsqlite3 -framework NetworkExtension -L$(PROJECT_DIR)/ThreeOneOSFive/MeoLib -L$(PROJECT_DIR)/ThreeOneOSFive -lmeo";
+				OTHER_LDFLAGS = "-lz -lsqlite3 -framework NetworkExtension";
 				PRODUCT_BUNDLE_IDENTIFIER = com.apple.mobile.MobileHouseArrest;
 				PRODUCT_NAME = 3105;
 				SWIFT_EMIT_LOC_STRINGS = YES;
