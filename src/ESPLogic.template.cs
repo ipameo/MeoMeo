@@ -1269,7 +1269,14 @@ namespace ProjectEspPatch
                             Vector3 pullOriginalPos = new Vector3(pullOx, pullOy, pullOz);
                             bool pullWasActive = PlayerPrefs.GetInt("pullWasActive", 0) != 0;
 
-                            if (bestTarget != null)
+                            bool isFiring = false;
+                            System.Reflection.FieldInfo isFiringField = typeof(Player).GetField("IsFiring");
+                            if (isFiringField != null)
+                            {
+                                isFiring = (bool)isFiringField.GetValue(localPlayer);
+                            }
+                            
+                            if (bestTarget != null && isFiring)
                             {
                                 int entityId = bestTarget.GetHashCode();
                                 Transform rootTF = bestTarget.RootTransform;
