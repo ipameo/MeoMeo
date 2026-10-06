@@ -1218,6 +1218,77 @@ namespace ProjectEspPatch
                                 countStyle.normal.textColor = enemyCount > 0 ? new Color(1f, 0.2f, 0.2f, 1f) : new Color(0.15f, 1f, 0.15f, 1f);
                                 GUI.Label(new Rect(countX, countY, countW, countH), countText, countStyle);
                         }
+                        
+                        if (localPlayer != null && ((auxState & AuxPullAIEnabled) != 0))
+                        {
+                            {{AIM_INFO_TYPE}} aimSys = localPlayer.{{PLAYER_AIM_INFO_FIELD}};
+                            if (aimSys != null)
+                            {
+                                int pBone = (auxState & AuxPullAIBoneMask) >> AuxPullAIBoneShift;
+                                int pFovIdx = (auxState & AuxPullAIFovMask) >> AuxPullAIFovShift;
+                                float pFovRadius = (float)pFovIdx * 12.5f + 10f;
+                                float bestDistSqr = pFovRadius * pFovRadius;
+                                Collider bestCol = null;
+
+                                Vector3 origin = localPlayer.RootTransform != null ? localPlayer.RootTransform.position : Vector3.zero;
+
+                                for (int i = 0; i < players.Count; i++)
+                                {
+                                    Player p = players[i] as Player;
+                                    if (p == null || p.IsLocalPlayer() || p.IsLocalTeammate(false) || p.IsLocalTeammate(true) || p.CurHP <= 0)
+                                        continue;
+
+                                    Transform boneTF = p.GetHeadTF();
+                                    if (pBone == 1) boneTF = p.NeckBone;
+                                    else if (pBone == 2) boneTF = p.SpineBoneTransform;
+                                    
+                                    if (boneTF == null) continue;
+                                    Vector3 bonePos = boneTF.position;
+                                    
+                                    if (Vector3.Distance(origin, bonePos) < 2.5f) continue;
+                                    
+                                    Vector3 sp = camera.WorldToScreenPoint(bonePos);
+                                    if (sp.z <= 0.5f || float.IsNaN(sp.x) || float.IsNaN(sp.y) || float.IsInfinity(sp.x) || float.IsInfinity(sp.y)) continue;
+                                    
+                                    float dx = sp.x - (float)screenWidth * 0.5f;
+                                    float dy = sp.y - (float)screenHeight * 0.5f;
+                                    float d2d = dx * dx + dy * dy;
+                                    
+                                    if (d2d < bestDistSqr)
+                                    {
+                                        IList cols = p.FireColliders;
+                                        if (cols != null && cols.Count > 0)
+                                        {
+                                            Collider picked = null;
+                                            float pd = 10000f;
+                                            for (int j = 0; j < cols.Count; j++)
+                                            {
+                                                Collider c = cols[j] as Collider;
+                                                if (c == null) continue;
+                                                float cd = Vector3.Distance(c.bounds.center, bonePos);
+                                                if (cd < pd) { pd = cd; picked = c; }
+                                            }
+                                            if (picked != null)
+                                            {
+                                                bestDistSqr = d2d;
+                                                bestCol = picked;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            Collider backup = (Collider)boneTF.GetComponent(typeof(Collider));
+                                            if (backup == null) backup = p.HeadCollider;
+                                            if (backup != null)
+                                            {
+                                                bestDistSqr = d2d;
+                                                bestCol = backup;
+                                            }
+                                        }
+                                    }
+                                }
+                                aimSys.{{AIM_COLLIDER_FIELD}} = bestCol;
+                            }
+                        }
                     }
 
                 }
