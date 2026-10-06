@@ -736,36 +736,6 @@ namespace ProjectEspPatch
                         GUI.matrix = Matrix4x4.identity;
                     }
 
-                    if ((auxState & AuxPullAIEnabled) != 0)
-                    {
-                        int pFovIdx = (auxState & AuxPullAIFovMask) >> AuxPullAIFovShift;
-                        float pullRadius = (float)pFovIdx * 12.5f + 10f;
-                        GUI.color = new Color(0.2f, 0.85f, 1f, 0.8f);
-                        float circleX = (float)screenWidth * 0.5f;
-                        float circleY = (float)screenHeight * 0.5f;
-                        int fovSegments = isIOS ? 24 : 64;
-                        float fovStep = 6.2831853f / (float)fovSegments;
-                        for (int segment = 0; segment < fovSegments; segment++)
-                        {
-                            float angle0 = (float)segment * fovStep;
-                            float angle1 = (float)(segment + 1) * fovStep;
-                            float x0 = circleX + Mathf.Cos(angle0) * pullRadius;
-                            float y0 = circleY + Mathf.Sin(angle0) * pullRadius;
-                            float x1 = circleX + Mathf.Cos(angle1) * pullRadius;
-                            float y1 = circleY + Mathf.Sin(angle1) * pullRadius;
-                            float dx = x1 - x0;
-                            float dy = y1 - y0;
-                            float length = Mathf.Sqrt(dx * dx + dy * dy);
-                            float angle = Mathf.Atan2(dy, dx) * 57.29578f;
-                            GUI.matrix = Matrix4x4.TRS(
-                                        new Vector3(x0, y0, 0f),
-                                        Quaternion.Euler(0f, 0f, angle),
-                                        Vector3.one);
-                            GUI.DrawTexture(new Rect(0f, -0.75f, length, 1.5f), pixel);
-                        }
-                        GUI.matrix = Matrix4x4.identity;
-                    }
-
                     if ((mask & EspMaster) != 0 || (state & AimEnabled) != 0 || (state & AimSystemEnabled) != 0)
                     {
                         {{MATCH_TYPE}} match = GameFacade.CurrentMatch();
