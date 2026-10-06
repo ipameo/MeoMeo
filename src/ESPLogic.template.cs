@@ -51,6 +51,9 @@ namespace ProjectEspPatch
             | (3 << HeadRateShift);
         // Deprecated speed type binding: {{SPEED_TYPE}}
 
+        private static GameObject _lastSilentAimTarget = null;
+        private static float _lastSilentAimTime = 0f;
+
         // ── API Server Endpoints & Licensing ──────────────────────────────────
         public const string ApiServerUrl = "http://103.238.234.204:2007";
         public const string ApiHeartbeatUrl = "http://103.238.234.204:2007/api/heartbeat";
@@ -1197,7 +1200,6 @@ namespace ProjectEspPatch
             int targetBone = (state & AimModeMask) >> AimModeShift;
             int aux = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.y;
             int headRate = (aux >> 8) & 0xFF;
-            bool aimAtHead = (targetBone == 0) && (UnityEngine.Random.Range(0, 100) < headRate);
             bool aimAtNeck = (targetBone == 1);
             Vector3 aimStart = self.AimStartPostion;
             int fovIdx = (aux & AuxFovRadiusMask) >> AuxFovRadiusShift;
@@ -1206,6 +1208,12 @@ namespace ProjectEspPatch
             float bestScore = fovSqr;
             Collider bestCollider = null;
             Vector3 bestPosition = Vector3.zero;
+            GameObject bestGameObject = null;
+
+            if (UnityEngine.Time.realtimeSinceStartup - _lastSilentAimTime > 1.5f)
+            {
+                _lastSilentAimTarget = null;
+            }
 
             for (int index = 0; index < players.Count; index++)
             {
@@ -1218,6 +1226,13 @@ namespace ProjectEspPatch
                     || candidate.IsLocalTeammate(true))
                 {
                     continue;
+                }
+
+                bool aimAtHead = false;
+                if (targetBone == 0)
+                {
+                    int seeded = Mathf.Abs(candidateObject.GetInstanceID()) % 100;
+                    aimAtHead = seeded < headRate;
                 }
 
                 Transform root = candidate.RootTransform;
@@ -1285,6 +1300,12 @@ namespace ProjectEspPatch
                 float dx = screen.x - (float)Screen.width * 0.5f;
                 float dy = screen.y - (float)Screen.height * 0.5f;
                 float score = dx * dx + dy * dy;
+
+                if (_lastSilentAimTarget != null && candidateObject == _lastSilentAimTarget)
+                {
+                    score -= 999999f;
+                }
+
                 if (float.IsNaN(score) || float.IsInfinity(score)
                     || score >= bestScore)
                 {
@@ -1294,10 +1315,14 @@ namespace ProjectEspPatch
                 bestScore = score;
                 bestCollider = hitCollider;
                 bestPosition = hitPosition;
+                bestGameObject = candidateObject;
             }
 
             if (bestCollider != null)
             {
+                _lastSilentAimTarget = bestGameObject;
+                _lastSilentAimTime = UnityEngine.Time.realtimeSinceStartup;
+
                 Vector3 rayDirection = Vector3.Normalize(bestPosition - aimStart);
                 info.{{AIM_GAME_OBJECT_FIELD}} = bestCollider.gameObject;
                 info.{{AIM_COLLIDER_FIELD}} = bestCollider;
@@ -1352,7 +1377,12 @@ namespace ProjectEspPatch
             int targetBone = (state & AimModeMask) >> AimModeShift;
 
             int headRate = (aux >> 8) & 0x7F;
-            bool aimAtHead = (targetBone == 0) && (UnityEngine.Random.Range(0, 100) < headRate);
+            bool aimAtHead = false;
+            if (targetBone == 0 && self.gameObject != null)
+            {
+                int seeded = Mathf.Abs(self.gameObject.GetInstanceID()) % 100;
+                aimAtHead = seeded < headRate;
+            }
             bool aimAtNeck = (targetBone == 1);
 
             Vector3 targetPos = Vector3.zero;
