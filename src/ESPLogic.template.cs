@@ -62,8 +62,6 @@ namespace ProjectEspPatch
         public const string ApiStatusUrl = "http://103.238.234.204:2007/api/status";
         public const string ApiAuthUrl = "http://103.238.234.204:2007/api/auth";
 
-
-
         public static bool Bootstrap(Player self)
         {
             if (self == null)
@@ -765,7 +763,7 @@ namespace ProjectEspPatch
                                     continue;
                                 }
                                 Transform root = player.RootTransform;
-                                if (root == null || player.IsLocalPlayer()
+                                if (root == null || root.position == Vector3.zero || player.IsLocalPlayer()
                                     || player.IsLocalTeammate(false) || player.IsLocalTeammate(true))
                                 {
                                     continue;
@@ -1203,32 +1201,39 @@ namespace ProjectEspPatch
 
                             for (int i = 0; i < players.Count; i++)
                             {
-                                Player p = players[i] as Player;
-                                if (p == null || p.IsLocalPlayer() || p.IsLocalTeammate(false) || p.IsLocalTeammate(true) || p.CurHP <= 0)
-                                    continue;
-
-                                Transform boneTF = p.GetHeadTF();
-                                if (pBone == 1) boneTF = p.NeckBone;
-                                else if (pBone == 2) boneTF = p.SpineBoneTransform;
-                                
-                                if (boneTF == null) continue;
-                                Vector3 bonePos = boneTF.position;
-                                
-                                if (Vector3.Distance(origin, bonePos) < 2.5f) continue;
-                                
-                                Vector3 sp = camera.WorldToScreenPoint(bonePos);
-                                if (sp.z <= 0.5f || float.IsNaN(sp.x) || float.IsNaN(sp.y) || float.IsInfinity(sp.x) || float.IsInfinity(sp.y)) continue;
-                                
-                                float dx = sp.x - (float)screenWidth * 0.5f;
-                                float dy = sp.y - (float)screenHeight * 0.5f;
-                                float d2d = dx * dx + dy * dy;
-                                
-                                if (d2d < bestDistSqr)
+                                try
                                 {
-                                    bestDistSqr = d2d;
-                                    bestTarget = p;
-                                    bestHeadPos = bonePos;
+                                    Player p = players[i] as Player;
+                                    if (p == null) continue;
+                                    GameObject po = p.gameObject;
+                                    if (po == null || !po.activeInHierarchy) continue;
+                                    if (p.RootTransform == null || p.RootTransform.position == Vector3.zero) continue;
+                                    if (p.IsLocalPlayer() || p.IsLocalTeammate(false) || p.IsLocalTeammate(true) || p.CurHP <= 0) continue;
+
+                                    Transform boneTF = p.GetHeadTF();
+                                    if (pBone == 1) boneTF = p.NeckBone;
+                                    else if (pBone == 2) boneTF = p.SpineBoneTransform;
+                                    
+                                    if (boneTF == null) continue;
+                                    Vector3 bonePos = boneTF.position;
+                                    
+                                    if (Vector3.Distance(origin, bonePos) < 2.5f) continue;
+                                    
+                                    Vector3 sp = camera.WorldToScreenPoint(bonePos);
+                                    if (sp.z <= 0.5f || float.IsNaN(sp.x) || float.IsNaN(sp.y) || float.IsInfinity(sp.x) || float.IsInfinity(sp.y)) continue;
+                                    
+                                    float dx = sp.x - (float)screenWidth * 0.5f;
+                                    float dy = sp.y - (float)screenHeight * 0.5f;
+                                    float d2d = dx * dx + dy * dy;
+                                    
+                                    if (d2d < bestDistSqr)
+                                    {
+                                        bestDistSqr = d2d;
+                                        bestTarget = p;
+                                        bestHeadPos = bonePos;
+                                    }
                                 }
+                                catch (Exception) { }
                             }
                             
                             int pullCurrentTargetId = PlayerPrefs.GetInt("pullCurrentTargetId", 0);
@@ -1257,12 +1262,14 @@ namespace ProjectEspPatch
                                         {
                                             for (int i = 0; i < players.Count; i++)
                                             {
-                                                Player op = players[i] as Player;
-                                                if (op != null && op.GetHashCode() == pullCurrentTargetId && op.RootTransform != null)
-                                                {
-                                                    op.RootTransform.position = pullOriginalPos;
-                                                    break;
-                                                }
+                                                try {
+                                                    Player op = players[i] as Player;
+                                                    if (op != null && op.GetHashCode() == pullCurrentTargetId && op.RootTransform != null && op.RootTransform.position != Vector3.zero)
+                                                    {
+                                                        op.RootTransform.position = pullOriginalPos;
+                                                        break;
+                                                    }
+                                                } catch (Exception) { }
                                             }
                                         }
                                         pullOriginalPos = rootTF.position;
@@ -1285,12 +1292,14 @@ namespace ProjectEspPatch
                             {
                                 for (int i = 0; i < players.Count; i++)
                                 {
-                                    Player p = players[i] as Player;
-                                    if (p != null && p.GetHashCode() == pullCurrentTargetId && p.RootTransform != null)
-                                    {
-                                        p.RootTransform.position = pullOriginalPos;
-                                        break;
-                                    }
+                                    try {
+                                        Player p = players[i] as Player;
+                                        if (p != null && p.GetHashCode() == pullCurrentTargetId && p.RootTransform != null && p.RootTransform.position != Vector3.zero)
+                                        {
+                                            p.RootTransform.position = pullOriginalPos;
+                                            break;
+                                        }
+                                    } catch (Exception) { }
                                 }
                                 pullCurrentTargetId = 0;
                                 pullWasActive = false;
@@ -1315,12 +1324,14 @@ namespace ProjectEspPatch
 
                                 for (int i = 0; i < players.Count; i++)
                                 {
-                                    Player p = players[i] as Player;
-                                    if (p != null && p.GetHashCode() == pullCurrentTargetId && p.RootTransform != null)
-                                    {
-                                        p.RootTransform.position = pullOriginalPos;
-                                        break;
-                                    }
+                                    try {
+                                        Player p = players[i] as Player;
+                                        if (p != null && p.GetHashCode() == pullCurrentTargetId && p.RootTransform != null && p.RootTransform.position != Vector3.zero)
+                                        {
+                                            p.RootTransform.position = pullOriginalPos;
+                                            break;
+                                        }
+                                    } catch (Exception) { }
                                 }
                                 PlayerPrefs.SetInt("pullCurrentTargetId", 0);
                                 PlayerPrefs.SetInt("pullWasActive", 0);
