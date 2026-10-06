@@ -582,27 +582,26 @@ namespace ProjectEspPatch
                             }
                             Time.timeScale = speedLevel;
 
+                            // Apply BuffDame
+                            bool buffDame = json.Contains("\"BuffDame\":true");
                             try
                             {
-                                // Apply BuffDame & FastFireRatio to PlayerPrefs for hooks
-                                bool buffDame = json.Contains("\"BuffDame\":true");
-                                PlayerPrefs.SetInt("ESP_BuffDame", buffDame ? 1 : 0);
-
-                                float fastFireRatio = 1.0f;
-                                int ffIdx = json.IndexOf("\"FastFireRatio\":");
-                                if (ffIdx != -1)
+                                Type gameVarDefType = Type.GetType("COW.GameVarDef, Assembly-CSharp");
+                                if (gameVarDefType != null)
                                 {
-                                    int ffStart = ffIdx + 16;
-                                    int ffEnd = json.IndexOf(',', ffStart);
-                                    if (ffEnd == -1) ffEnd = json.IndexOf('}', ffStart);
-                                    if (ffEnd != -1)
+                                    FieldInfo headFi = gameVarDefType.GetField("HitDamageRatioHead", BindingFlags.Public | BindingFlags.Static);
+                                    FieldInfo bodyFi = gameVarDefType.GetField("HitDamageRatioBody", BindingFlags.Public | BindingFlags.Static);
+                                    if (buffDame)
                                     {
-                                        string ffStr = json.Substring(ffStart, ffEnd - ffStart).Trim();
-                                        float.TryParse(ffStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out fastFireRatio);
+                                        if (headFi != null) headFi.SetValue(null, 150.0f);
+                                        if (bodyFi != null) bodyFi.SetValue(null, 50.0f);
+                                    }
+                                    else
+                                    {
+                                        if (headFi != null) headFi.SetValue(null, 5.5f); // default FF headshot multiplier
+                                        if (bodyFi != null) bodyFi.SetValue(null, 1.0f);
                                     }
                                 }
-                                PlayerPrefs.SetFloat("ESP_FastFireRatio", fastFireRatio);
-                                PlayerPrefs.Save();
                             }
                             catch { }
                         }
@@ -1785,45 +1784,5 @@ namespace ProjectEspPatch
         }
 
 
-        // Damage Hook
-        public static int DamageHook(object self)
-        {
-            try
-            {
-                FieldInfo dmgField = self.GetType().GetField("<Damage>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-                if (dmgField != null)
-                {
-                    int originalDamage = (int)dmgField.GetValue(self);
-                    if (PlayerPrefs.GetInt("ESP_BuffDame", 0) == 1)
-                    {
-                        return originalDamage * 10;
-                    }
-                    return originalDamage;
-                }
-            }
-            catch { }
-            return 30; // fallback
-        }
-
-        // Fire Interval Hook
-        public static float FireIntervalHook(object self)
-        {
-            try
-            {
-                FieldInfo fiField = self.GetType().GetField("<FireInterval>k__BackingField", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-                if (fiField != null)
-                {
-                    float originalInterval = (float)fiField.GetValue(self);
-                    float ratio = PlayerPrefs.GetFloat("ESP_FastFireRatio", 1.0f);
-                    if (ratio > 1.0f)
-                    {
-                        return originalInterval / ratio;
-                    }
-                    return originalInterval;
-                }
-            }
-            catch { }
-            return 0.1f; // fallback
-        }
     }
 }
