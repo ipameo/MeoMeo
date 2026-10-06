@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import UIKit
 import Foundation
 import NetworkExtension
@@ -245,7 +245,7 @@ struct ContentView: View {
                                 .font(.system(size: 24, weight: .black, design: .rounded))
                                 .foregroundColor(.white)
                         }
-                        Text("VUI LÒNG NHẬP LICENSE KEY ĐỂ MỞ KHOÁ")
+                        Text("PLEASE ENTER LICENSE KEY TO UNLOCK")
                             .font(.system(size: 11, weight: .bold, design: .rounded))
                             .foregroundColor(Color(white: 0.60))
                             .tracking(1.2)
@@ -320,16 +320,16 @@ struct ContentView: View {
                 return Alert(
                     title: Text(item.title),
                     message: Text(item.message),
-                    primaryButton: .destructive(Text("Xác Nhận")) {
+                    primaryButton: .destructive(Text("Confirm")) {
                         item.action?()
                     },
-                    secondaryButton: .cancel(Text("Huỷ"))
+                    secondaryButton: .cancel(Text("Cancel"))
                 )
             } else {
                 return Alert(
                     title: Text(item.title),
                     message: Text(item.message),
-                    dismissButton: .default(Text("Đóng"))
+                    dismissButton: .default(Text("Close"))
                 )
             }
         }
@@ -369,7 +369,7 @@ struct ContentView: View {
     var authView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
-                CardView(title: "KÍCH HOẠT BẢN QUYỀN", icon: "key.fill") {
+                CardView(title: "ACTIVATE LICENSE", icon: "key.fill") {
                     VStack(spacing: 14) {
                         HStack {
                             Image(systemName: "key")
@@ -482,7 +482,7 @@ struct ContentView: View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 14) {
 
-                // ── BẬT / TẮT DNS NHANH ─────────────────────────────────
+                // ── QUICK TOGGLE DNS ─────────────────────────────────
                 CardView(title: "DNS BẢO VỆ (MEOMEEXT-FF)", icon: "bolt.shield.fill") {
                     HStack(spacing: 12) {
                         Image(systemName: isDnsActive ? "shield.fill" : "shield.slash.fill")
@@ -720,7 +720,7 @@ struct ContentView: View {
                             } else {
                                 Image(systemName: "bolt.fill")
                                     .foregroundColor(Color.black)
-                                Text("CÀI ĐẶT MOD VÀO GAME")
+                                Text("INSTALL MOD TO GAME")
                                     .font(.system(size: 14, weight: .bold, design: .rounded))
                                     .foregroundColor(Color.black)
                             }
@@ -735,7 +735,7 @@ struct ContentView: View {
                     Button(action: { uninstallMod() }) {
                         HStack {
                             Image(systemName: "trash.fill").foregroundColor(.white)
-                            Text("GỠ BỎ MOD KHỎI GAME")
+                            Text("UNINSTALL MOD FROM GAME")
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                         }
@@ -759,7 +759,7 @@ struct ContentView: View {
     var profileView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
-                CardView(title: "THÔNG TIN BẢN QUYỀN", icon: "person.crop.circle.badge.checkmark") {
+                CardView(title: "LICENSE INFORMATION", icon: "person.crop.circle.badge.checkmark") {
                     VStack(alignment: .leading, spacing: 14) {
                         // Key Row
                         VStack(alignment: .leading, spacing: 6) {
@@ -767,7 +767,7 @@ struct ContentView: View {
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(Color(white: 0.65))
                             HStack {
-                                Text(state.storedKey.isEmpty ? "Chưa kích hoạt" : state.storedKey)
+                                Text(state.storedKey.isEmpty ? "Not activated" : state.storedKey)
                                     .font(.system(size: 13, weight: .bold, design: .monospaced))
                                     .foregroundColor(.white)
                                     .lineLimit(1)
@@ -790,7 +790,7 @@ struct ContentView: View {
 
                         // HWID Row
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("MÃ THIẾT BỊ (HWID)")
+                            Text("DEVICE ID (HWID)")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(Color(white: 0.65))
                             HStack {
@@ -817,13 +817,13 @@ struct ContentView: View {
 
                         // Expiry Row
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("HẠN SỬ DỤNG")
+                            Text("EXPIRATION DATE")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(Color(white: 0.65))
                             HStack {
                                 Image(systemName: "calendar.badge.clock")
                                     .foregroundColor(.white)
-                                Text(state.deviceExpires.isEmpty ? "Vĩnh viễn / Theo key" : state.deviceExpires)
+                                Text(state.deviceExpires.isEmpty ? "Lifetime / By Key" : state.deviceExpires)
                                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
                                     .foregroundColor(.white)
                                 Spacer()
@@ -838,7 +838,7 @@ struct ContentView: View {
                             Circle()
                                 .fill(state.isAuthed ? Color.white : Color.red)
                                 .frame(width: 8, height: 8)
-                            Text(state.isAuthed ? "TRẠNG THÁI: HOẠT ĐỘNG" : "TRẠNG THÁI: HẾT HẠN")
+                            Text(state.isAuthed ? "STATUS: ACTIVE" : "STATUS: EXPIRED")
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
                                 .foregroundColor(state.isAuthed ? .white : .red)
                             Spacer()
@@ -848,7 +848,7 @@ struct ContentView: View {
                 }
 
                 // Telegram Support Channels Card
-                CardView(title: "KÊNH LIÊN HỆ & HỖ TRỢ", icon: "paperplane.fill") {
+                CardView(title: "CONTACT & SUPPORT", icon: "paperplane.fill") {
                     VStack(spacing: 12) {
                         Button(action: {
                             if let url = URL(string: "https://t.me/cheatmeo") {
@@ -896,7 +896,7 @@ struct ContentView: View {
                                     .background(Color.white)
                                     .clipShape(Circle())
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("Admin Hỗ Trợ")
+                                    Text("Admin Support")
                                         .font(.system(size: 14, weight: .bold, design: .rounded))
                                         .foregroundColor(.white)
                                     Text("t.me/truongdeptrai7")
@@ -927,7 +927,7 @@ struct ContentView: View {
                 }) {
                     HStack {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text("ĐỔI LICENSE KEY KHÁC")
+                        Text("CHANGE LICENSE KEY")
                             .font(.system(size: 13, weight: .bold, design: .rounded))
                     }
                     .frame(maxWidth: .infinity)
@@ -950,8 +950,8 @@ struct ContentView: View {
     var dnsAppView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
-                // BẬT / TẮT DNS NHANH CARD
-                CardView(title: "BẬT / TẮT DNS NHANH", icon: "bolt.shield.fill") {
+                // QUICK TOGGLE DNS CARD
+                CardView(title: "QUICK TOGGLE DNS", icon: "bolt.shield.fill") {
                     VStack(spacing: 14) {
                         HStack(spacing: 12) {
                             Image(systemName: isDnsActive ? "shield.fill" : "shield.slash.fill")
@@ -961,7 +961,7 @@ struct ContentView: View {
                                 Text(isDnsActive ? "DNS: ĐANG BẬT" : "DNS: ĐANG TẮT")
                                     .font(.system(size: 16, weight: .black, design: .rounded))
                                     .foregroundColor(isDnsActive ? .white : Color(white: 0.65))
-                                Text(isDnsActive ? "Tự động chặn report / chống ban server Garena" : "Bấm nút hoặc gạt để BẬT ngay")
+                                Text(isDnsActive ? "Auto block report / anti-ban Garena servers" : "Tap button or toggle to turn ON now")
                                     .font(.system(size: 12, weight: .medium))
                                     .foregroundColor(Color(white: 0.55))
                             }
@@ -981,7 +981,7 @@ struct ContentView: View {
                             }) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "checkmark.circle.fill")
-                                    Text("BẬT DNS")
+                                    Text("TURN ON DNS")
                                         .font(.system(size: 13, weight: .bold, design: .rounded))
                                 }
                                 .frame(maxWidth: .infinity)
@@ -1000,7 +1000,7 @@ struct ContentView: View {
                             }) {
                                 HStack(spacing: 6) {
                                     Image(systemName: "xmark.circle.fill")
-                                    Text("TẮT DNS")
+                                    Text("TURN OFF DNS")
                                         .font(.system(size: 13, weight: .bold, design: .rounded))
                                 }
                                 .frame(maxWidth: .infinity)
@@ -1051,7 +1051,7 @@ struct ContentView: View {
                                         Circle()
                                             .fill(isDnsActive ? Color.green : (isDnsInstalled ? Color.yellow : Color.green))
                                             .frame(width: 6, height: 6)
-                                        Text(isDnsActive ? "Đang Hoạt Động" : (isDnsInstalled ? "Select in Settings" : "Ready"))
+                                        Text(isDnsActive ? "Active" : (isDnsInstalled ? "Select in Settings" : "Ready"))
                                             .font(.system(size: 12, weight: .semibold, design: .rounded))
                                             .foregroundColor(Color(white: 0.85))
                                     }
@@ -1075,12 +1075,12 @@ struct ContentView: View {
                                 if isInstallingDns {
                                     ProgressView()
                                         .progressViewStyle(CircularProgressViewStyle(tint: .black))
-                                    Text("Đang Cài Đặt...")
+                                    Text("Installing...")
                                         .font(.system(size: 14, weight: .bold, design: .rounded))
                                 } else {
                                     Image(systemName: isDnsActive ? "checkmark.shield.fill" : (isDnsInstalled ? "arrow.clockwise.circle.fill" : "arrow.down.circle.fill"))
                                         .font(.system(size: 17, weight: .bold))
-                                    Text(isDnsActive ? "MoneyExt-FF DNS Đang Bật" : (isDnsInstalled ? "Cài Lại MoneyExt-FF DNS" : "Install DNS"))
+                                    Text(isDnsActive ? "MoneyExt-FF DNS Đang Bật" : (isDnsInstalled ? "Reinstall MoneyExt-FF DNS" : "Install DNS"))
                                         .font(.system(size: 14, weight: .bold, design: .rounded))
                                 }
                             }
@@ -1122,7 +1122,7 @@ struct ContentView: View {
                         }) {
                             HStack {
                                 Image(systemName: "gear")
-                                Text("Mở Cài Đặt iOS (Open Settings)")
+                                Text("Open iOS Settings")
                                     .font(.system(size: 13, weight: .bold, design: .rounded))
                                 Spacer()
                                 Image(systemName: "arrow.up.right.square")
@@ -1142,14 +1142,14 @@ struct ContentView: View {
                 }
 
                 // Protection Status Card
-                CardView(title: "TÍNH NĂNG BẢO MẬT & CHỐNG BAN", icon: "shield.lefthalf.filled") {
+                CardView(title: "SECURITY & ANTI-BAN FEATURES", icon: "shield.lefthalf.filled") {
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             VStack(alignment: .leading, spacing: 3) {
-                                Text("Chặn Gói Tin Giám Sát (Anti-Telemetry)")
+                                Text("Block Telemetry Packets (Anti-Telemetry)")
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(.white)
-                                Text("Tự động lọc các request check log và report gửi về server Garena.")
+                                Text("Automatically filter log checks and reports sent to Garena servers.")
                                     .font(.system(size: 11))
                                     .foregroundColor(Color(white: 0.60))
                             }
@@ -1204,8 +1204,8 @@ struct ContentView: View {
     // MARK: - GUI Actions (Calling MeoCore in libmeo.a)
     private func confirmResetGuest() {
         activeAlert = ActiveAlertItem(
-            title: "Xác Nhận Reset Acc Khách",
-            message: "Hệ thống sẽ xoá token acc khách bị khoá, làm mới Device UUID và đặt cờ reset Garena MSDK. Bạn có muốn tiếp tục?",
+            title: "Confirm Reset Acc Khách",
+            message: "System will delete banned guest token, refresh Device UUID and set reset flag. Do you want to continue?",
             isDestructive: true,
             action: {
                 performResetGuest(bundleID: selectedBundleID)
@@ -1298,8 +1298,8 @@ struct ContentView: View {
         }
 
         activeAlert = ActiveAlertItem(
-            title: "Reset Guest Hoàn Tất",
-            message: "Đã xoá dữ liệu acc khách cũ, đổi Device ID ngẫu nhiên và đặt cờ reset Garena MSDK. Mở Free Fire và bấm 'Khách' để tạo tài khoản mới!",
+            title: "Reset Guest Complete",
+            message: "Deleted old guest data, randomized Device ID and set reset flag. Open Free Fire and tap 'Guest' to create a new account!",
             isDestructive: false,
             action: nil
         )
@@ -1385,7 +1385,7 @@ struct ContentView: View {
                         let nsErr = saveError as NSError
                         if nsErr.domain == "NEConfigurationErrorDomain" || nsErr.code == 10 || nsErr.code == 1 {
                             self.activeAlert = ActiveAlertItem(
-                                title: "Cài Đặt MoneyExt-FF DNS",
+                                title: "Install MoneyExt-FF DNS",
                                 message: "Hệ thống cần xác nhận hồ sơ cấu hình MoneyExt-FF DNS. Bạn có muốn mở để hoàn tất cài đặt không?",
                                 isDestructive: false,
                                 action: {
@@ -1396,7 +1396,7 @@ struct ContentView: View {
                             )
                         } else {
                             self.activeAlert = ActiveAlertItem(
-                                title: "Thông Báo Cài Đặt DNS",
+                                title: "DNS Installation Notice",
                                 message: saveError.localizedDescription,
                                 isDestructive: false,
                                 action: nil
@@ -1406,7 +1406,7 @@ struct ContentView: View {
                         self.isDnsInstalled = true
                         self.isDnsActive = manager.isEnabled
                         self.activeAlert = ActiveAlertItem(
-                            title: "Cài Đặt MoneyExt-FF DNS Thành Công",
+                            title: "Install MoneyExt-FF DNS Thành Công",
                             message: "Đã thêm MoneyExt-FF DNS với icon ứng dụng vào Cài Đặt. Hãy vào Cài Đặt để chọn MoneyExt-FF DNS!",
                             isDestructive: false,
                             action: {
