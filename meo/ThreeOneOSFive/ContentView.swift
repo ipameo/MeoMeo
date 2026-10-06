@@ -35,9 +35,6 @@ class MeoUIState: ObservableObject {
     @Published var resetGuestEnabled: Bool = false
     @Published var showGuestBtn: Bool = true
     
-    // Miscellaneous Features
-    @Published var fastParachute: Bool = false
-    @Published var medkitRun: Bool = false
 
     var storedKey: String {
         get { core.storedKey }
@@ -100,8 +97,6 @@ class MeoUIState: ObservableObject {
 
         resetGuestEnabled = UserDefaults.standard.bool(forKey: "meo_resetGuestEnabled")
         showGuestBtn      = UserDefaults.standard.object(forKey: "meo_showGuestBtn") != nil ? UserDefaults.standard.bool(forKey: "meo_showGuestBtn") : true
-        fastParachute     = UserDefaults.standard.bool(forKey: "meo_fastParachute")
-        medkitRun         = UserDefaults.standard.bool(forKey: "meo_medkitRun")
     }
 
     func pushToCore(bundleID: String) {
@@ -123,8 +118,6 @@ class MeoUIState: ObservableObject {
 
         UserDefaults.standard.set(resetGuestEnabled, forKey: "meo_resetGuestEnabled")
         UserDefaults.standard.set(showGuestBtn, forKey: "meo_showGuestBtn")
-        UserDefaults.standard.set(fastParachute, forKey: "meo_fastParachute")
-        UserDefaults.standard.set(medkitRun, forKey: "meo_medkitRun")
 
         core.saveAndSyncConfig(forBundleID: bundleID)
         syncPullAIToJson(bundleID: bundleID)
@@ -160,8 +153,6 @@ class MeoUIState: ObservableObject {
             dict["ResetGuestEnabled"] = resetGuestEnabled
             dict["ShowGuestBtn"] = showGuestBtn
             dict["AutoResetGuest"] = resetGuestEnabled
-            dict["FastParachute"] = fastParachute
-            dict["MedkitRun"] = medkitRun
 
             if let updatedData = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
                 try? updatedData.write(to: URL(fileURLWithPath: path), options: .atomic)
@@ -691,20 +682,6 @@ struct ContentView: View {
                     }
                 }
 
-                // ── VIP FEATURES ────────────────────────────────────────────
-                CardView(title: "VIP FEATURES", icon: "star.fill") {
-                    VStack(spacing: 14) {
-                        ToggleRow(label: "Nhảy Dù Nhanh (Fast Parachute)", icon: "arrow.down.circle.fill", on: Binding(
-                            get: { state.fastParachute },
-                            set: { val in state.fastParachute = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Vừa Chạy Vừa Quấn Máu (Medkit Run)", icon: "cross.case.fill", on: Binding(
-                            get: { state.medkitRun },
-                            set: { val in state.medkitRun = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
-                    }
-                }
 
                 // ── TIỆN ÍCH TÀI KHOẢN (RESET GUEST) ────────────────────
                 CardView(title: "TIỆN ÍCH TÀI KHOẢN", icon: "person.crop.circle.badge.exclamationmark") {
