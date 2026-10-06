@@ -582,24 +582,29 @@ namespace ProjectEspPatch
                             }
                             Time.timeScale = speedLevel;
 
-                            // Apply BuffDame & FastFireRatio to PlayerPrefs for hooks
-                            bool buffDame = json.Contains("\"BuffDame\":true");
-                            PlayerPrefs.SetInt("ESP_BuffDame", buffDame ? 1 : 0);
-
-                            float fastFireRatio = 1.0f;
-                            int ffIdx = json.IndexOf("\"FastFireRatio\":");
-                            if (ffIdx != -1)
+                            try
                             {
-                                int ffStart = ffIdx + 16;
-                                int ffEnd = json.IndexOf(',', ffStart);
-                                if (ffEnd == -1) ffEnd = json.IndexOf('}', ffStart);
-                                if (ffEnd != -1)
+                                // Apply BuffDame & FastFireRatio to PlayerPrefs for hooks
+                                bool buffDame = json.Contains("\"BuffDame\":true");
+                                PlayerPrefs.SetInt("ESP_BuffDame", buffDame ? 1 : 0);
+
+                                float fastFireRatio = 1.0f;
+                                int ffIdx = json.IndexOf("\"FastFireRatio\":");
+                                if (ffIdx != -1)
                                 {
-                                    string ffStr = json.Substring(ffStart, ffEnd - ffStart).Trim();
-                                    float.TryParse(ffStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out fastFireRatio);
+                                    int ffStart = ffIdx + 16;
+                                    int ffEnd = json.IndexOf(',', ffStart);
+                                    if (ffEnd == -1) ffEnd = json.IndexOf('}', ffStart);
+                                    if (ffEnd != -1)
+                                    {
+                                        string ffStr = json.Substring(ffStart, ffEnd - ffStart).Trim();
+                                        float.TryParse(ffStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out fastFireRatio);
+                                    }
                                 }
+                                PlayerPrefs.SetFloat("ESP_FastFireRatio", fastFireRatio);
+                                PlayerPrefs.Save();
                             }
-                            PlayerPrefs.SetFloat("ESP_FastFireRatio", fastFireRatio);
+                            catch { }
                         }
                     }
                     else
