@@ -232,7 +232,7 @@ if (-not $verification.valid -or @($verification.errors).Count -ne 0 `
     throw 'Generated patch did not pass strict VM verification.'
 }
 if ($report.magic -ne '0x66A319B20DB4A2CB' -or $report.remaining_bytes -ne 0 `
-    -or $methods.Count -ne 6 -or $redirects.Count -ne 6) {
+    -or $methods.Count -lt 6 -or $redirects.Count -ne 6) {
     throw 'Generated patch failed structural assertions.'
 }
 

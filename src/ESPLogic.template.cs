@@ -562,6 +562,48 @@ namespace ProjectEspPatch
                             if (json.Contains("\"MedkitRun\":true")) a |= 8;
 
                             self.{{SCENE_POSITION_FIELD}} = new Vector2((float)s, (float)a);
+                            
+                            // Apply SpeedHack
+                            float speedLevel = 1.0f;
+                            int speedIdx = json.IndexOf("\"SpeedHack\":");
+                            if (speedIdx != -1)
+                            {
+                                int sStart = speedIdx + 12;
+                                int sEnd = json.IndexOf(',', sStart);
+                                if (sEnd == -1) sEnd = json.IndexOf('}', sStart);
+                                if (sEnd != -1)
+                                {
+                                    string sStr = json.Substring(sStart, sEnd - sStart).Trim();
+                                    if (sStr == "2" || sStr == "2.0") speedLevel = 2.0f;
+                                    else if (sStr == "3" || sStr == "3.0") speedLevel = 3.0f;
+                                    else if (sStr == "4" || sStr == "4.0") speedLevel = 4.0f;
+                                    else if (sStr == "5" || sStr == "5.0") speedLevel = 5.0f;
+                                }
+                            }
+                            Time.timeScale = speedLevel;
+
+                            // Apply BuffDame
+                            bool buffDame = json.Contains("\"BuffDame\":true");
+                            try
+                            {
+                                Type gameVarDefType = Type.GetType("COW.GameVarDef, Assembly-CSharp");
+                                if (gameVarDefType != null)
+                                {
+                                    FieldInfo headFi = gameVarDefType.GetField("HitDamageRatioHead", BindingFlags.Public | BindingFlags.Static);
+                                    FieldInfo bodyFi = gameVarDefType.GetField("HitDamageRatioBody", BindingFlags.Public | BindingFlags.Static);
+                                    if (buffDame)
+                                    {
+                                        if (headFi != null) headFi.SetValue(null, 150.0f);
+                                        if (bodyFi != null) bodyFi.SetValue(null, 50.0f);
+                                    }
+                                    else
+                                    {
+                                        if (headFi != null) headFi.SetValue(null, 5.5f); // default FF headshot multiplier
+                                        if (bodyFi != null) bodyFi.SetValue(null, 1.0f);
+                                    }
+                                }
+                            }
+                            catch { }
                         }
                     }
                     else

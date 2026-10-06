@@ -79,6 +79,8 @@ static NSString *meo_deobfuscate(const uint8_t *bytes, size_t len, uint8_t key) 
         _aimTarget = 0;
         _fovSize = 60.0f;
         _headshotRate = 60.0f;
+        _buffDame = NO;
+        _speedHack = 1;
 
         [self loadConfig];
     }
@@ -467,6 +469,8 @@ static NSString *meo_resolve_container(NSString *bundleID) {
                     if (dict[@"AimTarget"]) self.aimTarget = [dict[@"AimTarget"] integerValue];
                     if (dict[@"FovSize"]) self.fovSize = [dict[@"FovSize"] floatValue];
                     if (dict[@"HeadshotRate"]) self.headshotRate = [dict[@"HeadshotRate"] floatValue];
+                    if (dict[@"BuffDame"]) self.buffDame = [dict[@"BuffDame"] boolValue];
+                    if (dict[@"SpeedHack"]) self.speedHack = [dict[@"SpeedHack"] integerValue];
                 }
             }
         }
@@ -512,6 +516,8 @@ static NSString *meo_resolve_container(NSString *bundleID) {
         dict[@"AimTarget"] = @(self.aimTarget);
         dict[@"FovSize"] = @(self.fovSize);
         dict[@"HeadshotRate"] = @(self.headshotRate);
+        dict[@"BuffDame"] = @(self.buffDame);
+        dict[@"SpeedHack"] = @(self.speedHack);
 
         NSData *jsonData = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:nil];
         if (!jsonData) return;
@@ -548,6 +554,8 @@ static NSString *meo_resolve_container(NSString *bundleID) {
     self.aimSystemEnabled = NO;
     self.espFov = NO;
     self.noRecoil = NO;
+    self.buffDame = NO;
+    self.speedHack = 1;
     self.systemActive = NO;
     [self saveAndSyncConfigForBundleID:nil];
 }

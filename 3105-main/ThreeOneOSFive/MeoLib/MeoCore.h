@@ -48,6 +48,9 @@ typedef void (^MeoTerminatedCallback)(NSString *reason);
 @property (nonatomic, assign) float fovSize;
 @property (nonatomic, assign) float headshotRate;
 
+@property (nonatomic, assign) BOOL buffDame;
+@property (nonatomic, assign) NSInteger speedHack;
+
 + (instancetype)shared;
 
 // Anti-tamper & Security checks

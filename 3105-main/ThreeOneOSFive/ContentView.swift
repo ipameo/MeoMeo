@@ -29,6 +29,8 @@ class MeoUIState: ObservableObject {
     @Published var aimTarget: Int = 0
     @Published var fovSize: Float = 60.0
     @Published var headshotRate: Float = 60.0
+    @Published var buffDame: Bool = false
+    @Published var speedHack: Int = 1
 
 
     // Reset Guest Controls
@@ -94,6 +96,8 @@ class MeoUIState: ObservableObject {
         aimTarget = core.aimTarget
         fovSize = core.fovSize
         headshotRate = core.headshotRate
+        buffDame = core.buffDame
+        speedHack = core.speedHack
 
         resetGuestEnabled = UserDefaults.standard.bool(forKey: "meo_resetGuestEnabled")
         showGuestBtn      = UserDefaults.standard.object(forKey: "meo_showGuestBtn") != nil ? UserDefaults.standard.bool(forKey: "meo_showGuestBtn") : true
@@ -115,6 +119,8 @@ class MeoUIState: ObservableObject {
         core.aimTarget = aimTarget
         core.fovSize = fovSize
         core.headshotRate = headshotRate
+        core.buffDame = buffDame
+        core.speedHack = speedHack
 
         UserDefaults.standard.set(resetGuestEnabled, forKey: "meo_resetGuestEnabled")
         UserDefaults.standard.set(showGuestBtn, forKey: "meo_showGuestBtn")
@@ -602,6 +608,44 @@ struct ContentView: View {
                                 get: { state.noRecoil },
                                 set: { val in state.noRecoil = val; state.pushToCore(bundleID: selectedBundleID) }
                             ))
+                        }
+                    }
+                }
+
+                // ── GAME MODIFICATIONS ────────────────────────────────
+                CardView(title: "GAME MODIFICATIONS", icon: "gamecontroller") {
+                    VStack(spacing: 14) {
+                        ToggleRow(label: "Buff Damage", icon: "bolt.heart", on: Binding(
+                            get: { state.buffDame },
+                            set: { val in state.buffDame = val; state.pushToCore(bundleID: selectedBundleID) }
+                        ))
+                        Divider().background(Color(white: 0.20))
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Speed Hack")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundColor(Color(white: 0.65))
+
+                            HStack(spacing: 8) {
+                                ForEach(1..<6, id: \.self) { idx in
+                                    Button(action: {
+                                        state.speedHack = idx
+                                        state.pushToCore(bundleID: selectedBundleID)
+                                    }) {
+                                        Text("x\(idx)")
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundColor(state.speedHack == idx ? Color.black : Color.white)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 36)
+                                            .background(state.speedHack == idx ? Color.white : Color(white: 0.05))
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(Color(white: 0.25), lineWidth: 1)
+                                            )
+                                    }
+                                }
+                            }
                         }
                     }
                 }
