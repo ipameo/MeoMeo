@@ -44,11 +44,6 @@ namespace ProjectEspPatch
         private const int AuxSkeleton = 1;
         private const int AuxFovRadiusMask = 248;
         private const int AuxFovRadiusShift = 3;
-        private const int AuxPullAIEnabled = 32768;
-        private const int AuxPullAIBoneShift = 16;
-        private const int AuxPullAIBoneMask = 196608;
-        private const int AuxPullAIFovShift = 18;
-        private const int AuxPullAIFovMask = 8126464;
         private const int AuxMask = 255;
         private const int AuxTickShift = 8;
         private const float AuxStateMarker = 1000000f;
@@ -563,37 +558,6 @@ namespace ProjectEspPatch
                             int a = (scaledFov << AuxFovRadiusShift) | (headRateVal << 8);
                             if (allowSkeleton && json.Contains("\"EspSkeleton\":true")) a |= AuxSkeleton;
 
-                            // ── Pull AI Player configuration parsing ──
-                            bool allowPullAI = allowAim && (json.Contains("\"PullAIEnabled\":true") || json.Contains("\"pullAIEnabled\":true"));
-                            if (allowPullAI)
-                            {
-                                int pullBone = 0; // 0=Head, 1=Neck, 2=Body
-                                if (json.Contains("\"PullAIBone\":1") || json.Contains("\"pullAIBone\":1")) pullBone = 1;
-                                else if (json.Contains("\"PullAIBone\":2") || json.Contains("\"pullAIBone\":2")) pullBone = 2;
-
-                                float pullFov = 80f;
-                                int pFovIdx = json.IndexOf("\"PullAIFov\":");
-                                if (pFovIdx == -1) pFovIdx = json.IndexOf("\"pullAIFov\":");
-                                if (pFovIdx != -1)
-                                {
-                                    int pStart = pFovIdx + (json.Contains("\"PullAIFov\":") ? 12 : 12);
-                                    int pEnd = json.IndexOfAny(new char[] { ',', '}' }, pStart);
-                                    if (pEnd != -1)
-                                    {
-                                        float.TryParse(json.Substring(pStart, pEnd - pStart).Trim(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out pullFov);
-                                    }
-                                }
-                                if (pullFov < 10f) pullFov = 10f;
-                                if (pullFov > 400f) pullFov = 400f;
-                                int scaledPullFov = (int)((pullFov - 10f) / 12.5f);
-                                if (scaledPullFov < 0) scaledPullFov = 0;
-                                if (scaledPullFov > 31) scaledPullFov = 31;
-
-                                a |= AuxPullAIEnabled;
-                                a |= (pullBone & 0x3) << AuxPullAIBoneShift;
-                                a |= (scaledPullFov & 0x1F) << AuxPullAIFovShift;
-                            }
-                            
                             self.{{SCENE_POSITION_FIELD}} = new Vector2((float)s, (float)a);
                         }
                     }
@@ -1371,7 +1335,7 @@ namespace ProjectEspPatch
                 : (SceneEditBoxSelectTool)driver.GetComponent(typeof(SceneEditBoxSelectTool));
             int state = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.x;
             int aux = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.y;
-            if (((state & AimSystemEnabled) == 0 && (aux & AuxPullAIEnabled) == 0)
+            if ((state & AimSystemEnabled) == 0
                 || self.gameObject == null || !self.gameObject.activeInHierarchy
                 || self.IsLocalPlayer() || self.CurHP <= 0
                 || self.IsLocalTeammate(false) || self.IsLocalTeammate(true))
@@ -1385,13 +1349,10 @@ namespace ProjectEspPatch
                 return original;
             }
 
-            bool isPullAI = (aux & AuxPullAIEnabled) != 0;
-            int targetBone = isPullAI
-                ? ((aux & AuxPullAIBoneMask) >> AuxPullAIBoneShift)
-                : ((state & AimModeMask) >> AimModeShift);
+            int targetBone = (state & AimModeMask) >> AimModeShift;
 
             int headRate = (aux >> 8) & 0x7F;
-            bool aimAtHead = isPullAI ? (targetBone == 0) : ((targetBone == 0) && (UnityEngine.Random.Range(0, 100) < headRate));
+            bool aimAtHead = (targetBone == 0) && (UnityEngine.Random.Range(0, 100) < headRate);
             bool aimAtNeck = (targetBone == 1);
 
             Vector3 targetPos = Vector3.zero;
@@ -1472,28 +1433,6 @@ namespace ProjectEspPatch
             {
                 float distToPlayer = Vector3.Distance(localRoot.position, targetPos);
                 if (distToPlayer < 2.8f)
-                {
-                    return original;
-                }
-            }
-
-            // ── FOV CHECK CHO PULL AI PLAYER ──
-            if (isPullAI && targetPos != Vector3.zero)
-            {
-                Vector3 screen = camera.WorldToScreenPoint(targetPos);
-                if (screen.z <= 0.5f
-                    || float.IsNaN(screen.x) || float.IsNaN(screen.y)
-                    || float.IsInfinity(screen.x) || float.IsInfinity(screen.y))
-                {
-                    return original;
-                }
-                float dx = screen.x - (float)Screen.width * 0.5f;
-                float dy = screen.y - (float)Screen.height * 0.5f;
-                float dist2DSqr = dx * dx + dy * dy;
-
-                int pFovIdx = (aux & AuxPullAIFovMask) >> AuxPullAIFovShift;
-                float pullFovRadius = (float)pFovIdx * 12.5f + 10f;
-                if (dist2DSqr > pullFovRadius * pullFovRadius)
                 {
                     return original;
                 }
