@@ -622,7 +622,7 @@ namespace ProjectEspPatch
             CloneBody();
             int antiCheatInstructions = targetMethod.Body.Instructions.Count;
 
-            targetMethod = targetModule.GetType("COW.GameFacade").Methods.Single(method =>
+            targetMethod = targetModule.GetType("COW.GamePlay.PlayerAttributes").Methods.Single(method =>
                 method.Name == "GetParachutingMaxVSpeed" && method.Parameters.Count == 0);
             helperMethod = helperType.Methods.Single(method => method.Name == "GetParachutingMaxVSpeed");
             CloneBody();

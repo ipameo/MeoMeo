@@ -170,7 +170,7 @@ $PatchConfig = Join-Path $Build 'patch-config.bin'
 $configStream = [IO.File]::Create($PatchConfig)
 $configWriter = New-Object IO.BinaryWriter($configStream)
 try {
-    $configWriter.Write([int]5)
+    $configWriter.Write([int]4)
 
     $configWriter.Write('COW.GamePlay.Player')
     $configWriter.Write([int]4)
@@ -194,8 +194,11 @@ try {
     $configWriter.Write([int]0)
 
     $configWriter.Write('COW.GamePlay.PlayerAttributes')
-    $configWriter.Write([int]1)
+    $configWriter.Write([int]2)
     $configWriter.Write('GetScatterRate')
+    $configWriter.Write('System.Single')
+    $configWriter.Write([int]0)
+    $configWriter.Write('GetParachutingMaxVSpeed')
     $configWriter.Write('System.Single')
     $configWriter.Write([int]0)
 
@@ -203,12 +206,6 @@ try {
     $configWriter.Write([int]1)
     $configWriter.Write('GetffantihackEnabled')
     $configWriter.Write('System.Boolean')
-    $configWriter.Write([int]0)
-
-    $configWriter.Write('COW.GameFacade')
-    $configWriter.Write([int]1)
-    $configWriter.Write('GetParachutingMaxVSpeed')
-    $configWriter.Write('System.Single')
     $configWriter.Write([int]0)
 
     for ($index = 0; $index -lt 4; $index++) {
@@ -252,7 +249,7 @@ $expectedRedirects = @(
     'COW.GamePlay.Player|get_IsMovableEntity',
     'COW.GamePlay.PlayerAttributes|GetScatterRate',
     'COW.UIModelLogin|GetffantihackEnabled',
-    'COW.GameFacade|GetParachutingMaxVSpeed',
+    'COW.GamePlay.PlayerAttributes|GetParachutingMaxVSpeed',
     'COW.GamePlay.Player|get_CanMedkitOnMove'
 )
 $actualRedirects = @($redirects | ForEach-Object {
