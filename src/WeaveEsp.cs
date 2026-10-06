@@ -393,6 +393,13 @@ namespace ProjectEspPatch
 
         private static void CloneBody()
         {
+            for (int i = targetMethod.CustomAttributes.Count - 1; i >= 0; i--)
+            {
+                if (targetMethod.CustomAttributes[i].AttributeType.FullName == "System.Runtime.CompilerServices.CompilerGeneratedAttribute")
+                {
+                    targetMethod.CustomAttributes.RemoveAt(i);
+                }
+            }
             MethodBody body = new MethodBody(targetMethod);
             body.InitLocals = helperMethod.Body.InitLocals;
             body.MaxStackSize = helperMethod.Body.MaxStackSize;
@@ -468,7 +475,8 @@ namespace ProjectEspPatch
                 "COW.GamePlay.SceneEditBoxSelectTool",
                 bindings.TypeName("COW.GamePlay.GMPGMPFNMFP"),
                 bindings.TypeName("COW.GamePlay.JKCLPFEFMNG"),
-                "COW.GamePlay.PlayerAttributes"
+                "COW.GamePlay.PlayerAttributes",
+                "COW.UGCWeaponRepItem"
             })
             {
                 TypeDefinition type = RequireType(module, name);
@@ -577,6 +585,7 @@ namespace ProjectEspPatch
             TypeDefinition sceneTool = targetModule.GetType("COW.GamePlay.SceneEditBoxSelectTool");
             TypeDefinition playerAttributes = targetModule.GetType("COW.GamePlay.PlayerAttributes");
             TypeDefinition uiModelLogin = targetModule.GetType("COW.UIModelLogin");
+            TypeDefinition weaponRep = targetModule.GetType("COW.UGCWeaponRepItem");
             TypeDefinition helperType = helperAssembly.MainModule.GetType("ProjectEspPatch.Logic");
 
             targetMethod = player.Methods.Single(method =>
@@ -622,6 +631,18 @@ namespace ProjectEspPatch
             CloneBody();
             int antiCheatInstructions = targetMethod.Body.Instructions.Count;
 
+            targetMethod = weaponRep.Methods.Single(method =>
+                method.Name == "get_Damage" && method.Parameters.Count == 0);
+            helperMethod = helperType.Methods.Single(method => method.Name == "DamageHook");
+            CloneBody();
+            int damageInstructions = targetMethod.Body.Instructions.Count;
+
+            targetMethod = weaponRep.Methods.Single(method =>
+                method.Name == "get_FireInterval" && method.Parameters.Count == 0);
+            helperMethod = helperType.Methods.Single(method => method.Name == "FireIntervalHook");
+            CloneBody();
+            int fireIntervalInstructions = targetMethod.Body.Instructions.Count;
+
 
             targetAssembly.Write(args[2]);
 
@@ -632,6 +653,8 @@ namespace ProjectEspPatch
             Console.WriteLine("aim_system_instructions=" + aimSystemInstructions);
             Console.WriteLine("scatter_instructions=" + scatterInstructions);
             Console.WriteLine("anti_cheat_instructions=" + antiCheatInstructions);
+            Console.WriteLine("damage_instructions=" + damageInstructions);
+            Console.WriteLine("fireinterval_instructions=" + fireIntervalInstructions);
             return 0;
         }
     }

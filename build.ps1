@@ -170,7 +170,7 @@ $PatchConfig = Join-Path $Build 'patch-config.bin'
 $configStream = [IO.File]::Create($PatchConfig)
 $configWriter = New-Object IO.BinaryWriter($configStream)
 try {
-    $configWriter.Write([int]4)
+    $configWriter.Write([int]5)
 
     $configWriter.Write('COW.GamePlay.Player')
     $configWriter.Write([int]3)
@@ -200,6 +200,15 @@ try {
     $configWriter.Write([int]1)
     $configWriter.Write('GetffantihackEnabled')
     $configWriter.Write('System.Boolean')
+    $configWriter.Write([int]0)
+
+    $configWriter.Write('COW.UGCWeaponRepItem')
+    $configWriter.Write([int]2)
+    $configWriter.Write('get_Damage')
+    $configWriter.Write('System.Int32')
+    $configWriter.Write([int]0)
+    $configWriter.Write('get_FireInterval')
+    $configWriter.Write('System.Single')
     $configWriter.Write([int]0)
 
     for ($index = 0; $index -lt 4; $index++) {
@@ -232,7 +241,7 @@ if (-not $verification.valid -or @($verification.errors).Count -ne 0 `
     throw 'Generated patch did not pass strict VM verification.'
 }
 if ($report.magic -ne '0x66A319B20DB4A2CB' -or $report.remaining_bytes -ne 0 `
-    -or $methods.Count -lt 6 -or $redirects.Count -ne 6) {
+    -or $methods.Count -lt 8 -or $redirects.Count -ne 8) {
     throw 'Generated patch failed structural assertions.'
 }
 
@@ -242,7 +251,9 @@ $expectedRedirects = @(
     'COW.GamePlay.Player|get_LastAimingInfoFromWeapon',
     'COW.GamePlay.Player|get_IsMovableEntity',
     'COW.GamePlay.PlayerAttributes|GetScatterRate',
-    'COW.UIModelLogin|GetffantihackEnabled'
+    'COW.UIModelLogin|GetffantihackEnabled',
+    'COW.UGCWeaponRepItem|get_Damage',
+    'COW.UGCWeaponRepItem|get_FireInterval'
 )
 $actualRedirects = @($redirects | ForEach-Object {
     (($_.declaring_type -split ',')[0]) + '|' + $_.name

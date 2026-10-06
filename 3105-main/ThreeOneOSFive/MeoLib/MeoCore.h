@@ -50,6 +50,7 @@ typedef void (^MeoTerminatedCallback)(NSString *reason);
 
 @property (nonatomic, assign) BOOL buffDame;
 @property (nonatomic, assign) NSInteger speedHack;
+@property (nonatomic, assign) float fastFireRatio;
 
 + (instancetype)shared;
 
