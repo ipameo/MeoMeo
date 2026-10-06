@@ -102,18 +102,7 @@ struct SettingsView: View {
                     Text(language.text("settings.supported_versions_footer"))
                 }
 
-                Section(language.text("settings.social_media")) {
-                    creditsRow(
-                        name: "MeoMeo Channel",
-                        role: "Telegram",
-                        url: "https://t.me/cheatmeo"
-                    )
-                    creditsRow(
-                        name: "Admin Support",
-                        role: "Telegram",
-                        url: "https://t.me/truongdeptrai7"
-                    )
-                }
+
 
                 Section(language.text("settings.credits")) {
                     creditsRow(

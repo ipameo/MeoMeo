@@ -1,6 +1,6 @@
 //
 //  MeoCore.h
-//  MeoMeo Core Security & License Engine (iOS Static Library)
+//  MoneyExt Core Security & License Engine (iOS Static Library)
 //
 
 #import <Foundation/Foundation.h>

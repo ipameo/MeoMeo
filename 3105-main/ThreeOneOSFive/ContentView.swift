@@ -241,7 +241,7 @@ struct ContentView: View {
                             Image(systemName: "pawprint.fill")
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(.white)
-                            Text("MeoMeo")
+                            Text("MoneyExt")
                                 .font(.system(size: 24, weight: .black, design: .rounded))
                                 .foregroundColor(.white)
                         }
@@ -264,7 +264,7 @@ struct ContentView: View {
                             Image(systemName: "pawprint.fill")
                                 .font(.system(size: 19, weight: .bold))
                                 .foregroundColor(.white)
-                            Text("MeoMeo")
+                            Text("MoneyExt")
                                 .font(.system(size: 21, weight: .black, design: .rounded))
                                 .foregroundColor(.white)
                         }
@@ -472,41 +472,7 @@ struct ContentView: View {
                     }
                 }
 
-                // Telegram Support Card
-                CardView(title: "KÊNH MUA KEY & HỖ TRỢ", icon: "paperplane.fill") {
-                    Button(action: {
-                        if let url = URL(string: "https://t.me/cheatmeo") {
-                            UIApplication.shared.open(url)
-                        }
-                    }) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "megaphone.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(.black)
-                                .frame(width: 32, height: 32)
-                                .background(Color.white)
-                                .clipShape(Circle())
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Channel Telegram (Nhận / Mua Key)")
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                                Text("t.me/cheatmeo")
-                                    .font(.system(size: 11, weight: .medium, design: .monospaced))
-                                    .foregroundColor(Color(white: 0.70))
-                            }
-                            Spacer()
-                            Image(systemName: "arrow.up.right.square")
-                                .foregroundColor(.white)
-                        }
-                        .padding(12)
-                        .background(Color(white: 0.05))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color(white: 0.20), lineWidth: 1)
-                        )
-                    }
-                }
+
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 40)
@@ -1070,7 +1036,7 @@ struct ContentView: View {
                             }
 
                             VStack(alignment: .leading, spacing: 5) {
-                                Text("MeoMeoExt-FF DNS")
+                                Text("MoneyExt-FF DNS")
                                     .font(.system(size: 18, weight: .black, design: .rounded))
                                     .foregroundColor(.white)
 
@@ -1116,7 +1082,7 @@ struct ContentView: View {
                                 } else {
                                     Image(systemName: isDnsActive ? "checkmark.shield.fill" : (isDnsInstalled ? "arrow.clockwise.circle.fill" : "arrow.down.circle.fill"))
                                         .font(.system(size: 17, weight: .bold))
-                                    Text(isDnsActive ? "MeoMeoExt-FF DNS Đang Bật" : (isDnsInstalled ? "Cài Lại MeoMeoExt-FF DNS" : "Install DNS"))
+                                    Text(isDnsActive ? "MoneyExt-FF DNS Đang Bật" : (isDnsInstalled ? "Cài Lại MoneyExt-FF DNS" : "Install DNS"))
                                         .font(.system(size: 14, weight: .bold, design: .rounded))
                                 }
                             }
@@ -1146,7 +1112,7 @@ struct ContentView: View {
                             Text("2.")
                                 .font(.system(size: 13, weight: .black))
                                 .foregroundColor(.white)
-                            Text("After installation, open iOS Settings > General > VPN & Device Management > DNS and select MeoMeoExt-FF DNS")
+                            Text("After installation, open iOS Settings > General > VPN & Device Management > DNS and select MoneyExt-FF DNS")
                                 .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(.white)
                         }
@@ -1371,7 +1337,7 @@ struct ContentView: View {
                     let manager = NEDNSSettingsManager.shared()
                     let hasSettings = (manager.dnsSettings != nil)
                     let name = manager.localizedDescription ?? ""
-                    if hasSettings || name.contains("MeoMeoExt") {
+                    if hasSettings || name.contains("MoneyExt") {
                         self.isDnsInstalled = true
                         self.isDnsActive = manager.isEnabled
                     } else {
@@ -1422,8 +1388,8 @@ struct ContentView: View {
                         let nsErr = saveError as NSError
                         if nsErr.domain == "NEConfigurationErrorDomain" || nsErr.code == 10 || nsErr.code == 1 {
                             self.activeAlert = ActiveAlertItem(
-                                title: "Cài Đặt MeoMeoExt-FF DNS",
-                                message: "Hệ thống cần xác nhận hồ sơ cấu hình MeoMeoExt-FF DNS. Bạn có muốn mở để hoàn tất cài đặt không?",
+                                title: "Cài Đặt MoneyExt-FF DNS",
+                                message: "Hệ thống cần xác nhận hồ sơ cấu hình MoneyExt-FF DNS. Bạn có muốn mở để hoàn tất cài đặt không?",
                                 isDestructive: false,
                                 action: {
                                     if let url = URL(string: MeoCore.dnsPayloadURL()) {
@@ -1443,8 +1409,8 @@ struct ContentView: View {
                         self.isDnsInstalled = true
                         self.isDnsActive = manager.isEnabled
                         self.activeAlert = ActiveAlertItem(
-                            title: "Cài Đặt MeoMeoExt-FF DNS Thành Công",
-                            message: "Đã thêm MeoMeoExt-FF DNS với icon ứng dụng vào Cài Đặt. Hãy vào Cài Đặt để chọn MeoMeoExt-FF DNS!",
+                            title: "Cài Đặt MoneyExt-FF DNS Thành Công",
+                            message: "Đã thêm MoneyExt-FF DNS với icon ứng dụng vào Cài Đặt. Hãy vào Cài Đặt để chọn MoneyExt-FF DNS!",
                             isDestructive: false,
                             action: {
                                 self.openIosSettings()
