@@ -173,7 +173,7 @@ try {
     $configWriter.Write([int]4)
 
     $configWriter.Write('COW.GamePlay.Player')
-    $configWriter.Write([int]4)
+    $configWriter.Write([int]3)
     $configWriter.Write('IsReallyInStealth')
     $configWriter.Write('System.Boolean')
     $configWriter.Write([int]0)
@@ -181,9 +181,6 @@ try {
     $configWriter.Write('COW.GamePlay.' + [string]$bindingInfo.placeholders.AIM_INFO_TYPE)
     $configWriter.Write([int]0)
     $configWriter.Write('get_IsMovableEntity')
-    $configWriter.Write('System.Boolean')
-    $configWriter.Write([int]0)
-    $configWriter.Write('get_CanMedkitOnMove')
     $configWriter.Write('System.Boolean')
     $configWriter.Write([int]0)
 
@@ -194,11 +191,8 @@ try {
     $configWriter.Write([int]0)
 
     $configWriter.Write('COW.GamePlay.PlayerAttributes')
-    $configWriter.Write([int]2)
+    $configWriter.Write([int]1)
     $configWriter.Write('GetScatterRate')
-    $configWriter.Write('System.Single')
-    $configWriter.Write([int]0)
-    $configWriter.Write('GetParachutingMaxVSpeed')
     $configWriter.Write('System.Single')
     $configWriter.Write([int]0)
 
@@ -238,7 +232,7 @@ if (-not $verification.valid -or @($verification.errors).Count -ne 0 `
     throw 'Generated patch did not pass strict VM verification.'
 }
 if ($report.magic -ne '0x66A319B20DB4A2CB' -or $report.remaining_bytes -ne 0 `
-    -or $methods.Count -ne 9 -or $redirects.Count -ne 8) {
+    -or $methods.Count -ne 6 -or $redirects.Count -ne 6) {
     throw 'Generated patch failed structural assertions.'
 }
 
@@ -248,9 +242,7 @@ $expectedRedirects = @(
     'COW.GamePlay.Player|get_LastAimingInfoFromWeapon',
     'COW.GamePlay.Player|get_IsMovableEntity',
     'COW.GamePlay.PlayerAttributes|GetScatterRate',
-    'COW.UIModelLogin|GetffantihackEnabled',
-    'COW.GamePlay.PlayerAttributes|GetParachutingMaxVSpeed',
-    'COW.GamePlay.Player|get_CanMedkitOnMove'
+    'COW.UIModelLogin|GetffantihackEnabled'
 )
 $actualRedirects = @($redirects | ForEach-Object {
     (($_.declaring_type -split ',')[0]) + '|' + $_.name

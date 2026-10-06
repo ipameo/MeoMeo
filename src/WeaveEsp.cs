@@ -622,17 +622,6 @@ namespace ProjectEspPatch
             CloneBody();
             int antiCheatInstructions = targetMethod.Body.Instructions.Count;
 
-            targetMethod = targetModule.GetType("COW.GamePlay.PlayerAttributes").Methods.Single(method =>
-                method.Name == "GetParachutingMaxVSpeed" && method.Parameters.Count == 0);
-            helperMethod = helperType.Methods.Single(method => method.Name == "GetParachutingMaxVSpeed");
-            CloneBody();
-            int paraSpeedInstructions = targetMethod.Body.Instructions.Count;
-
-            targetMethod = player.Methods.Single(method =>
-                method.Name == "get_CanMedkitOnMove" && method.Parameters.Count == 0);
-            helperMethod = helperType.Methods.Single(method => method.Name == "GetCanMedkitOnMove");
-            CloneBody();
-            int medkitRunInstructions = targetMethod.Body.Instructions.Count;
 
             targetAssembly.Write(args[2]);
 

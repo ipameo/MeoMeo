@@ -1741,52 +1741,6 @@ namespace ProjectEspPatch
             return false;
         }
 
-        public static float GetParachutingMaxVSpeed()
-        {
-            float speed = 25f;
-            try
-            {
-                GameObject driver = GameObject.Find("__esp_driver");
-                if (driver != null)
-                {
-                    SceneEditBoxSelectTool menu = (SceneEditBoxSelectTool)driver.GetComponent(typeof(SceneEditBoxSelectTool));
-                    if (menu != null)
-                    {
-                        int aux = (int)menu.{{SCENE_POSITION_FIELD}}.y;
-                        if ((aux & 4) != 0) // AuxFastParachute
-                        {
-                            speed = 200f; // Fast drop
-                        }
-                    }
-                }
-            }
-            catch { }
-            return speed;
-        }
 
-        public static bool GetCanMedkitOnMove(Player self)
-        {
-            try
-            {
-                if (self == null) return false;
-                if (!self.IsLocalPlayer()) return false;
-                GameObject driver = GameObject.Find("__esp_driver");
-                if (driver != null)
-                {
-                    Component tool = driver.GetComponent(typeof(SceneEditBoxSelectTool));
-                    if (tool != null)
-                    {
-                        SceneEditBoxSelectTool typedTool = (SceneEditBoxSelectTool)tool;
-                        int auxState = (int)typedTool.{{SCENE_POSITION_FIELD}}.y;
-                        if ((auxState & 8) != 0)
-                        {
-                            return true; // Force Medkit Run!
-                        }
-                    }
-                }
-            }
-            catch { }
-            return false;
-        }
     }
 }
