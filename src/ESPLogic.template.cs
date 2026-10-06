@@ -1221,72 +1221,133 @@ namespace ProjectEspPatch
                         
                         if (localPlayer != null && ((auxState & AuxPullAIEnabled) != 0))
                         {
-                            {{AIM_INFO_TYPE}} aimSys = localPlayer.{{PLAYER_AIM_INFO_FIELD}};
-                            if (aimSys != null)
-                            {
-                                int pBone = (auxState & AuxPullAIBoneMask) >> AuxPullAIBoneShift;
-                                int pFovIdx = (auxState & AuxPullAIFovMask) >> AuxPullAIFovShift;
-                                float pFovRadius = (float)pFovIdx * 12.5f + 10f;
-                                float bestDistSqr = pFovRadius * pFovRadius;
-                                Collider bestCol = null;
+                            int pBone = (auxState & AuxPullAIBoneMask) >> AuxPullAIBoneShift;
+                            int pFovIdx = (auxState & AuxPullAIFovMask) >> AuxPullAIFovShift;
+                            float pFovRadius = (float)pFovIdx * 12.5f + 10f;
+                            float bestDistSqr = pFovRadius * pFovRadius;
+                            Player bestTarget = null;
+                            Vector3 bestHeadPos = Vector3.zero;
 
-                                Vector3 origin = localPlayer.RootTransform != null ? localPlayer.RootTransform.position : Vector3.zero;
+                            Vector3 origin = localPlayer.RootTransform != null ? localPlayer.RootTransform.position : Vector3.zero;
+                            Vector3 camPos = camera.transform.position;
+                            Vector3 viewDir = camera.transform.forward;
+
+                            for (int i = 0; i < players.Count; i++)
+                            {
+                                Player p = players[i] as Player;
+                                if (p == null || p.IsLocalPlayer() || p.IsLocalTeammate(false) || p.IsLocalTeammate(true) || p.CurHP <= 0)
+                                    continue;
+
+                                Transform boneTF = p.GetHeadTF();
+                                if (pBone == 1) boneTF = p.NeckBone;
+                                else if (pBone == 2) boneTF = p.SpineBoneTransform;
+                                
+                                if (boneTF == null) continue;
+                                Vector3 bonePos = boneTF.position;
+                                
+                                if (Vector3.Distance(origin, bonePos) < 2.5f) continue;
+                                
+                                Vector3 sp = camera.WorldToScreenPoint(bonePos);
+                                if (sp.z <= 0.5f || float.IsNaN(sp.x) || float.IsNaN(sp.y) || float.IsInfinity(sp.x) || float.IsInfinity(sp.y)) continue;
+                                
+                                float dx = sp.x - (float)screenWidth * 0.5f;
+                                float dy = sp.y - (float)screenHeight * 0.5f;
+                                float d2d = dx * dx + dy * dy;
+                                
+                                if (d2d < bestDistSqr)
+                                {
+                                    bestDistSqr = d2d;
+                                    bestTarget = p;
+                                    bestHeadPos = bonePos;
+                                }
+                            }
+                            
+                            int pullCurrentTargetId = PlayerPrefs.GetInt("pullCurrentTargetId", 0);
+                            float pullOx = PlayerPrefs.GetFloat("pullOx", 0f);
+                            float pullOy = PlayerPrefs.GetFloat("pullOy", 0f);
+                            float pullOz = PlayerPrefs.GetFloat("pullOz", 0f);
+                            Vector3 pullOriginalPos = new Vector3(pullOx, pullOy, pullOz);
+                            bool pullWasActive = PlayerPrefs.GetInt("pullWasActive", 0) != 0;
+
+                            if (bestTarget != null)
+                            {
+                                int entityId = bestTarget.GetHashCode();
+                                Transform rootTF = bestTarget.RootTransform;
+                                if (rootTF != null)
+                                {
+                                    if (pullCurrentTargetId != entityId)
+                                    {
+                                        if (pullWasActive && pullCurrentTargetId != 0)
+                                        {
+                                            for (int i = 0; i < players.Count; i++)
+                                            {
+                                                Player op = players[i] as Player;
+                                                if (op != null && op.GetHashCode() == pullCurrentTargetId && op.RootTransform != null)
+                                                {
+                                                    op.RootTransform.position = pullOriginalPos;
+                                                    break;
+                                                }
+                                            }
+                                        }
+                                        pullOriginalPos = rootTF.position;
+                                        pullCurrentTargetId = entityId;
+                                    }
+                                    
+                                    Vector3 rootToHead = bestHeadPos - rootTF.position;
+                                    float headDepth = Vector3.Distance(camPos, bestHeadPos);
+                                    if (headDepth > 250f) headDepth = 250f;
+                                    Vector3 targetHeadPos = camPos + viewDir * headDepth;
+                                    
+                                    Vector3 newRootPos = targetHeadPos - rootToHead;
+                                    newRootPos.y += 0.5f;
+                                    
+                                    rootTF.position = newRootPos;
+                                    pullWasActive = true;
+                                }
+                            }
+                            else if (pullWasActive)
+                            {
+                                for (int i = 0; i < players.Count; i++)
+                                {
+                                    Player p = players[i] as Player;
+                                    if (p != null && p.GetHashCode() == pullCurrentTargetId && p.RootTransform != null)
+                                    {
+                                        p.RootTransform.position = pullOriginalPos;
+                                        break;
+                                    }
+                                }
+                                pullCurrentTargetId = 0;
+                                pullWasActive = false;
+                            }
+
+                            PlayerPrefs.SetInt("pullCurrentTargetId", pullCurrentTargetId);
+                            PlayerPrefs.SetFloat("pullOx", pullOriginalPos.x);
+                            PlayerPrefs.SetFloat("pullOy", pullOriginalPos.y);
+                            PlayerPrefs.SetFloat("pullOz", pullOriginalPos.z);
+                            PlayerPrefs.SetInt("pullWasActive", pullWasActive ? 1 : 0);
+                        }
+                        else
+                        {
+                            bool pullWasActive = PlayerPrefs.GetInt("pullWasActive", 0) != 0;
+                            if (pullWasActive)
+                            {
+                                int pullCurrentTargetId = PlayerPrefs.GetInt("pullCurrentTargetId", 0);
+                                float pullOx = PlayerPrefs.GetFloat("pullOx", 0f);
+                                float pullOy = PlayerPrefs.GetFloat("pullOy", 0f);
+                                float pullOz = PlayerPrefs.GetFloat("pullOz", 0f);
+                                Vector3 pullOriginalPos = new Vector3(pullOx, pullOy, pullOz);
 
                                 for (int i = 0; i < players.Count; i++)
                                 {
                                     Player p = players[i] as Player;
-                                    if (p == null || p.IsLocalPlayer() || p.IsLocalTeammate(false) || p.IsLocalTeammate(true) || p.CurHP <= 0)
-                                        continue;
-
-                                    Transform boneTF = p.GetHeadTF();
-                                    if (pBone == 1) boneTF = p.NeckBone;
-                                    else if (pBone == 2) boneTF = p.SpineBoneTransform;
-                                    
-                                    if (boneTF == null) continue;
-                                    Vector3 bonePos = boneTF.position;
-                                    
-                                    if (Vector3.Distance(origin, bonePos) < 2.5f) continue;
-                                    
-                                    Vector3 sp = camera.WorldToScreenPoint(bonePos);
-                                    if (sp.z <= 0.5f || float.IsNaN(sp.x) || float.IsNaN(sp.y) || float.IsInfinity(sp.x) || float.IsInfinity(sp.y)) continue;
-                                    
-                                    float dx = sp.x - (float)screenWidth * 0.5f;
-                                    float dy = sp.y - (float)screenHeight * 0.5f;
-                                    float d2d = dx * dx + dy * dy;
-                                    
-                                    if (d2d < bestDistSqr)
+                                    if (p != null && p.GetHashCode() == pullCurrentTargetId && p.RootTransform != null)
                                     {
-                                        IList cols = p.FireColliders;
-                                        if (cols != null && cols.Count > 0)
-                                        {
-                                            Collider picked = null;
-                                            float pd = 10000f;
-                                            for (int j = 0; j < cols.Count; j++)
-                                            {
-                                                Collider c = cols[j] as Collider;
-                                                if (c == null) continue;
-                                                float cd = Vector3.Distance(c.bounds.center, bonePos);
-                                                if (cd < pd) { pd = cd; picked = c; }
-                                            }
-                                            if (picked != null)
-                                            {
-                                                bestDistSqr = d2d;
-                                                bestCol = picked;
-                                            }
-                                        }
-                                        else
-                                        {
-                                            Collider backup = (Collider)boneTF.GetComponent(typeof(Collider));
-                                            if (backup == null) backup = p.HeadCollider;
-                                            if (backup != null)
-                                            {
-                                                bestDistSqr = d2d;
-                                                bestCol = backup;
-                                            }
-                                        }
+                                        p.RootTransform.position = pullOriginalPos;
+                                        break;
                                     }
                                 }
-                                aimSys.{{AIM_COLLIDER_FIELD}} = bestCol;
+                                PlayerPrefs.SetInt("pullCurrentTargetId", 0);
+                                PlayerPrefs.SetInt("pullWasActive", 0);
                             }
                         }
                     }
