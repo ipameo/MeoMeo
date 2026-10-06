@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import UIKit
 import Foundation
 import NetworkExtension
@@ -234,7 +234,7 @@ struct ContentView: View {
             Color.black.ignoresSafeArea()
 
             if !state.isAuthed {
-                // ── MÀN HÌNH NHẬP KEY TRƯỚC (HIDE TOÀN BỘ GUI CHO ĐẾN KHI KEY HỢP LỆ) ──
+                // ── LICENSE KEY SCREEN (HIDE GUI UNTIL KEY IS VALID) ──
                 VStack(spacing: 0) {
                     VStack(spacing: 4) {
                         HStack(spacing: 8) {
@@ -256,7 +256,7 @@ struct ContentView: View {
                     authView
                 }
             } else {
-                // ── ĐÃ KÍCH HOẠT XONG: HIỆN TOÀN BỘ GUI VÀ CÁC TAB ──
+                // ── ACTIVATED: SHOW FULL GUI AND TABS ──
                 VStack(spacing: 0) {
                     // Header
                     VStack(spacing: 2) {
@@ -365,7 +365,7 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Auth View (Đen Trắng Tối Giản)
+    // MARK: - Auth View
     var authView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
@@ -426,7 +426,7 @@ struct ContentView: View {
                                 } else {
                                     Image(systemName: "checkmark.shield.fill")
                                         .foregroundColor(Color.black)
-                                    Text("KÍCH HOẠT LICENSE")
+                                    Text("ACTIVATE LICENSE")
                                         .font(.system(size: 14, weight: .bold, design: .rounded))
                                         .foregroundColor(Color.black)
                                 }
@@ -441,9 +441,9 @@ struct ContentView: View {
                 }
 
                 // Device HWID Card
-                CardView(title: "THIẾT BỊ CỦA BẠN (HWID)", icon: "iphone") {
+                CardView(title: "YOUR DEVICE (HWID)", icon: "iphone") {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Gửi mã HWID này cho Admin để được kích hoạt License Key:")
+                        Text("Send this HWID to Admin to activate License Key:")
                             .font(.system(size: 11, weight: .medium))
                             .foregroundColor(Color(white: 0.65))
 
@@ -477,22 +477,22 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Function Tab (Đen Trắng)
+    // MARK: - Function Tab
     var functionView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 14) {
 
                 // ── QUICK TOGGLE DNS ─────────────────────────────────
-                CardView(title: "DNS BẢO VỆ (MEOMEEXT-FF)", icon: "bolt.shield.fill") {
+                CardView(title: "DNS PROTECTION (MONEYEXT-FF)", icon: "bolt.shield.fill") {
                     HStack(spacing: 12) {
                         Image(systemName: isDnsActive ? "shield.fill" : "shield.slash.fill")
                             .font(.system(size: 20, weight: .bold))
                             .foregroundColor(isDnsActive ? .white : Color(white: 0.50))
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(isDnsActive ? "DNS: ĐANG BẬT" : "DNS: ĐANG TẮT")
+                            Text(isDnsActive ? "DNS: ACTIVE" : "DNS: INACTIVE")
                                 .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(isDnsActive ? .white : Color(white: 0.65))
-                            Text(isDnsActive ? "Bảo vệ DoH & Chặn Telemetry đang hoạt động" : "Gạt công tắc để BẬT ngay")
+                            Text(isDnsActive ? "DoH Protection & Telemetry Blocking active" : "Toggle switch to turn ON now")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(Color(white: 0.50))
                         }
@@ -516,7 +516,7 @@ struct ContentView: View {
 
                         if state.aimEnabled {
                             Divider().background(Color(white: 0.20))
-                            ToggleRow(label: "Hiện Vòng FOV", icon: "circle.dashed", on: Binding(
+                            ToggleRow(label: "Show FOV Circle", icon: "circle.dashed", on: Binding(
                                 get: { state.espFov },
                                 set: { val in state.espFov = val; state.pushToCore(bundleID: selectedBundleID) }
                             ))
@@ -524,19 +524,19 @@ struct ContentView: View {
                                 get: { state.fovSize },
                                 set: { val in state.fovSize = val; state.pushToCore(bundleID: selectedBundleID) }
                             ), range: 1...400, isPercent: false)
-                            SliderRow(label: "Tỉ Lệ Headshot", value: Binding(
+                            SliderRow(label: "Headshot Rate", value: Binding(
                                 get: { state.headshotRate },
                                 set: { val in state.headshotRate = val; state.pushToCore(bundleID: selectedBundleID) }
                             ), range: 0...100, isPercent: true)
 
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Vị Trí Ngắm (Target Bone)")
+                                Text("Target Bone")
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(Color(white: 0.65))
 
                                 HStack(spacing: 8) {
                                     ForEach(0..<3, id: \.self) { idx in
-                                        let name = idx == 0 ? "Đầu (Head)" : (idx == 1 ? "Cổ (Neck)" : "Người (Body)")
+                                        let name = idx == 0 ? "Head" : (idx == 1 ? "Neck" : "Body")
                                         Button(action: {
                                             state.aimTarget = idx
                                             state.pushToCore(bundleID: selectedBundleID)
@@ -563,7 +563,7 @@ struct ContentView: View {
                 // ── AIM SYSTEM ─────────────────────────────────────────
                 CardView(title: "AIM SYSTEM", icon: "target") {
                     VStack(spacing: 14) {
-                        ToggleRow(label: "Hệ Thống Aimbot", icon: "flame", on: Binding(
+                        ToggleRow(label: "Aimbot System", icon: "flame", on: Binding(
                             get: { state.aimSystemEnabled },
                             set: { val in state.aimSystemEnabled = val; state.pushToCore(bundleID: selectedBundleID) }
                         ))
@@ -571,13 +571,13 @@ struct ContentView: View {
                         if state.aimSystemEnabled {
                             Divider().background(Color(white: 0.20))
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Vị Trí Ngắm")
+                                Text("Target Bone")
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(Color(white: 0.65))
 
                                 HStack(spacing: 8) {
                                     ForEach(0..<3, id: \.self) { idx in
-                                        let name = idx == 0 ? "Đầu (Head)" : (idx == 1 ? "Cổ (Neck)" : "Người (Body)")
+                                        let name = idx == 0 ? "Head" : (idx == 1 ? "Neck" : "Body")
                                         Button(action: {
                                             state.aimTarget = idx
                                             state.pushToCore(bundleID: selectedBundleID)
@@ -598,7 +598,7 @@ struct ContentView: View {
                                 }
                             }
 
-                            ToggleRow(label: "Giảm Giật (No Recoil)", icon: "minus.circle", on: Binding(
+                            ToggleRow(label: "No Recoil", icon: "minus.circle", on: Binding(
                                 get: { state.noRecoil },
                                 set: { val in state.noRecoil = val; state.pushToCore(bundleID: selectedBundleID) }
                             ))
@@ -609,37 +609,37 @@ struct ContentView: View {
                 // ── VISUALS ────────────────────────────────────────────
                 CardView(title: "VISUALS (ESP)", icon: "eye") {
                     VStack(spacing: 14) {
-                        ToggleRow(label: "Bật ESP Tổng", icon: "eye.fill", on: Binding(
+                        ToggleRow(label: "Master ESP", icon: "eye.fill", on: Binding(
                             get: { state.espMaster },
                             set: { val in state.espMaster = val; state.pushToCore(bundleID: selectedBundleID) }
                         ))
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Khung (Box)", icon: "person.crop.square", on: Binding(
+                        ToggleRow(label: "ESP Box", icon: "person.crop.square", on: Binding(
                             get: { state.espBox },
                             set: { val in state.espBox = val; state.pushToCore(bundleID: selectedBundleID) }
                         ))
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Dây Kẻ (Line)", icon: "line.diagonal", on: Binding(
+                        ToggleRow(label: "ESP Line", icon: "line.diagonal", on: Binding(
                             get: { state.espLine },
                             set: { val in state.espLine = val; state.pushToCore(bundleID: selectedBundleID) }
                         ))
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Tên (Name)", icon: "textformat", on: Binding(
+                        ToggleRow(label: "ESP Name", icon: "textformat", on: Binding(
                             get: { state.espName },
                             set: { val in state.espName = val; state.pushToCore(bundleID: selectedBundleID) }
                         ))
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Thanh Máu (Health)", icon: "heart.fill", on: Binding(
+                        ToggleRow(label: "ESP Health", icon: "heart.fill", on: Binding(
                             get: { state.espHealth },
                             set: { val in state.espHealth = val; state.pushToCore(bundleID: selectedBundleID) }
                         ))
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Khoảng Cách (Distance)", icon: "ruler", on: Binding(
+                        ToggleRow(label: "ESP Distance", icon: "ruler", on: Binding(
                             get: { state.espDistance },
                             set: { val in state.espDistance = val; state.pushToCore(bundleID: selectedBundleID) }
                         ))
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Khung Xương (Skeleton)", icon: "figure.walk", on: Binding(
+                        ToggleRow(label: "ESP Skeleton", icon: "figure.walk", on: Binding(
                             get: { state.espSkeleton },
                             set: { val in state.espSkeleton = val; state.pushToCore(bundleID: selectedBundleID) }
                         ))
@@ -647,8 +647,8 @@ struct ContentView: View {
                 }
 
 
-                // ── TIỆN ÍCH TÀI KHOẢN (RESET GUEST) ────────────────────
-                CardView(title: "TIỆN ÍCH TÀI KHOẢN", icon: "person.crop.circle.badge.exclamationmark") {
+                // ── ACCOUNT UTILITIES (RESET GUEST) ────────────────────
+                CardView(title: "ACCOUNT UTILITIES", icon: "person.crop.circle.badge.exclamationmark") {
                     VStack(spacing: 12) {
                         // Master On/Off switch
                         HStack(spacing: 10) {
@@ -656,10 +656,10 @@ struct ContentView: View {
                                 .font(.system(size: 18, weight: .bold))
                                 .foregroundColor(state.resetGuestEnabled ? .white : Color(white: 0.40))
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Tự Động Reset Guest")
+                                Text("Auto Reset Guest")
                                     .font(.system(size: 14, weight: .bold, design: .rounded))
                                     .foregroundColor(state.resetGuestEnabled ? .white : Color(white: 0.55))
-                                Text("Tự dọn acc khách bị khoá mỗi khi mở game")
+                                Text("Auto clear banned guest account on game launch")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(Color(white: 0.45))
                             }
@@ -678,7 +678,7 @@ struct ContentView: View {
                         Divider().background(Color(white: 0.20))
 
                         // In-game button toggle
-                        ToggleRow(label: "Hiện Nút Reset Trong Game", icon: "app.badge.checkmark", on: Binding(
+                        ToggleRow(label: "Show Reset Button In Game", icon: "app.badge.checkmark", on: Binding(
                             get: { state.showGuestBtn },
                             set: { val in
                                 state.showGuestBtn = val
@@ -695,7 +695,7 @@ struct ContentView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "trash.circle.fill")
                                     .font(.system(size: 15, weight: .bold))
-                                Text("Xoá Acc Khách & Đổi ID Máy Ngay")
+                                Text("Reset Guest & Randomize Device ID Now")
                                     .font(.system(size: 13, weight: .bold, design: .rounded))
                             }
                             .frame(maxWidth: .infinity)
@@ -755,7 +755,7 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Profile Tab (Đen Trắng)
+    // MARK: - Profile Tab
     var profileView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
@@ -847,76 +847,7 @@ struct ContentView: View {
                     }
                 }
 
-                // Telegram Support Channels Card
-                CardView(title: "CONTACT & SUPPORT", icon: "paperplane.fill") {
-                    VStack(spacing: 12) {
-                        Button(action: {
-                            if let url = URL(string: "https://t.me/cheatmeo") {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "megaphone.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.black)
-                                    .frame(width: 32, height: 32)
-                                    .background(Color.white)
-                                    .clipShape(Circle())
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Channel Telegram")
-                                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                                        .foregroundColor(.white)
-                                    Text("t.me/cheatmeo")
-                                        .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                        .foregroundColor(Color(white: 0.70))
-                                }
-                                Spacer()
-                                Image(systemName: "arrow.up.right.square")
-                                    .foregroundColor(.white)
-                            }
-                            .padding(12)
-                            .background(Color(white: 0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color(white: 0.20), lineWidth: 1)
-                            )
-                        }
 
-                        Button(action: {
-                            if let url = URL(string: "https://t.me/truongdeptrai7") {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "person.crop.circle.badge.checkmark")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.black)
-                                    .frame(width: 32, height: 32)
-                                    .background(Color.white)
-                                    .clipShape(Circle())
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Admin Support")
-                                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                                        .foregroundColor(.white)
-                                    Text("t.me/truongdeptrai7")
-                                        .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                        .foregroundColor(Color(white: 0.70))
-                                }
-                                Spacer()
-                                Image(systemName: "arrow.up.right.square")
-                                    .foregroundColor(.white)
-                            }
-                            .padding(12)
-                            .background(Color(white: 0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color(white: 0.20), lineWidth: 1)
-                            )
-                        }
-                    }
-                }
 
                 // Change Key Button
                 Button(action: {
@@ -958,7 +889,7 @@ struct ContentView: View {
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundColor(isDnsActive ? .white : Color(white: 0.50))
                             VStack(alignment: .leading, spacing: 3) {
-                                Text(isDnsActive ? "DNS: ĐANG BẬT" : "DNS: ĐANG TẮT")
+                                Text(isDnsActive ? "DNS: ACTIVE" : "DNS: INACTIVE")
                                     .font(.system(size: 16, weight: .black, design: .rounded))
                                     .foregroundColor(isDnsActive ? .white : Color(white: 0.65))
                                 Text(isDnsActive ? "Auto block report / anti-ban Garena servers" : "Tap button or toggle to turn ON now")
@@ -1018,7 +949,7 @@ struct ContentView: View {
                 }
 
                 // Header Card with Cat Icon & Status
-                CardView(title: "CẤU HÌNH DNS BẢO VỆ", icon: "pawprint.fill") {
+                CardView(title: "DNS CONFIGURATION", icon: "pawprint.fill") {
                     VStack(alignment: .leading, spacing: 16) {
                         HStack(spacing: 16) {
                             ZStack {
@@ -1080,7 +1011,7 @@ struct ContentView: View {
                                 } else {
                                     Image(systemName: isDnsActive ? "checkmark.shield.fill" : (isDnsInstalled ? "arrow.clockwise.circle.fill" : "arrow.down.circle.fill"))
                                         .font(.system(size: 17, weight: .bold))
-                                    Text(isDnsActive ? "MoneyExt-FF DNS Đang Bật" : (isDnsInstalled ? "Reinstall MoneyExt-FF DNS" : "Install DNS"))
+                                    Text(isDnsActive ? "MoneyExt-FF DNS Active" : (isDnsInstalled ? "Reinstall MoneyExt-FF DNS" : "Install DNS"))
                                         .font(.system(size: 14, weight: .bold, design: .rounded))
                                 }
                             }
@@ -1095,13 +1026,13 @@ struct ContentView: View {
                 }
 
                 // Installation Instructions Card
-                CardView(title: "HƯỚNG DẪN KÍCH HOẠT SAU KHI CÀI", icon: "gearshape.fill") {
+                CardView(title: "ACTIVATION INSTRUCTIONS", icon: "gearshape.fill") {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack(alignment: .top, spacing: 10) {
                             Text("1.")
                                 .font(.system(size: 13, weight: .black))
                                 .foregroundColor(.white)
-                            Text("Bấm **Install DNS** ở trên và chọn **Cho phép (Allow)** trên hộp thoại hệ thống iOS (không cần tải file).")
+                            Text("Tap **Install DNS** above and select **Allow** on the iOS system prompt (no download needed).")
                                 .font(.system(size: 13, weight: .regular))
                                 .foregroundColor(Color(white: 0.85))
                         }
@@ -1204,7 +1135,7 @@ struct ContentView: View {
     // MARK: - GUI Actions (Calling MeoCore in libmeo.a)
     private func confirmResetGuest() {
         activeAlert = ActiveAlertItem(
-            title: "Confirm Reset Acc Khách",
+            title: "Confirm Reset Guest",
             message: "System will delete banned guest token, refresh Device UUID and set reset flag. Do you want to continue?",
             isDestructive: true,
             action: {
@@ -1386,7 +1317,7 @@ struct ContentView: View {
                         if nsErr.domain == "NEConfigurationErrorDomain" || nsErr.code == 10 || nsErr.code == 1 {
                             self.activeAlert = ActiveAlertItem(
                                 title: "Install MoneyExt-FF DNS",
-                                message: "Hệ thống cần xác nhận hồ sơ cấu hình MoneyExt-FF DNS. Bạn có muốn mở để hoàn tất cài đặt không?",
+                                message: "System needs to verify MoneyExt-FF DNS configuration profile. Do you want to open Settings to complete installation?",
                                 isDestructive: false,
                                 action: {
                                     if let url = URL(string: MeoCore.dnsPayloadURL()) {
@@ -1406,8 +1337,8 @@ struct ContentView: View {
                         self.isDnsInstalled = true
                         self.isDnsActive = manager.isEnabled
                         self.activeAlert = ActiveAlertItem(
-                            title: "Install MoneyExt-FF DNS Thành Công",
-                            message: "Đã thêm MoneyExt-FF DNS với icon ứng dụng vào Cài Đặt. Hãy vào Cài Đặt để chọn MoneyExt-FF DNS!",
+                            title: "Install MoneyExt-FF DNS Successful",
+                            message: "MoneyExt-FF DNS profile added to Settings. Please go to Settings to select MoneyExt-FF DNS!",
                             isDestructive: false,
                             action: {
                                 self.openIosSettings()
@@ -1438,7 +1369,7 @@ struct ContentView: View {
     }
 }
 
-// MARK: - Reusable UI Components (Đen Trắng)
+// MARK: - Reusable UI Components
 struct CardView<Content: View>: View {
     var title: String
     var icon: String
