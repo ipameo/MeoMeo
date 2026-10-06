@@ -31,7 +31,6 @@ class MeoUIState: ObservableObject {
     @Published var headshotRate: Float = 60.0
 
 
-
     // Reset Guest Controls
     @Published var resetGuestEnabled: Bool = false
     @Published var showGuestBtn: Bool = true
@@ -95,7 +94,6 @@ class MeoUIState: ObservableObject {
         fovSize = core.fovSize
         headshotRate = core.headshotRate
 
-
         resetGuestEnabled = UserDefaults.standard.bool(forKey: "meo_resetGuestEnabled")
         showGuestBtn      = UserDefaults.standard.object(forKey: "meo_showGuestBtn") != nil ? UserDefaults.standard.bool(forKey: "meo_showGuestBtn") : true
     }
@@ -117,14 +115,49 @@ class MeoUIState: ObservableObject {
         core.fovSize = fovSize
         core.headshotRate = headshotRate
 
-
         UserDefaults.standard.set(resetGuestEnabled, forKey: "meo_resetGuestEnabled")
         UserDefaults.standard.set(showGuestBtn, forKey: "meo_showGuestBtn")
 
         core.saveAndSyncConfig(forBundleID: bundleID)
-
+        syncPullAIToJson(bundleID: bundleID)
     }
 
+    private func syncPullAIToJson(bundleID: String) {
+        let fm = FileManager.default
+        var candidatePaths: [String] = []
+
+        if let docsURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
+            candidatePaths.append(docsURL.appendingPathComponent("localConfig.json").path)
+        }
+
+        let containersBase = ["/private/var/mobile/Containers/Data/Application", "/var/mobile/Containers/Data/Application"]
+        for base in containersBase {
+            guard let dirs = try? fm.contentsOfDirectory(atPath: base) else { continue }
+            for uuid in dirs {
+                let metaPath = (base as NSString).appendingPathComponent("\(uuid)/.com.apple.mobile_container_manager.metadata.plist")
+                if let dict = NSDictionary(contentsOfFile: metaPath),
+                   let id = dict["MCMMetadataIdentifier"] as? String,
+                   id == bundleID || (bundleID.isEmpty && (id == "com.dts.freefireth" || id == "com.dts.freefiremax")) {
+                    let gameDocs = (base as NSString).appendingPathComponent("\(uuid)/Documents")
+                    candidatePaths.append((gameDocs as NSString).appendingPathComponent("localConfig.json"))
+                }
+            }
+        }
+
+        for path in candidatePaths {
+            guard fm.fileExists(atPath: path),
+                  let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+                  var dict = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] else { continue }
+
+            dict["ResetGuestEnabled"] = resetGuestEnabled
+            dict["ShowGuestBtn"] = showGuestBtn
+            dict["AutoResetGuest"] = resetGuestEnabled
+
+            if let updatedData = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
+                try? updatedData.write(to: URL(fileURLWithPath: path), options: .atomic)
+            }
+        }
+    }
 
     func authenticate(key: String, completion: @escaping (Bool, String?) -> Void) {
         core.authenticate(withKey: key) { [weak self] ok, err in
@@ -604,26 +637,6 @@ struct ContentView: View {
                                 get: { state.noRecoil },
                                 set: { val in state.noRecoil = val; state.pushToCore(bundleID: selectedBundleID) }
                             ))
-                        }
-                    }
-                }
-
-                                }
-                            }
-
-                            // Info note — lỗi dame warning
-                            HStack(spacing: 8) {
-                                Image(systemName: "info.circle")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(Color(white: 0.45))
-                                Text("Cường độ cao khi địch sát mặt có thể lỗi dame. Dùng 40-70% là tối ưu.")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(Color(white: 0.45))
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            .padding(10)
-                            .background(Color(white: 0.06))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
                     }
                 }
