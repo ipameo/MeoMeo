@@ -594,7 +594,6 @@ namespace ProjectEspPatch
                                 a |= AuxPullAIEnabled;
                                 a |= (pullBone & 0x3) << AuxPullAIBoneShift;
                                 a |= (scaledPullFov & 0x1F) << AuxPullAIFovShift;
-                                s |= AimSystemEnabled;
                             }
                             
                             self.{{SCENE_POSITION_FIELD}} = new Vector2((float)s, (float)a);
