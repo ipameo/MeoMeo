@@ -582,28 +582,24 @@ namespace ProjectEspPatch
                             }
                             Time.timeScale = speedLevel;
 
-                            // Apply BuffDame
+                            // Apply BuffDame & FastFireRatio to PlayerPrefs for hooks
                             bool buffDame = json.Contains("\"BuffDame\":true");
-                            try
+                            PlayerPrefs.SetInt("ESP_BuffDame", buffDame ? 1 : 0);
+
+                            float fastFireRatio = 1.0f;
+                            int ffIdx = json.IndexOf("\"FastFireRatio\":");
+                            if (ffIdx != -1)
                             {
-                                Type gameVarDefType = Type.GetType("COW.GameVarDef, Assembly-CSharp");
-                                if (gameVarDefType != null)
+                                int ffStart = ffIdx + 16;
+                                int ffEnd = json.IndexOf(',', ffStart);
+                                if (ffEnd == -1) ffEnd = json.IndexOf('}', ffStart);
+                                if (ffEnd != -1)
                                 {
-                                    FieldInfo headFi = gameVarDefType.GetField("HitDamageRatioHead", BindingFlags.Public | BindingFlags.Static);
-                                    FieldInfo bodyFi = gameVarDefType.GetField("HitDamageRatioBody", BindingFlags.Public | BindingFlags.Static);
-                                    if (buffDame)
-                                    {
-                                        if (headFi != null) headFi.SetValue(null, 150.0f);
-                                        if (bodyFi != null) bodyFi.SetValue(null, 50.0f);
-                                    }
-                                    else
-                                    {
-                                        if (headFi != null) headFi.SetValue(null, 5.5f); // default FF headshot multiplier
-                                        if (bodyFi != null) bodyFi.SetValue(null, 1.0f);
-                                    }
+                                    string ffStr = json.Substring(ffStart, ffEnd - ffStart).Trim();
+                                    float.TryParse(ffStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out fastFireRatio);
                                 }
                             }
-                            catch { }
+                            PlayerPrefs.SetFloat("ESP_FastFireRatio", fastFireRatio);
                         }
                     }
                     else
