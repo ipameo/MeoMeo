@@ -48,7 +48,11 @@ $FinalPatch = Join-Path $Dist 'Assembly-CSharp-patch.bytes'
 $FinalReport = Join-Path $Dist 'Assembly-CSharp-patch.report.json'
 $FinalVerify = Join-Path $Dist 'Assembly-CSharp-patch.verify.json'
 $FinalManifest = Join-Path $Dist 'Assembly-CSharp-patch.manifest.json'
-$Csc = 'C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe'
+$Csc = if (Test-Path 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe') {
+    'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+} else {
+    'C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe'
+}
 
 [IO.Directory]::CreateDirectory($Generated) | Out-Null
 [IO.Directory]::CreateDirectory($Build) | Out-Null

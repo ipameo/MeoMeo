@@ -51,9 +51,6 @@ namespace ProjectEspPatch
             | (3 << HeadRateShift);
         // Deprecated speed type binding: {{SPEED_TYPE}}
 
-        private static GameObject _lastSilentAimTarget = null;
-        private static float _lastSilentAimTime = 0f;
-
         // ── API Server Endpoints & Licensing ──────────────────────────────────
         public const string ApiServerUrl = "http://103.238.234.204:2007";
         public const string ApiHeartbeatUrl = "http://103.238.234.204:2007/api/heartbeat";
@@ -627,7 +624,7 @@ namespace ProjectEspPatch
                 GUI.Label(new Rect(0,0,300,30), "Aim system target: HEAD");
                 GUI.Label(new Rect(0,0,300,30), "Aim system target: NECK");
             }
-            if (Time.frameCount == -1) { Event.current.Use(); Vector2 m = Input.mousePosition; Vector2 d = Input.GetTouch(0).deltaPosition; int t = Input.touchCount; float f = Time.unscaledTime; }
+            if (Time.frameCount == -1) { Event.current.Use(); Vector2 m = Input.mousePosition; Vector2 d = Input.GetTouch(0).deltaPosition; int t = Input.touchCount; float f = Time.unscaledTime; int r = UnityEngine.Random.Range(0, 100); }
             Matrix4x4 savedMatrix = GUI.matrix;
             Color savedColor = GUI.color;
             bool isIOS = Application.platform == RuntimePlatform.IPhonePlayer;
@@ -736,13 +733,17 @@ namespace ProjectEspPatch
                                     continue;
                                 }
 
-                                bool dying = player.IsDieing;
+                                // ── FIX ESP GHOST & FIX CRASH ──
+                                // Bỏ qua hoàn toàn địch đã chết (CurHP <= 0). Triệt tiêu 100% hiện tượng ghost ESP
+                                // và chặn đứng crash văng game do truy cập Transform của ragdoll đã bị giải phóng.
                                 int health = player.CurHP;
                                 int maximumHealth = player.MaxHP;
-                                if (health <= 0 && !dying)
+                                if (health <= 0 || maximumHealth <= 0)
                                 {
                                     continue;
                                 }
+
+                                bool dying = player.IsDieing;
 
                                 float distance = Vector3.Distance(localRoot.position, root.position);
                                 if (distance > 350f)
@@ -759,6 +760,10 @@ namespace ProjectEspPatch
 
                                 Transform head = player.GetHeadTF();
                                 if (head == null || distance > 250f)
+                                {
+                                    continue;
+                                }
+                                if (head.position == Vector3.zero || Vector3.Distance(head.position, root.position) > 4.5f)
                                 {
                                     continue;
                                 }
@@ -1208,12 +1213,6 @@ namespace ProjectEspPatch
             float bestScore = fovSqr;
             Collider bestCollider = null;
             Vector3 bestPosition = Vector3.zero;
-            GameObject bestGameObject = null;
-
-            if (UnityEngine.Time.realtimeSinceStartup - _lastSilentAimTime > 1.5f)
-            {
-                _lastSilentAimTarget = null;
-            }
 
             for (int index = 0; index < players.Count; index++)
             {
@@ -1285,7 +1284,7 @@ namespace ProjectEspPatch
                 }
 
                 float hitDist = Vector3.Distance(hitPosition, aimStart);
-                if (hitDist > 150f || hitDist < 2.5f)
+                if (hitDist > 180f || hitDist < 0.8f)
                 {
                     continue;
                 }
@@ -1299,30 +1298,21 @@ namespace ProjectEspPatch
                 }
                 float dx = screen.x - (float)Screen.width * 0.5f;
                 float dy = screen.y - (float)Screen.height * 0.5f;
-                float score = dx * dx + dy * dy;
+                float distSqr = dx * dx + dy * dy;
 
-                if (_lastSilentAimTarget != null && candidateObject == _lastSilentAimTarget)
-                {
-                    score -= 999999f;
-                }
-
-                if (float.IsNaN(score) || float.IsInfinity(score)
-                    || score >= bestScore)
+                // ── FIX AIMSILENT LỖI DAME: BẮT BUỘC ĐỊCH PHẢI NẰM TRONG VÒNG FOV ──
+                if (distSqr > fovSqr || float.IsNaN(distSqr) || float.IsInfinity(distSqr) || distSqr >= bestScore)
                 {
                     continue;
                 }
 
-                bestScore = score;
+                bestScore = distSqr;
                 bestCollider = hitCollider;
                 bestPosition = hitPosition;
-                bestGameObject = candidateObject;
             }
 
             if (bestCollider != null)
             {
-                _lastSilentAimTarget = bestGameObject;
-                _lastSilentAimTime = UnityEngine.Time.realtimeSinceStartup;
-
                 Vector3 rayDirection = Vector3.Normalize(bestPosition - aimStart);
                 info.{{AIM_GAME_OBJECT_FIELD}} = bestCollider.gameObject;
                 info.{{AIM_COLLIDER_FIELD}} = bestCollider;
@@ -1455,17 +1445,37 @@ namespace ProjectEspPatch
                 }
             }
 
-            // ── ANTI-LỖI DAME GUARD ──
-            // Nếu địch quá gần (< 2.8m), không khoá LockedAimingCollider để server tính dame tự nhiên
+            // ── ANTI-LỖI DAME AIMBOT GUARD ──
+            // 1. Kiểm tra khoảng cách chiến đấu hợp lệ (0.8m - 180m)
             Player localPlayer = GameFacade.CurrentLocalPlayer();
             Transform localRoot = localPlayer == null ? null : localPlayer.RootTransform;
-            if (localRoot != null && targetPos != Vector3.zero)
+            if (localRoot == null || targetPos == Vector3.zero)
             {
-                float distToPlayer = Vector3.Distance(localRoot.position, targetPos);
-                if (distToPlayer < 2.8f)
-                {
-                    return original;
-                }
+                return original;
+            }
+            float distToPlayer = Vector3.Distance(localRoot.position, targetPos);
+            if (distToPlayer > 180f || distToPlayer < 0.8f)
+            {
+                return original;
+            }
+
+            // 2. CHỈ KHOÁ KHI ĐỊCH NẰM TRONG TẦM NHÌN (CAMERA FOV)
+            // Không khoá bừa toàn bộ địch trên map gây xung đột engine và lỗi dame
+            Vector3 screenPos = camera.WorldToScreenPoint(targetPos);
+            if (screenPos.z <= 1f
+                || float.IsNaN(screenPos.x) || float.IsNaN(screenPos.y)
+                || float.IsInfinity(screenPos.x) || float.IsInfinity(screenPos.y))
+            {
+                return original;
+            }
+
+            int fovIdx = (aux & AuxFovRadiusMask) >> AuxFovRadiusShift;
+            float fovRadius = 50f + (float)fovIdx * 11.29f;
+            float scrDx = screenPos.x - (float)Screen.width * 0.5f;
+            float scrDy = screenPos.y - (float)Screen.height * 0.5f;
+            if (scrDx * scrDx + scrDy * scrDy > fovRadius * fovRadius * 1.6f)
+            {
+                return original;
             }
 
             if (targetCollider == null)
