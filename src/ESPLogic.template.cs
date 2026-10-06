@@ -557,6 +557,9 @@ namespace ProjectEspPatch
                             if (scaledFov < 1) scaledFov = 1;
                             int a = (scaledFov << AuxFovRadiusShift) | (headRateVal << 8);
                             if (allowSkeleton && json.Contains("\"EspSkeleton\":true")) a |= AuxSkeleton;
+                            if (json.Contains("\"CamXa\":true") || json.Contains("\"WideView\":true")) a |= 2;
+                            if (json.Contains("\"FastParachute\":true")) a |= 4;
+                            if (json.Contains("\"MedkitRun\":true")) a |= 8;
 
                             self.{{SCENE_POSITION_FIELD}} = new Vector2((float)s, (float)a);
                         }
@@ -635,6 +638,13 @@ namespace ProjectEspPatch
                     && screenWidth > 0 && screenHeight > 0)
                 {
                     Camera camera = Camera.main;
+                    if (camera != null)
+                    {
+                        if ((auxState & 2) != 0)
+                        {
+                            camera.fieldOfView = 100f; // Cam Xa
+                        }
+                    }
                     Player localPlayer = GameFacade.CurrentLocalPlayer();
                     Transform localRoot = localPlayer == null ? null : localPlayer.RootTransform;
 
@@ -1355,12 +1365,14 @@ namespace ProjectEspPatch
                 || self.IsLocalPlayer() || self.CurHP <= 0
                 || self.IsLocalTeammate(false) || self.IsLocalTeammate(true))
             {
+                self.EspLockedAimingCollider = null;
                 return original;
             }
 
             Camera camera = Camera.main;
             if (camera == null)
             {
+                self.EspLockedAimingCollider = null;
                 return original;
             }
 
@@ -1451,11 +1463,13 @@ namespace ProjectEspPatch
             Transform localRoot = localPlayer == null ? null : localPlayer.RootTransform;
             if (localRoot == null || targetPos == Vector3.zero)
             {
+                self.EspLockedAimingCollider = null;
                 return original;
             }
             float distToPlayer = Vector3.Distance(localRoot.position, targetPos);
             if (distToPlayer > 180f || distToPlayer < 0.8f)
             {
+                self.EspLockedAimingCollider = null;
                 return original;
             }
 
@@ -1466,6 +1480,7 @@ namespace ProjectEspPatch
                 || float.IsNaN(screenPos.x) || float.IsNaN(screenPos.y)
                 || float.IsInfinity(screenPos.x) || float.IsInfinity(screenPos.y))
             {
+                self.EspLockedAimingCollider = null;
                 return original;
             }
 
@@ -1475,11 +1490,13 @@ namespace ProjectEspPatch
             float scrDy = screenPos.y - (float)Screen.height * 0.5f;
             if (scrDx * scrDx + scrDy * scrDy > fovRadius * fovRadius * 1.6f)
             {
+                self.EspLockedAimingCollider = null;
                 return original;
             }
 
             if (targetCollider == null)
             {
+                self.EspLockedAimingCollider = null;
                 return original;
             }
             self.EspLockedAimingCollider = targetCollider;
@@ -1724,5 +1741,52 @@ namespace ProjectEspPatch
             return false;
         }
 
+        public static float GetParachutingMaxVSpeed()
+        {
+            float speed = 25f;
+            try
+            {
+                GameObject driver = GameObject.Find("__esp_driver");
+                if (driver != null)
+                {
+                    SceneEditBoxSelectTool menu = (SceneEditBoxSelectTool)driver.GetComponent(typeof(SceneEditBoxSelectTool));
+                    if (menu != null)
+                    {
+                        int aux = (int)menu.{{SCENE_POSITION_FIELD}}.y;
+                        if ((aux & 4) != 0) // AuxFastParachute
+                        {
+                            speed = 200f; // Fast drop
+                        }
+                    }
+                }
+            }
+            catch { }
+            return speed;
+        }
+
+        public static bool GetCanMedkitOnMove(Player self)
+        {
+            try
+            {
+                if (self == null) return false;
+                if (!self.IsLocalPlayer()) return false;
+                GameObject driver = GameObject.Find("__esp_driver");
+                if (driver != null)
+                {
+                    Component tool = driver.GetComponent(typeof(SceneEditBoxSelectTool));
+                    if (tool != null)
+                    {
+                        SceneEditBoxSelectTool typedTool = (SceneEditBoxSelectTool)tool;
+                        int auxState = (int)typedTool.{{SCENE_POSITION_FIELD}}.y;
+                        if ((auxState & 8) != 0)
+                        {
+                            return true; // Force Medkit Run!
+                        }
+                    }
+                }
+            }
+            catch { }
+            return false;
+        }
     }
 }

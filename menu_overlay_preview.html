@@ -579,7 +579,9 @@
             noRecoil: false,
             aimSystemTargetHead: true, // true: HEAD, false: NECK
             // SETTINGS Bitmask
+            camXa: false,
             fastParachute: false,
+            medkitRun: false,
             speedRunning: false,
             espDemoActive: true
         };
@@ -640,8 +642,10 @@
                 }
             } 
             else if (state.activeTab === 2) {
-                // Tab SETTINGS (4 rows)
+                // Tab SETTINGS
+                addRow("Cam xa (Wide View)", state.camXa, () => { state.camXa = !state.camXa; });
                 addRow("Fast parachute", state.fastParachute, () => { state.fastParachute = !state.fastParachute; });
+                addRow("Medkit run", state.medkitRun, () => { state.medkitRun = !state.medkitRun; });
                 addRow("Speed running x3", state.speedRunning, () => { state.speedRunning = !state.speedRunning; });
                 addRowClickable("RESET DEFAULTS", resetDefaults);
                 addRowClickable("HIDE MENU", () => { toggleMenu(false); });
