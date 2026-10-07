@@ -179,16 +179,42 @@ class MeoUIState: ObservableObject {
         }
 
         for path in candidatePaths {
-            guard fm.fileExists(atPath: path),
-                  let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-                  var dict = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] else { continue }
+            var dict: [String: Any] = [:]
+            if fm.fileExists(atPath: path),
+               let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+               let existingDict = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] {
+                dict = existingDict
+            }
 
-            dict["ResetGuestEnabled"] = resetGuestEnabled
-            dict["ShowGuestBtn"] = showGuestBtn
-            dict["AutoResetGuest"] = resetGuestEnabled
-            dict["testCodePatch"] = true
+            dict["EspMaster"] = espMaster ? 1 : 0
+            dict["EspBox"] = espBox ? 1 : 0
+            dict["EspLine"] = espLine ? 1 : 0
+            dict["EspName"] = espName ? 1 : 0
+            dict["EspHealth"] = espHealth ? 1 : 0
+            dict["EspDistance"] = espDistance ? 1 : 0
+            dict["EspSkeleton"] = espSkeleton ? 1 : 0
+            
+            dict["AimEnabled"] = aimEnabled ? 1 : 0
+            dict["AimSystemEnabled"] = aimSystemEnabled ? 1 : 0
+            dict["EspFov"] = espFov ? 1 : 0
+            dict["NoRecoil"] = noRecoil ? 1 : 0
+            dict["AimTarget"] = aimTarget
+            dict["FovSize"] = fovSize
+            dict["HeadshotRate"] = headshotRate
+            dict["BuffDame"] = buffDame ? 1 : 0
+            dict["SpeedHack"] = speedHack
 
-            if let updatedData = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
+            dict["ResetGuestEnabled"] = resetGuestEnabled ? 1 : 0
+            dict["ShowGuestBtn"] = showGuestBtn ? 1 : 0
+            dict["AutoResetGuest"] = resetGuestEnabled ? 1 : 0
+            dict["testCodePatch"] = 1
+
+            let dir = (path as NSString).deletingLastPathComponent
+            if !fm.fileExists(atPath: dir) {
+                try? fm.createDirectory(atPath: dir, withIntermediateDirectories: true, attributes: nil)
+            }
+
+            if let updatedData = try? JSONSerialization.data(withJSONObject: dict, options: []) {
                 try? updatedData.write(to: URL(fileURLWithPath: path), options: .atomic)
             }
         }

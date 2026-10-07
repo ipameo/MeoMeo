@@ -1170,7 +1170,11 @@ namespace ProjectEspPatch
             }
             try
             {
-                int state = PlayerPrefs.GetInt("ESP_State", 0);
+                GameObject driver = GameObject.Find("__esp_driver");
+                SceneEditBoxSelectTool menu = driver == null
+                    ? null
+                    : (SceneEditBoxSelectTool)driver.GetComponent(typeof(SceneEditBoxSelectTool));
+                int state = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.x;
                 if ((state & AimEnabled) == 0)
                 {
                     return info;
@@ -1185,7 +1189,7 @@ namespace ProjectEspPatch
                 }
 
                 int targetBone = (state & AimModeMask) >> AimModeShift;
-                int aux = PlayerPrefs.GetInt("ESP_Aux", 0);
+                int aux = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.y;
                 int headRate = (aux >> 8) & 0xFF;
                 bool aimAtNeck = (targetBone == 1);
                 Vector3 aimStart = self.AimStartPostion;
@@ -1334,8 +1338,30 @@ namespace ProjectEspPatch
             try
             {
                 original = self.EspBaseIsMovableEntity();
-                int state = PlayerPrefs.GetInt("ESP_State", 0);
-                int aux = PlayerPrefs.GetInt("ESP_Aux", 0);
+                
+                if (Time.frameCount % 15 == 0)
+                {
+                    GameObject driver = GameObject.Find("__esp_driver");
+                    bool createdDriver = false;
+                    if (driver == null)
+                    {
+                        Camera _camera = Camera.main;
+                        Transform legacyFov = _camera == null ? null : _camera.transform.Find("__esp_fov");
+                        if (legacyFov != null) UnityEngine.Object.Destroy(legacyFov.gameObject);
+                        driver = new GameObject("__esp_driver");
+                        createdDriver = true;
+                    }
+                    Component component = driver.GetComponent(typeof(SceneEditBoxSelectTool));
+                    if (component == null) component = driver.AddComponent(typeof(SceneEditBoxSelectTool));
+                    if (component == null) { if (createdDriver) UnityEngine.Object.Destroy(driver); }
+                    else { if (createdDriver) UnityEngine.Object.DontDestroyOnLoad(driver); }
+                }
+                GameObject driver_menu = GameObject.Find("__esp_driver");
+                SceneEditBoxSelectTool menu = driver_menu == null
+                    ? null
+                    : (SceneEditBoxSelectTool)driver_menu.GetComponent(typeof(SceneEditBoxSelectTool));
+                int state = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.x;
+                int aux = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.y;
                 if ((state & AimSystemEnabled) == 0
                     || self.gameObject == null || !self.gameObject.activeInHierarchy
                     || self.IsLocalPlayer() || self.IsDead || self.IsReallyDead || self.CurHP <= 0
@@ -1492,7 +1518,11 @@ namespace ProjectEspPatch
             }
             try
             {
-                int state = PlayerPrefs.GetInt("ESP_State", 0);
+                GameObject driver_menu = GameObject.Find("__esp_driver");
+                SceneEditBoxSelectTool menu = driver_menu == null
+                    ? null
+                    : (SceneEditBoxSelectTool)driver_menu.GetComponent(typeof(SceneEditBoxSelectTool));
+                int state = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.x;
                 if ((state & NoRecoil) != 0)
                 {
                     return 0f;
@@ -1516,6 +1546,24 @@ namespace ProjectEspPatch
         {
             try
             {
+                if (Time.frameCount % 15 == 0)
+                {
+                    GameObject driver = GameObject.Find("__esp_driver");
+                    bool createdDriver = false;
+                    if (driver == null)
+                    {
+                        Camera camera = Camera.main;
+                        Transform legacyFov = camera == null ? null : camera.transform.Find("__esp_fov");
+                        if (legacyFov != null) UnityEngine.Object.Destroy(legacyFov.gameObject);
+                        driver = new GameObject("__esp_driver");
+                        createdDriver = true;
+                    }
+                    Component component = driver.GetComponent(typeof(SceneEditBoxSelectTool));
+                    if (component == null) component = driver.AddComponent(typeof(SceneEditBoxSelectTool));
+                    if (component == null) { if (createdDriver) UnityEngine.Object.Destroy(driver); }
+                    else { if (createdDriver) UnityEngine.Object.DontDestroyOnLoad(driver); }
+                }
+
                 string docDir = Application.persistentDataPath;
                 if (!string.IsNullOrEmpty(docDir))
                 {
