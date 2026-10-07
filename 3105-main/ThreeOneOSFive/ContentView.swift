@@ -105,6 +105,9 @@ struct EspConfig: Codable, Equatable {
     var AimSystemEnabled: Bool = false // Aim System
     var EspFov: Bool = false
     var NoRecoil: Bool = false
+    var reset_guest: Bool = false
+    var resetGuest: Bool = false
+    var resetGuestBeforeLogin: Bool = false
     var BuffDame: Bool = false
     var SpeedHack: Int = 1
     var AimTarget: Int = 0             // 0=Head, 1=Neck, 2=Body
@@ -142,6 +145,9 @@ struct EspConfig: Codable, Equatable {
         AimSystemEnabled = try c.decodeIfPresent(Bool.self, forKey: .AimSystemEnabled) ?? false
         EspFov = try c.decodeIfPresent(Bool.self, forKey: .EspFov) ?? false
         NoRecoil = try c.decodeIfPresent(Bool.self, forKey: .NoRecoil) ?? false
+        reset_guest = try c.decodeIfPresent(Bool.self, forKey: .reset_guest) ?? false
+        resetGuest = try c.decodeIfPresent(Bool.self, forKey: .resetGuest) ?? false
+        resetGuestBeforeLogin = try c.decodeIfPresent(Bool.self, forKey: .resetGuestBeforeLogin) ?? false
         BuffDame = try c.decodeIfPresent(Bool.self, forKey: .BuffDame) ?? false
         SpeedHack = try c.decodeIfPresent(Int.self, forKey: .SpeedHack) ?? 1
         AimTarget = try c.decodeIfPresent(Int.self, forKey: .AimTarget) ?? 0
@@ -733,6 +739,47 @@ struct ContentView: View {
                         ToggleRow(label: "Hiện Khoảng Cách (Distance)", icon: "ruler", on: $config.EspDistance)
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Hiện Khung Xương (Skeleton)", icon: "figure.walk", on: $config.EspSkeleton)
+                    }
+                }
+
+                
+                // ── TIỆN ÍCH TÀI KHOẢN (RESET GUEST) ────────────────────
+                CardView(title: "TIỆN ÍCH TÀI KHOẢN", icon: "person.crop.circle.badge.exclamationmark") {
+                    VStack(spacing: 12) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "arrow.counterclockwise.circle.fill")
+                                .font(.system(size: 18, weight: .bold))
+                                .foregroundColor(.white)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Reset Acc Khách (Guest)")
+                                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                Text("Xoá acc khách bị khoá, đổi Device ID & làm mới MSDK")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(Color(white: 0.45))
+                            }
+                            Spacer()
+                        }
+
+                        Button(action: {
+                            performResetGuest()
+                        }) {
+                            HStack {
+                                Image(systemName: "trash.circle.fill")
+                                    .font(.system(size: 15, weight: .bold))
+                                Text("Xoá Acc Khách & Đổi ID Máy")
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 42)
+                            .foregroundColor(.white)
+                            .background(Color(white: 0.15))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(white: 0.30), lineWidth: 1)
+                            )
+                        }
                     }
                 }
 
