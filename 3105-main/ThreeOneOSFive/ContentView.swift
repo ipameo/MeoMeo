@@ -397,7 +397,7 @@ struct ContentView: View {
                         Image(systemName: "pawprint.fill")
                             .font(.system(size: 19, weight: .bold))
                             .foregroundColor(.white)
-                        Text("Hoá iOS Cheat")
+                        Text("MeoMeoExt")
                             .font(.system(size: 21, weight: .black, design: .rounded))
                             .foregroundColor(.white)
                     }
@@ -876,7 +876,7 @@ struct ContentView: View {
                 CardView(title: "KÊNH LIÊN HỆ & HỖ TRỢ", icon: "paperplane.fill") {
                     VStack(spacing: 12) {
                         Button(action: {
-                            if let url = URL(string: "https://t.me/aehoaios") {
+                            if let url = URL(string: "https://t.me/cheatmeo") {
                                 UIApplication.shared.open(url)
                             }
                         }) {
@@ -891,7 +891,7 @@ struct ContentView: View {
                                     Text("Channel Telegram")
                                         .font(.system(size: 14, weight: .bold, design: .rounded))
                                         .foregroundColor(.white)
-                                    Text("t.me/aehoaios")
+                                    Text("@cheatmeo")
                                         .font(.system(size: 12, weight: .medium, design: .monospaced))
                                         .foregroundColor(Color(white: 0.70))
                                 }
@@ -909,7 +909,7 @@ struct ContentView: View {
                         }
 
                         Button(action: {
-                            if let url = URL(string: "https://t.me/ng_thanhhoa") {
+                            if let url = URL(string: "https://t.me/truongdeptrai7") {
                                 UIApplication.shared.open(url)
                             }
                         }) {
@@ -924,7 +924,7 @@ struct ContentView: View {
                                     Text("Admin Hỗ Trợ")
                                         .font(.system(size: 14, weight: .bold, design: .rounded))
                                         .foregroundColor(.white)
-                                    Text("t.me/ng_thanhhoa")
+                                    Text("@truongdeptrai7")
                                         .font(.system(size: 12, weight: .medium, design: .monospaced))
                                         .foregroundColor(Color(white: 0.70))
                                 }
