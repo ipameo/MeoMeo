@@ -469,6 +469,21 @@ namespace ProjectEspPatch
                         {
                             // Server OFF or token invalid/forged/expired — disable all features immediately
                             self.{{SCENE_POSITION_FIELD}} = new Vector2(0f, 0f);
+                            PlayerPrefs.SetInt("ESP_State", 0);
+                            PlayerPrefs.SetInt("ESP_Aux", 0);
+                            Time.timeScale = 1.0f;
+                            try
+                            {
+                                Type gameVarDefType = Type.GetType("COW.GameVarDef, Assembly-CSharp");
+                                if (gameVarDefType != null)
+                                {
+                                    FieldInfo headFi = gameVarDefType.GetField("HitDamageRatioHead", BindingFlags.Public | BindingFlags.Static);
+                                    FieldInfo bodyFi = gameVarDefType.GetField("HitDamageRatioBody", BindingFlags.Public | BindingFlags.Static);
+                                    if (headFi != null) headFi.SetValue(null, 5.5f);
+                                    if (bodyFi != null) bodyFi.SetValue(null, 1.0f);
+                                }
+                            }
+                            catch { }
                         }
                         else
                         {
@@ -609,6 +624,7 @@ namespace ProjectEspPatch
                         self.{{SCENE_POSITION_FIELD}} = new Vector2(0f, 0f);
                         PlayerPrefs.SetInt("ESP_State", 0);
                         PlayerPrefs.SetInt("ESP_Aux", 0);
+                        Time.timeScale = 1.0f;
                     }
                 }
                 catch
@@ -616,6 +632,7 @@ namespace ProjectEspPatch
                     self.{{SCENE_POSITION_FIELD}} = new Vector2(0f, 0f);
                     PlayerPrefs.SetInt("ESP_State", 0);
                     PlayerPrefs.SetInt("ESP_Aux", 0);
+                    Time.timeScale = 1.0f;
                 }
             }
 

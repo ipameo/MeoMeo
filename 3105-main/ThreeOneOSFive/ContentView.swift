@@ -103,6 +103,34 @@ class MeoUIState: ObservableObject {
         showGuestBtn      = UserDefaults.standard.object(forKey: "meo_showGuestBtn") != nil ? UserDefaults.standard.bool(forKey: "meo_showGuestBtn") : true
     }
 
+    func setMasterActive(_ enabled: Bool, bundleID: String) {
+        core.systemActive = enabled
+        if !enabled {
+            espMaster = false
+            espBox = false
+            espLine = false
+            espName = false
+            espHealth = false
+            espDistance = false
+            espTracer = false
+            espSkeleton = false
+            aimEnabled = false
+            aimSystemEnabled = false
+            espFov = false
+            noRecoil = false
+            buffDame = false
+            speedHack = 1
+            core.resetAllFeatures()
+        } else {
+            espMaster = true
+            aimEnabled = true
+            aimSystemEnabled = true
+            espBox = true
+            espDistance = true
+        }
+        pushToCore(bundleID: bundleID)
+    }
+
     func pushToCore(bundleID: String) {
         core.espMaster = espMaster
         core.espBox = espBox
@@ -137,17 +165,15 @@ class MeoUIState: ObservableObject {
             candidatePaths.append(docsURL.appendingPathComponent("localConfig.json").path)
         }
 
-        let containersBase = ["/private/var/mobile/Containers/Data/Application", "/var/mobile/Containers/Data/Application"]
-        for base in containersBase {
-            guard let dirs = try? fm.contentsOfDirectory(atPath: base) else { continue }
-            for uuid in dirs {
-                let metaPath = (base as NSString).appendingPathComponent("\(uuid)/.com.apple.mobile_container_manager.metadata.plist")
-                if let dict = NSDictionary(contentsOfFile: metaPath),
-                   let id = dict["MCMMetadataIdentifier"] as? String,
-                   id == bundleID || (bundleID.isEmpty && (id == "com.dts.freefireth" || id == "com.dts.freefiremax")) {
-                    let gameDocs = (base as NSString).appendingPathComponent("\(uuid)/Documents")
-                    candidatePaths.append((gameDocs as NSString).appendingPathComponent("localConfig.json"))
-                }
+        let containers = MeoCore.resolveAllGameContainers()
+        for container in containers {
+            let path = (container as NSString).appendingPathComponent("Documents/localConfig.json")
+            candidatePaths.append(path)
+        }
+        if let single = MeoCore.resolveContainer(forBundleID: bundleID) {
+            let path = (single as NSString).appendingPathComponent("Documents/localConfig.json")
+            if !candidatePaths.contains(path) {
+                candidatePaths.append(path)
             }
         }
 
@@ -288,6 +314,7 @@ struct ContentView: View {
                                         let label = (id == "ff") ? "Free Fire" : "Free Fire MAX"
                                         Button(action: {
                                             gameTab = id
+                                            hasInjected = MeoCore.shared().isModInjected(forBundleID: selectedBundleID)
                                             if hasInjected { state.pushToCore(bundleID: selectedBundleID) }
                                         }) {
                                             Text(label)
@@ -368,6 +395,9 @@ struct ContentView: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: .NEDNSSettingsConfigurationDidChange)) { _ in
             checkDnsStatus()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willTerminateNotification)) { _ in
+            state.setMasterActive(false, bundleID: selectedBundleID)
         }
     }
 
@@ -509,6 +539,60 @@ struct ContentView: View {
                         ))
                         .toggleStyle(SlimToggleStyle())
                         .labelsHidden()
+                    }
+                }
+
+                // ── MASTER MOD STATUS & SHUTDOWN ─────────────────────
+                CardView(title: "HỆ THỐNG MOD (MASTER SWITCH)", icon: "power") {
+                    VStack(spacing: 12) {
+                        HStack(spacing: 12) {
+                            Image(systemName: (state.espMaster || state.aimEnabled || state.aimSystemEnabled) ? "bolt.circle.fill" : "power.circle")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor((state.espMaster || state.aimEnabled || state.aimSystemEnabled) ? .white : Color(white: 0.40))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text((state.espMaster || state.aimEnabled || state.aimSystemEnabled) ? "MOD: ĐANG BẬT" : "MOD: ĐÃ TẮT")
+                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                    .foregroundColor(.white)
+                                Text((state.espMaster || state.aimEnabled || state.aimSystemEnabled) ? "Các tính năng đang hoạt động trong game" : "Tất cả chức năng đã tắt an toàn")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(Color(white: 0.50))
+                            }
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { state.espMaster || state.aimEnabled || state.aimSystemEnabled },
+                                set: { val in state.setMasterActive(val, bundleID: selectedBundleID) }
+                            ))
+                            .toggleStyle(SlimToggleStyle())
+                            .labelsHidden()
+                        }
+
+                        Divider().background(Color(white: 0.20))
+
+                        Button(action: {
+                            state.setMasterActive(false, bundleID: selectedBundleID)
+                            activeAlert = ActiveAlertItem(
+                                title: "Đã tắt tất cả",
+                                message: "Đã tắt toàn bộ tính năng hack và đồng bộ vào game!",
+                                isDestructive: false,
+                                action: nil
+                            )
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "stop.circle.fill")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("TẮT TẤT CẢ TÍNH NĂNG (RESET ALL)")
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 36)
+                            .foregroundColor(.white)
+                            .background(Color(white: 0.15))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(white: 0.30), lineWidth: 1)
+                            )
+                        }
                     }
                 }
 
@@ -1284,11 +1368,33 @@ struct ContentView: View {
         MeoCore.shared().uninstallModFromGame(withBundleID: selectedBundleID)
         hasInjected = false
         state.stopHeartbeat()
+        activeAlert = ActiveAlertItem(
+            title: "Đã gỡ cài đặt",
+            message: "Đã gỡ bỏ file mod và cấu hình khỏi game thành công!",
+            isDestructive: false,
+            action: nil
+        )
     }
 
     private func injectGame() {
-        if MeoCore.isDebuggerAttached() { return }
-        guard state.isAuthed else { return }
+        if MeoCore.isDebuggerAttached() {
+            activeAlert = ActiveAlertItem(
+                title: "Bảo mật",
+                message: "Phát hiện Debugger đang gắn vào ứng dụng!",
+                isDestructive: false,
+                action: nil
+            )
+            return
+        }
+        guard state.isAuthed else {
+            activeAlert = ActiveAlertItem(
+                title: "Chưa kích hoạt",
+                message: "Vui lòng kích hoạt License Key trước khi cài đặt mod!",
+                isDestructive: false,
+                action: nil
+            )
+            return
+        }
         state.pushToCore(bundleID: selectedBundleID)
         isInjecting = true
         MeoCore.shared().injectToGame(withBundleID: selectedBundleID) { success, error in
@@ -1297,6 +1403,20 @@ struct ContentView: View {
                 if success {
                     self.hasInjected = true
                     self.currentTab = "Function"
+                    self.activeAlert = ActiveAlertItem(
+                        title: "Cài đặt thành công",
+                        message: "Đã inject Mod vào Free Fire thành công! Hãy vào game để trải nghiệm.",
+                        isDestructive: false,
+                        action: nil
+                    )
+                } else {
+                    self.hasInjected = false
+                    self.activeAlert = ActiveAlertItem(
+                        title: "Lỗi cài đặt Mod",
+                        message: error ?? "Không thể inject vào game. Vui lòng mở Free Fire ít nhất 1 lần.",
+                        isDestructive: false,
+                        action: nil
+                    )
                 }
             }
         }

@@ -21,9 +21,11 @@ typedef void (^MeoTerminatedCallback)(NSString *reason);
 @property (nonatomic, copy, readonly, nullable) NSString *authError;
 @property (nonatomic, copy, readonly) NSString *deviceId;
 @property (nonatomic, copy) NSString *storedKey;
-@property (nonatomic, copy, readonly) NSString *deviceExpires;
-@property (nonatomic, readonly) BOOL systemActive;
+@property (nonatomic, assign) BOOL systemActive;
 @property (nonatomic, copy, readonly) NSDictionary<NSString *, NSNumber *> *serverFeatures;
+
++ (nullable NSString *)resolveContainerForBundleID:(nullable NSString *)bundleID;
++ (NSArray<NSString *> *)resolveAllGameContainers;
 
 // Callbacks from License Engine
 @property (nonatomic, copy, nullable) MeoLiveStateCallback onLiveStateChanged;

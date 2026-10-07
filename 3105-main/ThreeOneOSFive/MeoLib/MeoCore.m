@@ -7,9 +7,11 @@
 #import <UIKit/UIKit.h>
 #import <sys/sysctl.h>
 #import <mach-o/dyld.h>
+#import <objc/message.h>
 
 extern void startBackgroundKeepAlive(void);
 extern void stopBackgroundKeepAlive(void);
+extern NSDictionary<NSString *, NSDictionary *> *installedAppInfo(void);
 
 // Obfuscation helper (XOR)
 static NSString *meo_deobfuscate(const uint8_t *bytes, size_t len, uint8_t key) {
@@ -83,8 +85,17 @@ static NSString *meo_deobfuscate(const uint8_t *bytes, size_t len, uint8_t key) 
         _speedHack = 1;
 
         [self loadConfig];
+
+        [[NSNotificationCenter defaultCenter] addObserver:self
+                                                 selector:@selector(handleAppWillTerminate)
+                                                     name:UIApplicationWillTerminateNotification
+                                                   object:nil];
     }
     return self;
+}
+
+- (void)handleAppWillTerminate {
+    [self resetAllFeatures];
 }
 
 #pragma mark - String Decoders
@@ -406,41 +417,131 @@ static NSString *meo_deobfuscate(const uint8_t *bytes, size_t len, uint8_t key) 
 
 #pragma mark - Container Resolution & Mod Config Engine
 
-static NSString *meo_resolve_container(NSString *bundleID) {
++ (NSString *)resolveContainerForBundleID:(NSString *)bundleID {
     if (!bundleID || bundleID.length == 0) bundleID = @"com.dts.freefireth";
 
-    NSString *containersBase = @"/private/var/mobile/Containers/Data/Application";
+    // Method 1: LaunchServices via LSApplicationProxy (works without sandbox escape)
+    @try {
+        Class lsProxyClass = NSClassFromString(@"LSApplicationProxy");
+        if (lsProxyClass && [lsProxyClass respondsToSelector:NSSelectorFromString(@"applicationProxyForIdentifier:")]) {
+            id proxy = ((id (*)(id, SEL, id))objc_msgSend)(lsProxyClass, NSSelectorFromString(@"applicationProxyForIdentifier:"), bundleID);
+            if (proxy) {
+                for (NSString *selName in @[@"dataContainerURL", @"containerURL"]) {
+                    SEL sel = NSSelectorFromString(selName);
+                    if ([proxy respondsToSelector:sel]) {
+                        id url = ((id (*)(id, SEL))objc_msgSend)(proxy, sel);
+                        NSString *path = [url isKindOfClass:[NSURL class]] ? [url path] : ([url isKindOfClass:[NSString class]] ? url : nil);
+                        if (path.length > 0 && [[NSFileManager defaultManager] fileExistsAtPath:path]) {
+                            return path;
+                        }
+                    }
+                }
+            }
+        }
+    } @catch (NSException *e) {}
+
+    // Method 2: installedAppInfo() from LaunchServices workspace
+    @try {
+        if (&installedAppInfo) {
+            NSDictionary *apps = installedAppInfo();
+            if (apps && apps[bundleID]) {
+                NSString *cPath = apps[bundleID][@"container"];
+                if (cPath.length > 0 && [[NSFileManager defaultManager] fileExistsAtPath:cPath]) {
+                    return cPath;
+                }
+            }
+        }
+    } @catch (NSException *e) {}
+
+    // Method 3: LSApplicationWorkspace query
+    @try {
+        Class wsClass = NSClassFromString(@"LSApplicationWorkspace");
+        if (wsClass && [wsClass respondsToSelector:NSSelectorFromString(@"defaultWorkspace")]) {
+            id ws = ((id (*)(id, SEL))objc_msgSend)(wsClass, NSSelectorFromString(@"defaultWorkspace"));
+            for (NSString *mName in @[@"allInstalledApplications", @"allApplications"]) {
+                SEL mSel = NSSelectorFromString(mName);
+                if ([ws respondsToSelector:mSel]) {
+                    NSArray *list = ((id (*)(id, SEL))objc_msgSend)(ws, mSel);
+                    for (id app in list) {
+                        for (NSString *bSelName in @[@"bundleIdentifier", @"applicationIdentifier"]) {
+                            SEL bSel = NSSelectorFromString(bSelName);
+                            if ([app respondsToSelector:bSel]) {
+                                NSString *bId = ((id (*)(id, SEL))objc_msgSend)(app, bSel);
+                                if ([bId isEqualToString:bundleID]) {
+                                    for (NSString *cSelName in @[@"dataContainerURL", @"containerURL"]) {
+                                        SEL cSel = NSSelectorFromString(cSelName);
+                                        if ([app respondsToSelector:cSel]) {
+                                            id u = ((id (*)(id, SEL))objc_msgSend)(app, cSel);
+                                            NSString *p = [u isKindOfClass:[NSURL class]] ? [u path] : ([u isKindOfClass:[NSString class]] ? u : nil);
+                                            if (p.length > 0 && [[NSFileManager defaultManager] fileExistsAtPath:p]) {
+                                                return p;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } @catch (NSException *e) {}
+
+    // Method 4: Scan application data containers on disk
+    NSArray *roots = @[@"/private/var/mobile/Containers/Data/Application", @"/var/mobile/Containers/Data/Application"];
     NSFileManager *fm = [NSFileManager defaultManager];
-    if (![fm fileExistsAtPath:containersBase]) {
-        containersBase = @"/var/mobile/Containers/Data/Application";
-    }
-
-    NSError *err = nil;
-    NSArray *dirs = [fm contentsOfDirectoryAtPath:containersBase error:&err];
-    if (!err && dirs) {
-        for (NSString *uuid in dirs) {
-            NSString *metadataPath = [[containersBase stringByAppendingPathComponent:uuid] stringByAppendingPathComponent:@".com.apple.mobile_container_manager.metadata.plist"];
-            if ([fm fileExistsAtPath:metadataPath]) {
-                NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:metadataPath];
-                if ([dict[@"MCMMetadataIdentifier"] isEqualToString:bundleID]) {
-                    return [containersBase stringByAppendingPathComponent:uuid];
+    for (NSString *containersBase in roots) {
+        NSError *err = nil;
+        NSArray *dirs = [fm contentsOfDirectoryAtPath:containersBase error:&err];
+        if (!err && dirs) {
+            for (NSString *uuid in dirs) {
+                NSString *containerDir = [containersBase stringByAppendingPathComponent:uuid];
+                NSString *metadataPath = [containerDir stringByAppendingPathComponent:@".com.apple.mobile_container_manager.metadata.plist"];
+                if ([fm fileExistsAtPath:metadataPath]) {
+                    NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:metadataPath];
+                    if ([dict[@"MCMMetadataIdentifier"] isEqualToString:bundleID]) {
+                        return containerDir;
+                    }
                 }
             }
         }
     }
 
-    if (![bundleID isEqualToString:@"com.dts.freefiremax"]) {
-        for (NSString *uuid in dirs) {
-            NSString *metadataPath = [[containersBase stringByAppendingPathComponent:uuid] stringByAppendingPathComponent:@".com.apple.mobile_container_manager.metadata.plist"];
-            if ([fm fileExistsAtPath:metadataPath]) {
-                NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:metadataPath];
-                if ([dict[@"MCMMetadataIdentifier"] isEqualToString:@"com.dts.freefiremax"]) {
-                    return [containersBase stringByAppendingPathComponent:uuid];
+    // Method 5: Fallback to alternative Free Fire bundle ID
+    NSString *altBundle = [bundleID isEqualToString:@"com.dts.freefireth"] ? @"com.dts.freefiremax" : @"com.dts.freefireth";
+    for (NSString *containersBase in roots) {
+        NSError *err = nil;
+        NSArray *dirs = [fm contentsOfDirectoryAtPath:containersBase error:&err];
+        if (!err && dirs) {
+            for (NSString *uuid in dirs) {
+                NSString *containerDir = [containersBase stringByAppendingPathComponent:uuid];
+                NSString *metadataPath = [containerDir stringByAppendingPathComponent:@".com.apple.mobile_container_manager.metadata.plist"];
+                if ([fm fileExistsAtPath:metadataPath]) {
+                    NSDictionary *dict = [NSDictionary dictionaryWithContentsOfFile:metadataPath];
+                    if ([dict[@"MCMMetadataIdentifier"] isEqualToString:altBundle]) {
+                        return containerDir;
+                    }
                 }
             }
         }
     }
+
     return nil;
+}
+
++ (NSArray<NSString *> *)resolveAllGameContainers {
+    NSMutableSet<NSString *> *containers = [NSMutableSet set];
+    for (NSString *bid in @[@"com.dts.freefireth", @"com.dts.freefiremax"]) {
+        NSString *c = [self resolveContainerForBundleID:bid];
+        if (c.length > 0) {
+            [containers addObject:c];
+        }
+    }
+    return [containers allObjects];
+}
+
+static NSString *meo_resolve_container(NSString *bundleID) {
+    return [MeoCore resolveContainerForBundleID:bundleID];
 }
 
 - (void)loadConfig {
@@ -471,6 +572,7 @@ static NSString *meo_resolve_container(NSString *bundleID) {
                     if (dict[@"HeadshotRate"]) self.headshotRate = [dict[@"HeadshotRate"] floatValue];
                     if (dict[@"BuffDame"]) self.buffDame = [dict[@"BuffDame"] boolValue];
                     if (dict[@"SpeedHack"]) self.speedHack = [dict[@"SpeedHack"] integerValue];
+                    if (dict[@"system_active"]) self.systemActive = [dict[@"system_active"] boolValue];
                 }
             }
         }
@@ -500,24 +602,31 @@ static NSString *meo_resolve_container(NSString *bundleID) {
         dict[@"testCodePatch"] = @YES;
 
         // User GUI Settings
-        dict[@"EspMaster"] = @(self.espMaster);
-        dict[@"EspBox"] = @(self.espBox);
-        dict[@"EspLine"] = @(self.espLine);
-        dict[@"EspName"] = @(self.espName);
-        dict[@"EspHealth"] = @(self.espHealth);
-        dict[@"EspDistance"] = @(self.espDistance);
-        dict[@"EspTracer"] = @(self.espTracer);
-        dict[@"EspSkeleton"] = @(self.espSkeleton);
+        dict[@"EspMaster"] = @(self.espMaster && self.systemActive);
+        dict[@"EspBox"] = @(self.espBox && self.systemActive);
+        dict[@"EspLine"] = @(self.espLine && self.systemActive);
+        dict[@"EspName"] = @(self.espName && self.systemActive);
+        dict[@"EspHealth"] = @(self.espHealth && self.systemActive);
+        dict[@"EspDistance"] = @(self.espDistance && self.systemActive);
+        dict[@"EspTracer"] = @(self.espTracer && self.systemActive);
+        dict[@"EspSkeleton"] = @(self.espSkeleton && self.systemActive);
 
-        dict[@"AimEnabled"] = @(self.aimEnabled);
-        dict[@"AimSystemEnabled"] = @(self.aimSystemEnabled);
-        dict[@"EspFov"] = @(self.espFov);
-        dict[@"NoRecoil"] = @(self.noRecoil);
+        dict[@"AimEnabled"] = @(self.aimEnabled && self.systemActive);
+        dict[@"AimSystemEnabled"] = @(self.aimSystemEnabled && self.systemActive);
+        dict[@"EspFov"] = @(self.espFov && self.systemActive);
+        dict[@"NoRecoil"] = @(self.noRecoil && self.systemActive);
         dict[@"AimTarget"] = @(self.aimTarget);
         dict[@"FovSize"] = @(self.fovSize);
         dict[@"HeadshotRate"] = @(self.headshotRate);
-        dict[@"BuffDame"] = @(self.buffDame);
-        dict[@"SpeedHack"] = @(self.speedHack);
+        dict[@"BuffDame"] = @(self.buffDame && self.systemActive);
+        dict[@"SpeedHack"] = self.systemActive ? @(self.speedHack) : @1;
+
+        // Preserve ResetGuest flags
+        BOOL resetGuest = [[NSUserDefaults standardUserDefaults] boolForKey:@"meo_resetGuestEnabled"];
+        BOOL showGuest = [[NSUserDefaults standardUserDefaults] objectForKey:@"meo_showGuestBtn"] != nil ? [[NSUserDefaults standardUserDefaults] boolForKey:@"meo_showGuestBtn"] : YES;
+        dict[@"ResetGuestEnabled"] = @(resetGuest);
+        dict[@"ShowGuestBtn"] = @(showGuest);
+        dict[@"AutoResetGuest"] = @(resetGuest);
 
         NSData *jsonData = [NSJSONSerialization dataWithJSONObject:dict options:NSJSONWritingPrettyPrinted error:nil];
         if (!jsonData) return;
@@ -528,9 +637,14 @@ static NSString *meo_resolve_container(NSString *bundleID) {
         NSString *localConfigPath = [docsURL.path stringByAppendingPathComponent:@"localConfig.json"];
         [jsonData writeToFile:localConfigPath atomically:YES];
 
-        // 2. Sync to Game Container Documents
-        NSString *container = meo_resolve_container(bundleID);
-        if (container) {
+        // 2. Sync to Game Containers (ALL detected Free Fire containers)
+        NSArray<NSString *> *allContainers = [MeoCore resolveAllGameContainers];
+        if (allContainers.count == 0 && bundleID.length > 0) {
+            NSString *single = [MeoCore resolveContainerForBundleID:bundleID];
+            if (single) allContainers = @[single];
+        }
+
+        for (NSString *container in allContainers) {
             NSString *gameDocs = [container stringByAppendingPathComponent:@"Documents"];
             if (![fm fileExistsAtPath:gameDocs]) {
                 [fm createDirectoryAtPath:gameDocs withIntermediateDirectories:YES attributes:nil error:nil];
@@ -563,106 +677,162 @@ static NSString *meo_resolve_container(NSString *bundleID) {
 #pragma mark - Game Patch & Injection
 
 - (BOOL)isModInjectedForBundleID:(NSString *)bundleID {
-    NSString *container = meo_resolve_container(bundleID);
-    if (!container) return NO;
-    NSString *patchFile = [[container stringByAppendingPathComponent:@"Documents"] stringByAppendingPathComponent:@"Assembly-CSharp-patch.bytes"];
-    return [[NSFileManager defaultManager] fileExistsAtPath:patchFile];
+    NSString *container = [MeoCore resolveContainerForBundleID:bundleID];
+    if (container) {
+        NSString *patchFile = [[container stringByAppendingPathComponent:@"Documents"] stringByAppendingPathComponent:@"Assembly-CSharp-patch.bytes"];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:patchFile]) {
+            return YES;
+        }
+    }
+    // Also check all detected containers
+    NSArray<NSString *> *all = [MeoCore resolveAllGameContainers];
+    for (NSString *c in all) {
+        NSString *patchFile = [[c stringByAppendingPathComponent:@"Documents"] stringByAppendingPathComponent:@"Assembly-CSharp-patch.bytes"];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:patchFile]) {
+            return YES;
+        }
+    }
+    return NO;
 }
 
 - (void)uninstallModFromGameWithBundleID:(NSString *)bundleID {
-    NSString *container = meo_resolve_container(bundleID);
-    if (!container) return;
-
-    NSString *docs = [container stringByAppendingPathComponent:@"Documents"];
-    NSString *patchFile = [docs stringByAppendingPathComponent:@"Assembly-CSharp-patch.bytes"];
-    NSString *configFile = [docs stringByAppendingPathComponent:@"localConfig.json"];
-
     NSFileManager *fm = [NSFileManager defaultManager];
-    [fm removeItemAtPath:patchFile error:nil];
-    [fm removeItemAtPath:configFile error:nil];
+    NSArray<NSString *> *allContainers = [MeoCore resolveAllGameContainers];
+    if (allContainers.count == 0) {
+        NSString *single = [MeoCore resolveContainerForBundleID:bundleID];
+        if (single) allContainers = @[single];
+    }
+    for (NSString *container in allContainers) {
+        NSString *docs = [container stringByAppendingPathComponent:@"Documents"];
+        NSString *patchFile = [docs stringByAppendingPathComponent:@"Assembly-CSharp-patch.bytes"];
+        NSString *configFile = [docs stringByAppendingPathComponent:@"localConfig.json"];
+        [fm removeItemAtPath:patchFile error:nil];
+        [fm removeItemAtPath:configFile error:nil];
+    }
     [self stopHeartbeat];
 }
 
 - (void)injectToGameWithBundleID:(NSString *)bundleID
                       completion:(MeoInjectCompletion)completion {
     if ([MeoCore isDebuggerAttached]) {
-        if (completion) completion(NO, @"Debugger attached");
+        if (completion) completion(NO, @"Bảo mật: Phát hiện Debugger");
         return;
     }
     if (!self.isAuthed) {
-        if (completion) completion(NO, @"Please activate License before injecting");
+        if (completion) completion(NO, @"Vui lòng kích hoạt License trước khi cài đặt Mod");
         return;
     }
 
-    [self saveAndSyncConfigForBundleID:bundleID];
+    NSString *targetBundle = bundleID.length > 0 ? bundleID : @"com.dts.freefireth";
+    NSString *container = [MeoCore resolveContainerForBundleID:targetBundle];
+    if (!container) {
+        NSString *altBundle = [targetBundle isEqualToString:@"com.dts.freefireth"] ? @"com.dts.freefiremax" : @"com.dts.freefireth";
+        container = [MeoCore resolveContainerForBundleID:altBundle];
+        if (container) targetBundle = altBundle;
+    }
+
+    if (!container) {
+        if (completion) completion(NO, [NSString stringWithFormat:@"Không tìm thấy thư mục dữ liệu Free Fire (%@). Vui lòng cài đặt và mở game ít nhất 1 lần!", targetBundle]);
+        return;
+    }
+
+    self.systemActive = YES;
+    [self saveAndSyncConfigForBundleID:targetBundle];
 
     __weak typeof(self) weakSelf = self;
-    [self checkStatusWithCompletion:^(BOOL ok) {
+    void (^writePayload)(NSData *) = ^(NSData *patchData) {
         __strong typeof(weakSelf) strongSelf = weakSelf;
         if (!strongSelf) return;
 
-        NSString *targetBundle = bundleID.length > 0 ? bundleID : @"com.dts.freefireth";
-        NSString *container = meo_resolve_container(targetBundle);
-        if (!container) {
-            if (completion) completion(NO, @"Free Fire game directory not found");
+        if (!patchData || patchData.length == 0) {
+            if (completion) completion(NO, @"Dữ liệu patch rỗng hoặc không hợp lệ");
             return;
         }
 
-        NSString *docs = [container stringByAppendingPathComponent:@"Documents"];
         NSFileManager *fm = [NSFileManager defaultManager];
-        if (![fm fileExistsAtPath:docs]) {
-            [fm createDirectoryAtPath:docs withIntermediateDirectories:YES attributes:nil error:nil];
+        NSArray<NSString *> *containersToWrite = [MeoCore resolveAllGameContainers];
+        if (containersToWrite.count == 0 && container) {
+            containersToWrite = @[container];
         }
 
-        void (^writePayload)(NSData *) = ^(NSData *patchData) {
-            if (!patchData || patchData.length == 0) {
-                if (completion) completion(NO, @"Empty patch data");
-                return;
+        BOOL anySuccess = NO;
+        NSString *lastErr = nil;
+
+        for (NSString *c in containersToWrite) {
+            NSString *docs = [c stringByAppendingPathComponent:@"Documents"];
+            if (![fm fileExistsAtPath:docs]) {
+                [fm createDirectoryAtPath:docs withIntermediateDirectories:YES attributes:nil error:nil];
             }
             NSString *patchFile = [docs stringByAppendingPathComponent:@"Assembly-CSharp-patch.bytes"];
-            [patchData writeToFile:patchFile atomically:YES];
+            NSError *err = nil;
+            BOOL ok = [patchData writeToFile:patchFile options:NSDataWritingAtomic error:&err];
+            if (ok && [fm fileExistsAtPath:patchFile]) {
+                anySuccess = YES;
+            } else if (err) {
+                lastErr = err.localizedDescription;
+            }
+        }
+
+        if (anySuccess) {
+            strongSelf.systemActive = YES;
             [strongSelf saveAndSyncConfigForBundleID:targetBundle];
             [strongSelf startHeartbeat];
             if (completion) completion(YES, nil);
-        };
-
-        // Try downloading latest patch payload or fallback to bundled patch
-        NSString *urlStr = [MeoCore payloadDownloadURL];
-        NSString *token = [MeoCore githubToken];
-        NSURL *url = [NSURL URLWithString:urlStr];
-
-        if (url && token.length > 0) {
-            NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:url];
-            [req setValue:[NSString stringWithFormat:@"token %@", token] forHTTPHeaderField:@"Authorization"];
-            req.timeoutInterval = 15;
-
-            NSURLSessionDataTask *dlTask = [[NSURLSession sharedSession] dataTaskWithRequest:req completionHandler:^(NSData *dlData, NSURLResponse *resp, NSError *dlErr) {
-                NSHTTPURLResponse *http = (NSHTTPURLResponse *)resp;
-                if (dlData && http && http.statusCode == 200) {
-                    dispatch_async(dispatch_get_main_queue(), ^{ writePayload(dlData); });
-                } else {
-                    dispatch_async(dispatch_get_main_queue(), ^{
-                        NSString *bundlePath = [[NSBundle mainBundle] pathForResource:@"Assembly-CSharp-patch" ofType:@"bytes"];
-                        NSData *bundledData = bundlePath ? [NSData dataWithContentsOfFile:bundlePath] : nil;
-                        if (bundledData && bundledData.length > 0) {
-                            writePayload(bundledData);
-                        } else {
-                            if (completion) completion(NO, @"Failed to download patch data");
-                        }
-                    });
-                }
-            }];
-            [dlTask resume];
         } else {
-            NSString *bundlePath = [[NSBundle mainBundle] pathForResource:@"Assembly-CSharp-patch" ofType:@"bytes"];
-            NSData *bundledData = bundlePath ? [NSData dataWithContentsOfFile:bundlePath] : nil;
-            if (bundledData && bundledData.length > 0) {
-                writePayload(bundledData);
-            } else {
-                if (completion) completion(NO, @"Patch file not found");
-            }
+            if (completion) completion(NO, [NSString stringWithFormat:@"Không thể ghi file patch vào game: %@", lastErr ?: @"Lỗi phân quyền"]);
         }
-    }];
+    };
+
+    // 1. Check local bundled patch data first
+    NSData *bundledData = nil;
+    NSString *bundlePath = [[NSBundle mainBundle] pathForResource:@"Assembly-CSharp-patch" ofType:@"bytes"];
+    if (bundlePath) bundledData = [NSData dataWithContentsOfFile:bundlePath];
+    if (!bundledData) {
+        NSString *rootPath = [[NSBundle mainBundle].bundlePath stringByAppendingPathComponent:@"Assembly-CSharp-patch.bytes"];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:rootPath]) {
+            bundledData = [NSData dataWithContentsOfFile:rootPath];
+        }
+    }
+    if (!bundledData) {
+        NSURL *docsURL = [[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory inDomains:NSUserDomainMask].firstObject;
+        NSString *savedPath = [docsURL.path stringByAppendingPathComponent:@"Assembly-CSharp-patch.bytes"];
+        if ([[NSFileManager defaultManager] fileExistsAtPath:savedPath]) {
+            bundledData = [NSData dataWithContentsOfFile:savedPath];
+        }
+    }
+
+    // 2. Try downloading latest payload or immediately use bundled data
+    NSString *urlStr = [MeoCore payloadDownloadURL];
+    NSString *token = [MeoCore githubToken];
+    NSURL *url = [NSURL URLWithString:urlStr];
+
+    if (url && token.length > 0) {
+        NSMutableURLRequest *req = [NSMutableURLRequest requestWithURL:url];
+        [req setValue:[NSString stringWithFormat:@"token %@", token] forHTTPHeaderField:@"Authorization"];
+        req.timeoutInterval = 8;
+
+        NSURLSessionDataTask *dlTask = [[NSURLSession sharedSession] dataTaskWithRequest:req completionHandler:^(NSData *dlData, NSURLResponse *resp, NSError *dlErr) {
+            NSHTTPURLResponse *http = (NSHTTPURLResponse *)resp;
+            if (dlData && dlData.length > 1000 && http && http.statusCode == 200) {
+                dispatch_async(dispatch_get_main_queue(), ^{ writePayload(dlData); });
+            } else {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    if (bundledData && bundledData.length > 0) {
+                        writePayload(bundledData);
+                    } else {
+                        if (completion) completion(NO, @"Không thể tải file patch từ máy chủ và không tìm thấy file patch tích hợp");
+                    }
+                });
+            }
+        }];
+        [dlTask resume];
+    } else {
+        if (bundledData && bundledData.length > 0) {
+            writePayload(bundledData);
+        } else {
+            if (completion) completion(NO, @"Không tìm thấy file patch Assembly-CSharp-patch.bytes");
+        }
+    }
 }
 
 @end
