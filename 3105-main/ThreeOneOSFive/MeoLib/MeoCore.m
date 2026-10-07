@@ -35,7 +35,6 @@ static NSString *meo_deobfuscate(const uint8_t *bytes, size_t len, uint8_t key) 
 @property (nonatomic, assign, readwrite) BOOL isAuthed;
 @property (nonatomic, copy, readwrite, nullable) NSString *authError;
 @property (nonatomic, copy, readwrite) NSString *deviceExpires;
-@property (nonatomic, assign, readwrite) BOOL systemActive;
 @property (nonatomic, copy, readwrite) NSDictionary<NSString *, NSNumber *> *serverFeatures;
 
 @end
