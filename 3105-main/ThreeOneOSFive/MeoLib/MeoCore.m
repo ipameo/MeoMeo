@@ -634,24 +634,24 @@ static NSString *meo_resolve_container(NSString *bundleID) {
         dict[@"testCodePatch"] = @YES;
 
         // User GUI Settings
-        dict[@"EspMaster"] = @(self.espMaster && self.systemActive);
-        dict[@"EspBox"] = @(self.espBox && self.systemActive);
-        dict[@"EspLine"] = @(self.espLine && self.systemActive);
-        dict[@"EspName"] = @(self.espName && self.systemActive);
-        dict[@"EspHealth"] = @(self.espHealth && self.systemActive);
-        dict[@"EspDistance"] = @(self.espDistance && self.systemActive);
-        dict[@"EspTracer"] = @(self.espTracer && self.systemActive);
-        dict[@"EspSkeleton"] = @(self.espSkeleton && self.systemActive);
+        dict[@"EspMaster"] = @(self.espMaster);
+        dict[@"EspBox"] = @(self.espBox);
+        dict[@"EspLine"] = @(self.espLine);
+        dict[@"EspName"] = @(self.espName);
+        dict[@"EspHealth"] = @(self.espHealth);
+        dict[@"EspDistance"] = @(self.espDistance);
+        dict[@"EspTracer"] = @(self.espLine || self.espTracer);
+        dict[@"EspSkeleton"] = @(self.espSkeleton);
 
-        dict[@"AimEnabled"] = @(self.aimEnabled && self.systemActive);
-        dict[@"AimSystemEnabled"] = @(self.aimSystemEnabled && self.systemActive);
-        dict[@"EspFov"] = @(self.espFov && self.systemActive);
-        dict[@"NoRecoil"] = @(self.noRecoil && self.systemActive);
+        dict[@"AimEnabled"] = @(self.aimEnabled);
+        dict[@"AimSystemEnabled"] = @(self.aimSystemEnabled);
+        dict[@"EspFov"] = @(self.espFov);
+        dict[@"NoRecoil"] = @(self.noRecoil);
         dict[@"AimTarget"] = @(self.aimTarget);
         dict[@"FovSize"] = @(self.fovSize);
         dict[@"HeadshotRate"] = @(self.headshotRate);
-        dict[@"BuffDame"] = @(self.buffDame && self.systemActive);
-        dict[@"SpeedHack"] = self.systemActive ? @(self.speedHack) : @1;
+        dict[@"BuffDame"] = @(self.buffDame);
+        dict[@"SpeedHack"] = @(self.speedHack);
 
         // Preserve ResetGuest flags
         BOOL resetGuest = [[NSUserDefaults standardUserDefaults] boolForKey:@"meo_resetGuestEnabled"];

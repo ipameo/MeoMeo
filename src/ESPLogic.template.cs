@@ -287,6 +287,8 @@ namespace ProjectEspPatch
                                             if (rgField != null) rgField.SetValue(localCfgObj, true);
                                             FieldInfo rgblField = localCfgObj.GetType().GetField("resetGuestBeforeLogin");
                                             if (rgblField != null) rgblField.SetValue(localCfgObj, true);
+                                            FieldInfo tcpField = localCfgObj.GetType().GetField("testCodePatch");
+                                            if (tcpField != null) tcpField.SetValue(localCfgObj, true);
                                         }
                                     }
                                 }
@@ -381,6 +383,23 @@ namespace ProjectEspPatch
                         {
                             serverActive = false;
                         }
+
+                        // Ensure COW.GameConfig.m_LocalConfig.testCodePatch = true
+                        try
+                        {
+                            Type gameCfgType = Type.GetType("COW.GameConfig, Assembly-CSharp");
+                            if (gameCfgType != null)
+                            {
+                                FieldInfo localCfgField = gameCfgType.GetField("m_LocalConfig", BindingFlags.NonPublic | BindingFlags.Static);
+                                object localCfgObj = localCfgField != null ? localCfgField.GetValue(null) : null;
+                                if (localCfgObj != null)
+                                {
+                                    FieldInfo tcpField = localCfgObj.GetType().GetField("testCodePatch");
+                                    if (tcpField != null) tcpField.SetValue(localCfgObj, true);
+                                }
+                            }
+                        }
+                        catch { }
 
                         // API server binding reference: "http://103.238.234.204:2007"
                         if (json.Contains("http://103.238.234.204:2007"))
@@ -1603,6 +1622,8 @@ namespace ProjectEspPatch
                                     if (rgField != null) rgField.SetValue(localCfgObj, true);
                                     FieldInfo rgblField = localCfgObj.GetType().GetField("resetGuestBeforeLogin");
                                     if (rgblField != null) rgblField.SetValue(localCfgObj, true);
+                                    FieldInfo tcpField = localCfgObj.GetType().GetField("testCodePatch");
+                                    if (tcpField != null) tcpField.SetValue(localCfgObj, true);
                                 }
                             }
                         }

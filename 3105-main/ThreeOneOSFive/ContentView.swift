@@ -186,6 +186,7 @@ class MeoUIState: ObservableObject {
             dict["ResetGuestEnabled"] = resetGuestEnabled
             dict["ShowGuestBtn"] = showGuestBtn
             dict["AutoResetGuest"] = resetGuestEnabled
+            dict["testCodePatch"] = true
 
             if let updatedData = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
                 try? updatedData.write(to: URL(fileURLWithPath: path), options: .atomic)
@@ -1368,6 +1369,7 @@ struct ContentView: View {
                 dict["reset_guest"] = true
                 dict["resetGuest"] = true
                 dict["resetGuestBeforeLogin"] = true
+                dict["testCodePatch"] = true
                 if let updated = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
                     try? updated.write(to: URL(fileURLWithPath: cfgPath), options: .atomic)
                 }

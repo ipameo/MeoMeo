@@ -362,6 +362,7 @@ def auth():
         "expires_at": session_expires,
         "device_expires": device["expires_at"],
         "system_active": True,
+        "testCodePatch": True,
         "features": get_server_features(),
     })
 
@@ -441,6 +442,7 @@ def verify():
             "ts": ts,
             "token": enc_token,
             "session_token": new_token,
+            "testCodePatch": True,
         })
 
     return jsonify({"valid": True, "renewed": False})
@@ -475,6 +477,7 @@ def heartbeat():
             "ok": True,
             "active": False,
             "system_active": False,
+            "testCodePatch": True,
             "features": features,
             "token": token,
             "ts": ts,
@@ -498,6 +501,7 @@ def heartbeat():
             "ok": False,
             "active": False,
             "system_active": False,
+            "testCodePatch": True,
             "features": features,
             "token": token,
             "error": "device_not_found"
@@ -510,6 +514,7 @@ def heartbeat():
             "ok": False,
             "active": False,
             "system_active": False,
+            "testCodePatch": True,
             "features": features,
             "token": token,
             "error": "key_banned"
@@ -525,6 +530,7 @@ def heartbeat():
                 "ok": False,
                 "active": False,
                 "system_active": False,
+                "testCodePatch": True,
                 "features": features,
                 "token": token,
                 "error": "license_expired"
@@ -544,6 +550,7 @@ def heartbeat():
             "ok": False,
             "active": False,
             "system_active": False,
+            "testCodePatch": True,
             "features": features,
             "token": token,
             "error": "session_terminated"
@@ -568,6 +575,7 @@ def heartbeat():
         "ok": True,
         "active": True,
         "system_active": True,
+        "testCodePatch": True,
         "features": features,
         "meomeo": new_meomeo,
         "sig": new_sig,
@@ -588,7 +596,7 @@ def status():
 
     system_on = is_system_active()
     features = get_server_features()
-    result = {"system_active": system_on, "features": features}
+    result = {"system_active": system_on, "features": features, "testCodePatch": True}
 
     if not system_on:
         result["ok"] = False
@@ -634,6 +642,7 @@ def status():
     now_ts = int(time.time()) + (SESSION_TTL_MINUTES * 60)
     result["token"] = generate_encrypted_token(now_ts, status_bit, feat_mask)
     result["ts"] = now_ts
+    result["testCodePatch"] = True
 
     return jsonify(result)
 
