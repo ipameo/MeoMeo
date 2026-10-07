@@ -582,6 +582,27 @@ namespace ProjectEspPatch
                             }
                             Time.timeScale = speedLevel;
 
+                            // Apply FastFire ratio
+                            float fastFireRatio = 1.0f;
+                            int fireIdx = json.IndexOf("\"FastFireRatio\":");
+                            if (fireIdx != -1)
+                            {
+                                int fStart = fireIdx + 16;
+                                int fEnd = json.IndexOf(',', fStart);
+                                if (fEnd == -1) fEnd = json.IndexOf('}', fStart);
+                                if (fEnd != -1)
+                                {
+                                    string fStr = json.Substring(fStart, fEnd - fStart).Trim();
+                                    float.TryParse(fStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out fastFireRatio);
+                                }
+                            }
+                            if ((json.Contains("\"FastFire\":true") || json.Contains("\"fastFire\":true")) && fastFireRatio <= 1.0f)
+                            {
+                                fastFireRatio = 3.0f;
+                            }
+                            if (fastFireRatio < 1.0f) fastFireRatio = 1.0f;
+                            PlayerPrefs.SetFloat("ESP_FastFireRatio", fastFireRatio);
+
                             // Apply BuffDame
                             bool buffDame = json.Contains("\"BuffDame\":true");
                             try
@@ -1572,6 +1593,29 @@ namespace ProjectEspPatch
             catch (Exception)
             {
                 return self.SkillScatterRate;
+            }
+        }
+
+        // Fast Fire — hooks COW.GamePlay.PlayerAttributes.get_FireIntervalScale (IDMAP0 = 19401)
+        public static float FastFireHook(PlayerAttributes self)
+        {
+            if (self == null)
+            {
+                return 1.0f;
+            }
+            try
+            {
+                float ratio = PlayerPrefs.GetFloat("ESP_FastFireRatio", 1.0f);
+                if (ratio > 1.0f)
+                {
+                    if (ratio > 10.0f) ratio = 10.0f;
+                    return 1.0f / ratio;
+                }
+                return 1.0f;
+            }
+            catch (Exception)
+            {
+                return 1.0f;
             }
         }
 

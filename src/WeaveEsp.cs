@@ -616,6 +616,12 @@ namespace ProjectEspPatch
             CloneBody();
             int scatterInstructions = targetMethod.Body.Instructions.Count;
 
+            targetMethod = playerAttributes.Methods.Single(method =>
+                method.Name == "get_FireIntervalScale" && method.Parameters.Count == 0);
+            helperMethod = helperType.Methods.Single(method => method.Name == "FastFireHook");
+            CloneBody();
+            int fastFireInstructions = targetMethod.Body.Instructions.Count;
+
             targetMethod = uiModelLogin.Methods.Single(method =>
                 method.Name == "GetffantihackEnabled" && method.Parameters.Count == 0);
             helperMethod = helperType.Methods.Single(method => method.Name == "AntiCheat");
@@ -631,6 +637,7 @@ namespace ProjectEspPatch
             Console.WriteLine("silent_aim_instructions=" + silentAimInstructions);
             Console.WriteLine("aim_system_instructions=" + aimSystemInstructions);
             Console.WriteLine("scatter_instructions=" + scatterInstructions);
+            Console.WriteLine("fast_fire_instructions=" + fastFireInstructions);
             Console.WriteLine("anti_cheat_instructions=" + antiCheatInstructions);
             return 0;
         }
