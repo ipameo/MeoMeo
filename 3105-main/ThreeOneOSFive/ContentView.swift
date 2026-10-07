@@ -114,7 +114,6 @@ class MeoUIState: ObservableObject {
             espName = false
             espHealth = false
             espDistance = false
-            espTracer = false
             espSkeleton = false
             aimEnabled = false
             aimSystemEnabled = false
