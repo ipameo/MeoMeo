@@ -472,11 +472,12 @@ def heartbeat():
         log_auth(device_id, "heartbeat", "system_offline")
         token = generate_encrypted_token(current_time_epoch, 0, 0)
         return jsonify({
-            "ok": False,
+            "ok": True,
             "active": False,
             "system_active": False,
             "features": features,
             "token": token,
+            "ts": ts,
             "error": "system_offline"
         }), 200
 
@@ -591,6 +592,10 @@ def status():
 
     if not system_on:
         result["ok"] = False
+        result["error"] = "system_offline"
+        now_ts = int(time.time()) + (SESSION_TTL_MINUTES * 60)
+        result["token"] = generate_encrypted_token(now_ts, 0, 0)
+        result["ts"] = now_ts
         return jsonify(result)
 
     if device_id:
@@ -727,15 +732,11 @@ def admin_toggle():
             "UPDATE devices SET active = ? WHERE device_id = ?",
             (1 if active else 0, device_id),
         )
-        if not active:
-            db.execute("DELETE FROM sessions WHERE device_id = ?", (device_id,))
     else:
         db.execute(
             "UPDATE global_config SET value = ? WHERE key = 'system_active'",
             ("1" if active else "0",),
         )
-        if not active:
-            db.execute("DELETE FROM sessions")
 
     db.commit()
     return jsonify({"ok": True, "active": active})

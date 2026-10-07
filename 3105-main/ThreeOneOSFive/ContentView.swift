@@ -12,6 +12,7 @@ class MeoUIState: ObservableObject {
     @Published var authError: String? = nil
     @Published var deviceExpires: String = ""
     @Published var systemActive: Bool = true
+    @Published var serverFeatures: [String: Any] = [:]
 
     // Visuals & Aim Mod Options (Synchronized with libmeo.a)
     @Published var espMaster: Bool = false
@@ -53,7 +54,7 @@ class MeoUIState: ObservableObject {
         core.onLiveStateChanged = { [weak self] active in
             DispatchQueue.main.async {
                 self?.systemActive = active
-                self?.isAuthed = active
+                self?.syncFromCore()
             }
         }
 
@@ -79,6 +80,7 @@ class MeoUIState: ObservableObject {
         core.loadConfig()
         isAuthed = core.isAuthed
         systemActive = core.systemActive
+        serverFeatures = core.serverFeatures as? [String: Any] ?? [:]
         deviceExpires = core.deviceExpires
 
         espMaster = core.espMaster
@@ -545,6 +547,23 @@ struct ContentView: View {
                 // ── MASTER MOD STATUS & SHUTDOWN ─────────────────────
                 CardView(title: "HỆ THỐNG MOD (MASTER SWITCH)", icon: "power") {
                     VStack(spacing: 12) {
+                        // Live Web Server State Badge
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(state.systemActive ? Color.green : Color.orange)
+                                .frame(width: 8, height: 8)
+                            Text(state.systemActive ? "MÁY CHỦ WEB: HOẠT ĐỘNG (ONLINE)" : "MÁY CHỦ WEB: TẠM KHÓA (OFFLINE)")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(state.systemActive ? .green : .orange)
+                            Spacer()
+                            Text(state.systemActive ? "Đồng bộ real-time 4s" : "Đã tạm dừng từ Web Admin")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(Color(white: 0.60))
+                        }
+                        .padding(8)
+                        .background(state.systemActive ? Color.green.opacity(0.10) : Color.orange.opacity(0.12))
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+
                         HStack(spacing: 12) {
                             Image(systemName: (state.espMaster || state.aimEnabled || state.aimSystemEnabled) ? "bolt.circle.fill" : "power.circle")
                                 .font(.system(size: 22, weight: .bold))
@@ -602,7 +621,7 @@ struct ContentView: View {
                         ToggleRow(label: "Silent Aim", icon: "wind", on: Binding(
                             get: { state.aimEnabled },
                             set: { val in state.aimEnabled = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ), isServerDisabled: (state.serverFeatures["server_aim"] as? Bool) == false)
 
                         if state.aimEnabled {
                             Divider().background(Color(white: 0.20))
@@ -617,7 +636,7 @@ struct ContentView: View {
                             SliderRow(label: "Headshot Rate", value: Binding(
                                 get: { state.headshotRate },
                                 set: { val in state.headshotRate = val; state.pushToCore(bundleID: selectedBundleID) }
-                            ), range: 0...100, isPercent: true)
+                            ), range: 0...100, isPercent: true, isServerDisabled: (state.serverFeatures["server_headshot"] as? Bool) == false)
 
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Target Bone")
@@ -656,7 +675,7 @@ struct ContentView: View {
                         ToggleRow(label: "Aimbot System", icon: "flame", on: Binding(
                             get: { state.aimSystemEnabled },
                             set: { val in state.aimSystemEnabled = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ), isServerDisabled: (state.serverFeatures["server_aim"] as? Bool) == false)
 
                         if state.aimSystemEnabled {
                             Divider().background(Color(white: 0.20))
@@ -740,37 +759,37 @@ struct ContentView: View {
                         ToggleRow(label: "Master ESP", icon: "eye.fill", on: Binding(
                             get: { state.espMaster },
                             set: { val in state.espMaster = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ), isServerDisabled: (state.serverFeatures["server_esp"] as? Bool) == false)
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "ESP Box", icon: "person.crop.square", on: Binding(
                             get: { state.espBox },
                             set: { val in state.espBox = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ), isServerDisabled: (state.serverFeatures["server_box"] as? Bool) == false || (state.serverFeatures["server_esp"] as? Bool) == false)
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "ESP Line", icon: "line.diagonal", on: Binding(
                             get: { state.espLine },
                             set: { val in state.espLine = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ), isServerDisabled: (state.serverFeatures["server_line"] as? Bool) == false || (state.serverFeatures["server_esp"] as? Bool) == false)
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "ESP Name", icon: "textformat", on: Binding(
                             get: { state.espName },
                             set: { val in state.espName = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ), isServerDisabled: (state.serverFeatures["server_name"] as? Bool) == false || (state.serverFeatures["server_esp"] as? Bool) == false)
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "ESP Health", icon: "heart.fill", on: Binding(
                             get: { state.espHealth },
                             set: { val in state.espHealth = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ), isServerDisabled: (state.serverFeatures["server_health"] as? Bool) == false || (state.serverFeatures["server_esp"] as? Bool) == false)
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "ESP Distance", icon: "ruler", on: Binding(
                             get: { state.espDistance },
                             set: { val in state.espDistance = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ), isServerDisabled: (state.serverFeatures["server_distance"] as? Bool) == false || (state.serverFeatures["server_esp"] as? Bool) == false)
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "ESP Skeleton", icon: "figure.walk", on: Binding(
                             get: { state.espSkeleton },
                             set: { val in state.espSkeleton = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ), isServerDisabled: (state.serverFeatures["server_skeleton"] as? Bool) == false || (state.serverFeatures["server_esp"] as? Bool) == false)
                     }
                 }
 
@@ -1568,16 +1587,27 @@ struct ToggleRow: View {
     var label: String
     var icon: String
     @Binding var on: Bool
+    var isServerDisabled: Bool = false
     var body: some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
-                .foregroundColor(on ? .white : Color(white: 0.55))
+                .foregroundColor((on && !isServerDisabled) ? .white : Color(white: 0.40))
                 .frame(width: 20)
-            Text(label)
-                .font(.system(size: 15, weight: .medium, design: .rounded))
-                .foregroundColor(.white)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                    .foregroundColor(isServerDisabled ? Color(white: 0.50) : .white)
+                if isServerDisabled {
+                    Text("Tạm khóa từ máy chủ web")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.orange)
+                }
+            }
             Spacer()
-            Toggle("", isOn: $on).toggleStyle(SlimToggleStyle()).labelsHidden()
+            Toggle("", isOn: $on)
+                .toggleStyle(SlimToggleStyle())
+                .labelsHidden()
+                .disabled(isServerDisabled)
         }
     }
 }
@@ -1587,19 +1617,21 @@ struct SliderRow: View {
     @Binding var value: Float
     var range: ClosedRange<Float>
     var isPercent: Bool
+    var isServerDisabled: Bool = false
     var body: some View {
         VStack(spacing: 6) {
             HStack {
                 Text(label)
                     .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(Color(white: 0.70))
+                    .foregroundColor(isServerDisabled ? .orange : Color(white: 0.70))
                 Spacer()
-                Text(isPercent ? "\(Int(value))%" : "\(Int(value))")
+                Text(isServerDisabled ? "Khóa từ Web" : (isPercent ? "\(Int(value))%" : "\(Int(value))"))
                     .font(.system(size: 13, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
+                    .foregroundColor(isServerDisabled ? .orange : .white)
             }
             Slider(value: $value, in: range, step: 1)
-                .accentColor(.white)
+                .accentColor(isServerDisabled ? .gray : .white)
+                .disabled(isServerDisabled)
         }
     }
 }

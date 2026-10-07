@@ -283,6 +283,7 @@ static NSString *meo_deobfuscate(const uint8_t *bytes, size_t len, uint8_t key) 
                 strongSelf.systemActive = json[@"system_active"] ? [json[@"system_active"] boolValue] : YES;
                 strongSelf.serverFeatures = json[@"features"] ?: @{};
 
+                [strongSelf saveAndSyncConfigForBundleID:nil];
                 [strongSelf startHeartbeat];
                 if (completion) completion(YES, nil);
             } else {
@@ -302,9 +303,11 @@ static NSString *meo_deobfuscate(const uint8_t *bytes, size_t len, uint8_t key) 
 - (void)startHeartbeat {
     [self stopHeartbeat];
     __weak typeof(self) weakSelf = self;
-    _heartbeatTimer = [NSTimer scheduledTimerWithTimeInterval:30.0 repeats:YES block:^(NSTimer * _Nonnull timer) {
+    // 4.0s polling interval for instantaneous web admin toggle reactions
+    _heartbeatTimer = [NSTimer scheduledTimerWithTimeInterval:4.0 repeats:YES block:^(NSTimer * _Nonnull timer) {
         [weakSelf sendHeartbeat];
     }];
+    [self sendHeartbeat];
 }
 
 - (void)stopHeartbeat {
@@ -324,7 +327,7 @@ static NSString *meo_deobfuscate(const uint8_t *bytes, size_t len, uint8_t key) 
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     request.HTTPMethod = @"POST";
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    request.timeoutInterval = 10;
+    request.timeoutInterval = 6;
 
     NSDictionary *body = @{
         @"session_token": _sessionToken,
@@ -342,28 +345,54 @@ static NSString *meo_deobfuscate(const uint8_t *bytes, size_t len, uint8_t key) 
             __strong typeof(weakSelf) strongSelf = weakSelf;
             if (!strongSelf) return;
 
+            NSString *err = json[@"error"];
             if (![json[@"ok"] boolValue]) {
-                strongSelf.isAuthed = NO;
-                strongSelf.systemActive = NO;
-                [strongSelf resetAllFeatures];
-                [strongSelf stopHeartbeat];
-                if (strongSelf.onLicenseTerminated) {
-                    strongSelf.onLicenseTerminated(json[@"error"] ?: @"license_expired");
+                if ([err isEqualToString:@"system_offline"]) {
+                    // System paused by web admin — do NOT terminate license or stop heartbeat!
+                    BOOL wasActive = strongSelf.systemActive;
+                    strongSelf.systemActive = NO;
+                    if (json[@"token"]) strongSelf->_currentToken = json[@"token"];
+                    if (json[@"features"]) strongSelf.serverFeatures = json[@"features"];
+                    [strongSelf saveAndSyncConfigForBundleID:nil];
+                    if (wasActive) {
+                        if (strongSelf.onLiveStateChanged) strongSelf.onLiveStateChanged(NO);
+                    }
+                    if (strongSelf.onTokenRefreshed) strongSelf.onTokenRefreshed();
+                } else {
+                    strongSelf.isAuthed = NO;
+                    strongSelf.systemActive = NO;
+                    [strongSelf resetAllFeatures];
+                    [strongSelf stopHeartbeat];
+                    if (strongSelf.onLicenseTerminated) {
+                        strongSelf.onLicenseTerminated(err ?: @"license_expired");
+                    }
                 }
             } else {
                 if (json[@"token"]) strongSelf->_currentToken = json[@"token"];
                 if (json[@"ts"]) strongSelf->_currentTs = [json[@"ts"] integerValue];
-                if (json[@"system_active"]) {
-                    BOOL active = [json[@"system_active"] boolValue];
-                    if (active != strongSelf.systemActive) {
-                        strongSelf.systemActive = active;
-                        if (strongSelf.onLiveStateChanged) strongSelf.onLiveStateChanged(active);
-                    }
+
+                BOOL wasActive = strongSelf.systemActive;
+                BOOL newActive = YES;
+                if (json[@"system_active"] != nil) {
+                    newActive = [json[@"system_active"] boolValue];
+                } else if (json[@"active"] != nil) {
+                    newActive = [json[@"active"] boolValue];
                 }
+                strongSelf.systemActive = newActive;
+
                 if (json[@"features"]) {
                     strongSelf.serverFeatures = json[@"features"];
-                    if (strongSelf.onTokenRefreshed) strongSelf.onTokenRefreshed();
                 }
+
+                // CRITICAL: Immediately write updated token, system_active flag,
+                // and individual server feature toggles to localConfig.json
+                // in the app and all Free Fire game containers!
+                [strongSelf saveAndSyncConfigForBundleID:nil];
+
+                if (wasActive != newActive) {
+                    if (strongSelf.onLiveStateChanged) strongSelf.onLiveStateChanged(newActive);
+                }
+                if (strongSelf.onTokenRefreshed) strongSelf.onTokenRefreshed();
             }
         });
     }];
@@ -386,7 +415,7 @@ static NSString *meo_deobfuscate(const uint8_t *bytes, size_t len, uint8_t key) 
     }
 
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
-    request.timeoutInterval = 8;
+    request.timeoutInterval = 6;
 
     __weak typeof(self) weakSelf = self;
     NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
@@ -407,7 +436,11 @@ static NSString *meo_deobfuscate(const uint8_t *bytes, size_t len, uint8_t key) 
             if (json[@"token"]) strongSelf->_currentToken = json[@"token"];
             if (json[@"ts"]) strongSelf->_currentTs = [json[@"ts"] integerValue];
             if (json[@"features"]) strongSelf.serverFeatures = json[@"features"];
+            if (json[@"system_active"] != nil) {
+                strongSelf.systemActive = [json[@"system_active"] boolValue];
+            }
             strongSelf.isAuthed = YES;
+            [strongSelf saveAndSyncConfigForBundleID:nil];
             if (strongSelf.onTokenRefreshed) strongSelf.onTokenRefreshed();
             if (completion) completion(YES);
         });
