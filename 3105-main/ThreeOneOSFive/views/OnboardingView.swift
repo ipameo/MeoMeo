@@ -45,7 +45,7 @@ struct OnboardingView: View {
             Image(systemName: "pawprint.fill")
                 .foregroundColor(.white)
                 .font(.system(size: 18))
-            Text("Hoá iOS Cheat")
+            Text("MeoMeoExt")
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
         }
@@ -150,7 +150,7 @@ struct OnboardingView: View {
             .padding(.top, 20)
 
             VStack(spacing: 8) {
-                Text("Hoá iOS Cheat")
+                Text("MeoMeoExt")
                     .font(.system(size: 30, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                 Text("Free Fire VIP Mod Launcher")

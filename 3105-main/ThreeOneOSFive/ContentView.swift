@@ -411,29 +411,6 @@ struct ContentView: View {
                 .padding(.top, 14)
                 .padding(.bottom, 8)
 
-                // ── TOP TAB BAR (Menu | Profile) ──────────────────────
-                HStack(spacing: 0) {
-                    ForEach(["Menu", "Profile"], id: \.self) { tab in
-                        Button(action: { withAnimation { topTab = tab } }) {
-                            Text(tab)
-                                .font(.system(size: 14, weight: .bold, design: .rounded))
-                                .foregroundColor(topTab == tab ? Color.black : Color(white: 0.65))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 40)
-                                .background(topTab == tab ? Color.white : Color.clear)
-                        }
-                    }
-                }
-                .background(Color(white: 0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color(white: 0.25), lineWidth: 1)
-                )
-                .padding(.horizontal, 16)
-                .padding(.top, 4)
-                .padding(.bottom, 8)
-
                 // ── GAME SELECTOR ─────────────────────────────────────
                 HStack(spacing: 0) {
                     ForEach(["ff", "ffmax"], id: \.self) { id in
