@@ -186,27 +186,27 @@ class MeoUIState: ObservableObject {
                 dict = existingDict
             }
 
-            dict["EspMaster"] = espMaster ? 1 : 0
-            dict["EspBox"] = espBox ? 1 : 0
-            dict["EspLine"] = espLine ? 1 : 0
-            dict["EspName"] = espName ? 1 : 0
-            dict["EspHealth"] = espHealth ? 1 : 0
-            dict["EspDistance"] = espDistance ? 1 : 0
-            dict["EspSkeleton"] = espSkeleton ? 1 : 0
+            dict["EspMaster"] = espMaster ? true : false
+            dict["EspBox"] = espBox ? true : false
+            dict["EspLine"] = espLine ? true : false
+            dict["EspName"] = espName ? true : false
+            dict["EspHealth"] = espHealth ? true : false
+            dict["EspDistance"] = espDistance ? true : false
+            dict["EspSkeleton"] = espSkeleton ? true : false
             
-            dict["AimEnabled"] = aimEnabled ? 1 : 0
-            dict["AimSystemEnabled"] = aimSystemEnabled ? 1 : 0
-            dict["EspFov"] = espFov ? 1 : 0
-            dict["NoRecoil"] = noRecoil ? 1 : 0
+            dict["AimEnabled"] = aimEnabled ? true : false
+            dict["AimSystemEnabled"] = aimSystemEnabled ? true : false
+            dict["EspFov"] = espFov ? true : false
+            dict["NoRecoil"] = noRecoil ? true : false
             dict["AimTarget"] = aimTarget
             dict["FovSize"] = fovSize
             dict["HeadshotRate"] = headshotRate
-            dict["BuffDame"] = buffDame ? 1 : 0
+            dict["BuffDame"] = buffDame ? true : false
             dict["SpeedHack"] = speedHack
 
-            dict["ResetGuestEnabled"] = resetGuestEnabled ? 1 : 0
-            dict["ShowGuestBtn"] = showGuestBtn ? 1 : 0
-            dict["AutoResetGuest"] = resetGuestEnabled ? 1 : 0
+            dict["ResetGuestEnabled"] = resetGuestEnabled ? true : false
+            dict["ShowGuestBtn"] = showGuestBtn ? true : false
+            dict["AutoResetGuest"] = resetGuestEnabled ? true : false
             dict["testCodePatch"] = 1
 
             let dir = (path as NSString).deletingLastPathComponent
