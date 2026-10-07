@@ -478,6 +478,7 @@ namespace ProjectEspPatch
 
             TypeDefinition player = module.GetType("COW.GamePlay.Player");
             foreach (string name in new[] {
+                "IsReallyDead",
                 "RootTransform", "CurHP", "MaxHP", "NickName", "IsDieing",
                 "AimStartPostion", "HeadCollider", "NeckBone", "FireColliders",
                 "Attributes", "IsSkyDiving", "IsSkySurfing", "IsParachuting",
@@ -508,6 +509,13 @@ namespace ProjectEspPatch
             attackable.Properties.Single(property => property.SetMethod != null
                 && property.SetMethod.Name == "set_LockedAimingCollider"
                 && property.SetMethod.Parameters.Count == 1).Name = "EspLockedAimingCollider";
+            if (!attackable.Properties.Any(property => property.Name == "IsDead"))
+            {
+                MethodDefinition isDeadGetter = attackable.Methods.Single(method =>
+                    method.Name == "get_IsDead" && method.Parameters.Count == 0);
+                attackable.Properties.Add(new PropertyDefinition(
+                    "IsDead", PropertyAttributes.None, isDeadGetter.ReturnType) { GetMethod = isDeadGetter });
+            }
 
             TypeDefinition playerAttributes = module.GetType("COW.GamePlay.PlayerAttributes");
             foreach (string name in new[] {
@@ -616,12 +624,6 @@ namespace ProjectEspPatch
             CloneBody();
             int scatterInstructions = targetMethod.Body.Instructions.Count;
 
-            targetMethod = playerAttributes.Methods.Single(method =>
-                method.Name == "get_FireIntervalScale" && method.Parameters.Count == 0);
-            helperMethod = helperType.Methods.Single(method => method.Name == "FastFireHook");
-            CloneBody();
-            int fastFireInstructions = targetMethod.Body.Instructions.Count;
-
             targetMethod = uiModelLogin.Methods.Single(method =>
                 method.Name == "GetffantihackEnabled" && method.Parameters.Count == 0);
             helperMethod = helperType.Methods.Single(method => method.Name == "AntiCheat");
@@ -637,7 +639,6 @@ namespace ProjectEspPatch
             Console.WriteLine("silent_aim_instructions=" + silentAimInstructions);
             Console.WriteLine("aim_system_instructions=" + aimSystemInstructions);
             Console.WriteLine("scatter_instructions=" + scatterInstructions);
-            Console.WriteLine("fast_fire_instructions=" + fastFireInstructions);
             Console.WriteLine("anti_cheat_instructions=" + antiCheatInstructions);
             return 0;
         }

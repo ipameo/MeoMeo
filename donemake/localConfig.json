@@ -1,8 +1,8 @@
 ﻿{
-  "meomeo" : "8d776190b23fec54c73392371de8fc4e",
-  "sig" : "3b617eb8fe37219fa9cced8a0168ec28",
-  "token" : "503987466c114ca3e6211a9b45445e6e",
-  "ts" : 1793925011,
+  "meomeo" : "1174c1613ba0640fd65b0fa19d1105a9",
+  "sig" : "7a52088e12a53f6fac2780978ea65685",
+  "token" : "030f87466c114ca399d2d833a9a825b5",
+  "ts" : 1793935469,
   "system_active" : true,
   "server_esp" : true,
   "server_aim" : true,
@@ -36,8 +36,6 @@
   "ShowGuestBtn" : true,
   "AutoResetGuest" : false,
   "Fly" : false,
-  "FastFire" : false,
-  "FastFireRatio" : 1.0,
   "FastReload" : false,
   "testCodePatch" : true
 }

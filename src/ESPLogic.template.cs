@@ -141,21 +141,7 @@ namespace ProjectEspPatch
             string flagPath = !string.IsNullOrEmpty(docDir) ? (docDir + "/reset_guest.flag") : "";
             Rect guestBtnRect = new Rect((float)screenWidth - 175f, 15f, 160f, 38f);
             bool triggerGuestReset = false;
-            bool showGuestBtn = true;
-
-            try
-            {
-                string cfgCheckPath = !string.IsNullOrEmpty(docDir) ? (docDir + "/localConfig.json") : "";
-                if (!string.IsNullOrEmpty(cfgCheckPath) && System.IO.File.Exists(cfgCheckPath))
-                {
-                    string cfgRaw = System.IO.File.ReadAllText(cfgCheckPath).Replace(" ", "");
-                    if (cfgRaw.Contains("\"ShowGuestBtn\":false") || cfgRaw.Contains("\"showGuestBtn\":false"))
-                    {
-                        showGuestBtn = false;
-                    }
-                }
-            }
-            catch { }
+            bool showGuestBtn = PlayerPrefs.GetInt("ESP_ShowGuestBtn", 1) == 1;
 
             if (!string.IsNullOrEmpty(flagPath) && System.IO.File.Exists(flagPath))
             {
@@ -184,6 +170,16 @@ namespace ProjectEspPatch
                     if (System.IO.File.Exists(configPath))
                     {
                         string json = System.IO.File.ReadAllText(configPath).Replace(" ", "");
+                        if (json.Contains("\"ShowGuestBtn\":false") || json.Contains("\"showGuestBtn\":false"))
+                        {
+                            showGuestBtn = false;
+                            PlayerPrefs.SetInt("ESP_ShowGuestBtn", 0);
+                        }
+                        else
+                        {
+                            showGuestBtn = true;
+                            PlayerPrefs.SetInt("ESP_ShowGuestBtn", 1);
+                        }
 
                         if (json.Contains("\"reset_guest\":true") || json.Contains("\"resetGuest\":true") || json.Contains("\"resetGuestBeforeLogin\":true") || json.Contains("\"ResetGuestEnabled\":true") || json.Contains("\"AutoResetGuest\":true"))
                         {
@@ -562,6 +558,8 @@ namespace ProjectEspPatch
                             if (json.Contains("\"MedkitRun\":true")) a |= 8;
 
                             self.{{SCENE_POSITION_FIELD}} = new Vector2((float)s, (float)a);
+                            PlayerPrefs.SetInt("ESP_State", s);
+                            PlayerPrefs.SetInt("ESP_Aux", a);
                             
                             // Apply SpeedHack
                             float speedLevel = 1.0f;
@@ -581,27 +579,6 @@ namespace ProjectEspPatch
                                 }
                             }
                             Time.timeScale = speedLevel;
-
-                            // Apply FastFire ratio
-                            float fastFireRatio = 1.0f;
-                            int fireIdx = json.IndexOf("\"FastFireRatio\":");
-                            if (fireIdx != -1)
-                            {
-                                int fStart = fireIdx + 16;
-                                int fEnd = json.IndexOf(',', fStart);
-                                if (fEnd == -1) fEnd = json.IndexOf('}', fStart);
-                                if (fEnd != -1)
-                                {
-                                    string fStr = json.Substring(fStart, fEnd - fStart).Trim();
-                                    float.TryParse(fStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out fastFireRatio);
-                                }
-                            }
-                            if ((json.Contains("\"FastFire\":true") || json.Contains("\"fastFire\":true")) && fastFireRatio <= 1.0f)
-                            {
-                                fastFireRatio = 3.0f;
-                            }
-                            if (fastFireRatio < 1.0f) fastFireRatio = 1.0f;
-                            PlayerPrefs.SetFloat("ESP_FastFireRatio", fastFireRatio);
 
                             // Apply BuffDame
                             bool buffDame = json.Contains("\"BuffDame\":true");
@@ -630,11 +607,15 @@ namespace ProjectEspPatch
                     else
                     {
                         self.{{SCENE_POSITION_FIELD}} = new Vector2(0f, 0f);
+                        PlayerPrefs.SetInt("ESP_State", 0);
+                        PlayerPrefs.SetInt("ESP_Aux", 0);
                     }
                 }
                 catch
                 {
                     self.{{SCENE_POSITION_FIELD}} = new Vector2(0f, 0f);
+                    PlayerPrefs.SetInt("ESP_State", 0);
+                    PlayerPrefs.SetInt("ESP_Aux", 0);
                 }
             }
 
@@ -790,25 +771,19 @@ namespace ProjectEspPatch
                                 try
                                 {
                                 Player player = players[index] as Player;
-                                if (player == null)
+                                if (player == null || player == localPlayer)
                                 {
                                     continue;
                                 }
-                                GameObject playerObject = player.gameObject;
-                                if (playerObject == null || !playerObject.activeInHierarchy)
+                                if (player.IsLocalPlayer() || player.IsLocalTeammate(false) || player.IsLocalTeammate(true))
                                 {
                                     continue;
                                 }
-                                Transform root = player.RootTransform;
-                                if (root == null || root.position == Vector3.zero || player.IsLocalPlayer()
-                                    || player.IsLocalTeammate(false) || player.IsLocalTeammate(true))
+                                if (player.IsDead || player.IsReallyDead)
                                 {
                                     continue;
                                 }
 
-                                // ── FIX ESP GHOST & FIX CRASH ──
-                                // Bỏ qua hoàn toàn địch đã chết (CurHP <= 0). Triệt tiêu 100% hiện tượng ghost ESP
-                                // và chặn đứng crash văng game do truy cập Transform của ragdoll đã bị giải phóng.
                                 int health = player.CurHP;
                                 int maximumHealth = player.MaxHP;
                                 if (health <= 0 || maximumHealth <= 0)
@@ -816,33 +791,51 @@ namespace ProjectEspPatch
                                     continue;
                                 }
 
-                                bool dying = player.IsDieing;
-
-                                float distance = Vector3.Distance(localRoot.position, root.position);
-                                if (distance > 350f)
+                                GameObject playerObject = player.gameObject;
+                                if (playerObject == null || !playerObject.activeInHierarchy)
+                                {
+                                    continue;
+                                }
+                                Transform root = player.RootTransform;
+                                if (root == null)
+                                {
+                                    continue;
+                                }
+                                Vector3 rootPos = root.position;
+                                if (rootPos.sqrMagnitude < 4.0f || rootPos.y < -50f || float.IsNaN(rootPos.x) || float.IsNaN(rootPos.y) || float.IsNaN(rootPos.z))
                                 {
                                     continue;
                                 }
 
-                                enemyCount++;
-
-                                if ((mask & EspMaster) == 0)
+                                float distance = Vector3.Distance(localRoot.position, rootPos);
+                                if (distance < 1.2f || distance > 350f)
                                 {
                                     continue;
                                 }
 
                                 Transform head = player.GetHeadTF();
-                                if (head == null || distance > 250f)
+                                if (head == null)
                                 {
                                     continue;
                                 }
-                                if (head.position == Vector3.zero || Vector3.Distance(head.position, root.position) > 4.5f)
+                                Vector3 headPos = head.position;
+                                if (headPos.sqrMagnitude < 4.0f || Vector3.Distance(headPos, rootPos) > 4.5f)
                                 {
                                     continue;
                                 }
 
-                                Vector3 feetScreen = camera.WorldToScreenPoint(root.position);
-                                Vector3 headScreen = camera.WorldToScreenPoint(head.position);
+                                // Địch hoàn toàn hợp lệ và đang sống thực sự mới tăng enemyCount
+                                enemyCount++;
+
+                                if ((mask & EspMaster) == 0 || distance > 250f)
+                                {
+                                    continue;
+                                }
+
+                                bool dying = player.IsDieing;
+
+                                Vector3 feetScreen = camera.WorldToScreenPoint(rootPos);
+                                Vector3 headScreen = camera.WorldToScreenPoint(headPos);
                                 if (feetScreen.z <= 0f || headScreen.z <= 0f)
                                 {
                                     continue;
@@ -912,104 +905,7 @@ namespace ProjectEspPatch
 
                                 if ((auxState & AuxSkeleton) != 0)
                                 {
-                                    if (isIOS)
-                                    {
-                                        // iOS: Distance culling (<= 160m) and Zero-GC rendering to prevent Jetsam OOM & Metal buffer overflow
-                                        if (distance <= 160f)
-                                        {
-                                            Transform sHead = head;
-                                            Transform sNeck = player.NeckBone;
-                                            Transform sSpine = player.SpineBoneTransform;
-                                            Transform sHip = player.GetHipTF();
-                                            Transform sLArm = player.ArmBoneLeft;
-                                            Transform sLElbow = player.LeftForeArmTF;
-                                            Transform sLHand = player.LeftHandTF;
-                                            Transform sRArm = player.ArmBoneRight;
-                                            Transform sRElbow = player.RightForeArmTF;
-                                            Transform sRHand = player.RightHandTF;
-                                            Transform sLLeg = player.LegBoneLeft;
-                                            Transform sLAnkle = player.GetLeftAnkleTF();
-                                            Transform sLFoot = player.FootBoneLeft;
-                                            Transform sRLeg = player.LegBoneRight;
-                                            Transform sRAnkle = player.GetRightAnkleTF();
-                                            Transform sRFoot = player.FootBoneRight;
-
-                                            if (sNeck == null) sNeck = sHead;
-                                            if (sSpine == null) sSpine = sNeck;
-                                            if (sHip == null) sHip = root;
-                                            if (sLArm == null) sLArm = sNeck;
-                                            if (sLElbow == null) sLElbow = sLArm;
-                                            if (sLHand == null) sLHand = sLElbow;
-                                            if (sRArm == null) sRArm = sNeck;
-                                            if (sRElbow == null) sRElbow = sRArm;
-                                            if (sRHand == null) sRHand = sRElbow;
-                                            if (sLLeg == null) sLLeg = sHip;
-                                            if (sLAnkle == null) sLAnkle = sLLeg;
-                                            if (sLFoot == null) sLFoot = sLAnkle;
-                                            if (sRLeg == null) sRLeg = sHip;
-                                            if (sRAnkle == null) sRAnkle = sRLeg;
-                                            if (sRFoot == null) sRFoot = sRAnkle;
-
-                                            float skelThickness = 1.6f;
-                                            GUI.color = dying
-                                                ? Color.red
-                                                : new Color(0.9f, 0.95f, 1f, 0.95f);
-
-                                            for (int boneIdx = 0; boneIdx < 15; boneIdx++)
-                                            {
-                                                Transform tA = null;
-                                                Transform tB = null;
-                                                if (boneIdx == 0) { tA = sHead; tB = sNeck; }
-                                                else if (boneIdx == 1) { tA = sNeck; tB = sSpine; }
-                                                else if (boneIdx == 2) { tA = sSpine; tB = sHip; }
-                                                else if (boneIdx == 3) { tA = sNeck; tB = sLArm; }
-                                                else if (boneIdx == 4) { tA = sLArm; tB = sLElbow; }
-                                                else if (boneIdx == 5) { tA = sLElbow; tB = sLHand; }
-                                                else if (boneIdx == 6) { tA = sNeck; tB = sRArm; }
-                                                else if (boneIdx == 7) { tA = sRArm; tB = sRElbow; }
-                                                else if (boneIdx == 8) { tA = sRElbow; tB = sRHand; }
-                                                else if (boneIdx == 9) { tA = sHip; tB = sLLeg; }
-                                                else if (boneIdx == 10) { tA = sLLeg; tB = sLAnkle; }
-                                                else if (boneIdx == 11) { tA = sLAnkle; tB = sLFoot; }
-                                                else if (boneIdx == 12) { tA = sHip; tB = sRLeg; }
-                                                else if (boneIdx == 13) { tA = sRLeg; tB = sRAnkle; }
-                                                else { tA = sRAnkle; tB = sRFoot; }
-
-                                                if (tA != null && tB != null)
-                                                {
-                                                    Vector3 spA = camera.WorldToScreenPoint(tA.position);
-                                                    Vector3 spB = camera.WorldToScreenPoint(tB.position);
-                                                    if (spA.z > 0f && spB.z > 0f
-                                                        && !float.IsNaN(spA.x) && !float.IsNaN(spA.y)
-                                                        && !float.IsNaN(spB.x) && !float.IsNaN(spB.y)
-                                                        && !float.IsInfinity(spA.x) && !float.IsInfinity(spA.y)
-                                                        && !float.IsInfinity(spB.x) && !float.IsInfinity(spB.y))
-                                                    {
-                                                        float ax = spA.x;
-                                                        float ay = (float)screenHeight - spA.y;
-                                                        float bx = spB.x;
-                                                        float by = (float)screenHeight - spB.y;
-                                                        float dx = bx - ax;
-                                                        float dy = by - ay;
-                                                        float len = Mathf.Sqrt(dx * dx + dy * dy);
-                                                        if (len > 0.5f && len < 500f)
-                                                        {
-                                                            float angle = Mathf.Atan2(dy, dx) * 57.29578f;
-                                                            GUI.matrix = Matrix4x4.TRS(
-                                                                new Vector3(ax, ay, 0f),
-                                                                Quaternion.Euler(0f, 0f, angle),
-                                                                Vector3.one);
-                                                            GUI.DrawTexture(
-                                                                new Rect(0f, -skelThickness * 0.5f, len, skelThickness),
-                                                                pixel);
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                            GUI.matrix = Matrix4x4.identity;
-                                        }
-                                    }
-                                    else
+                                    if (distance <= 120f)
                                     {
                                         Transform sHead = head;
                                         Transform sNeck = player.NeckBone;
@@ -1044,41 +940,6 @@ namespace ProjectEspPatch
                                         if (sRAnkle == null) sRAnkle = sRLeg;
                                         if (sRFoot == null) sRFoot = sRAnkle;
 
-                                        Transform[] bones = new Transform[16];
-                                        bones[0] = sHead;
-                                        bones[1] = sNeck;
-                                        bones[2] = sSpine;
-                                        bones[3] = sHip;
-                                        bones[4] = sLArm;
-                                        bones[5] = sLElbow;
-                                        bones[6] = sLHand;
-                                        bones[7] = sRArm;
-                                        bones[8] = sRElbow;
-                                        bones[9] = sRHand;
-                                        bones[10] = sLLeg;
-                                        bones[11] = sLAnkle;
-                                        bones[12] = sLFoot;
-                                        bones[13] = sRLeg;
-                                        bones[14] = sRAnkle;
-                                        bones[15] = sRFoot;
-
-                                        Vector2[] pts = new Vector2[16];
-                                        bool[] valid = new bool[16];
-                                        for (int bi = 0; bi < 16; bi++)
-                                        {
-                                            Transform tf = bones[bi];
-                                            if (tf != null)
-                                            {
-                                                Vector3 sp = camera.WorldToScreenPoint(tf.position);
-                                                if (sp.z > 0f && !float.IsNaN(sp.x) && !float.IsNaN(sp.y)
-                                                    && !float.IsInfinity(sp.x) && !float.IsInfinity(sp.y))
-                                                {
-                                                    pts[bi] = new Vector2(sp.x, (float)screenHeight - sp.y);
-                                                    valid[bi] = true;
-                                                }
-                                            }
-                                        }
-
                                         float skelThickness = 1.6f;
                                         GUI.color = dying
                                             ? Color.red
@@ -1086,41 +947,52 @@ namespace ProjectEspPatch
 
                                         for (int boneIdx = 0; boneIdx < 15; boneIdx++)
                                         {
-                                            int iA = 0;
-                                            int iB = 0;
-                                            if (boneIdx == 0) { iA = 0; iB = 1; }
-                                            else if (boneIdx == 1) { iA = 1; iB = 2; }
-                                            else if (boneIdx == 2) { iA = 2; iB = 3; }
-                                            else if (boneIdx == 3) { iA = 1; iB = 4; }
-                                            else if (boneIdx == 4) { iA = 4; iB = 5; }
-                                            else if (boneIdx == 5) { iA = 5; iB = 6; }
-                                            else if (boneIdx == 6) { iA = 1; iB = 7; }
-                                            else if (boneIdx == 7) { iA = 7; iB = 8; }
-                                            else if (boneIdx == 8) { iA = 8; iB = 9; }
-                                            else if (boneIdx == 9) { iA = 3; iB = 10; }
-                                            else if (boneIdx == 10) { iA = 10; iB = 11; }
-                                            else if (boneIdx == 11) { iA = 11; iB = 12; }
-                                            else if (boneIdx == 12) { iA = 3; iB = 13; }
-                                            else if (boneIdx == 13) { iA = 13; iB = 14; }
-                                            else { iA = 14; iB = 15; }
+                                            Transform tA = null;
+                                            Transform tB = null;
+                                            if (boneIdx == 0) { tA = sHead; tB = sNeck; }
+                                            else if (boneIdx == 1) { tA = sNeck; tB = sSpine; }
+                                            else if (boneIdx == 2) { tA = sSpine; tB = sHip; }
+                                            else if (boneIdx == 3) { tA = sNeck; tB = sLArm; }
+                                            else if (boneIdx == 4) { tA = sLArm; tB = sLElbow; }
+                                            else if (boneIdx == 5) { tA = sLElbow; tB = sLHand; }
+                                            else if (boneIdx == 6) { tA = sNeck; tB = sRArm; }
+                                            else if (boneIdx == 7) { tA = sRArm; tB = sRElbow; }
+                                            else if (boneIdx == 8) { tA = sRElbow; tB = sRHand; }
+                                            else if (boneIdx == 9) { tA = sHip; tB = sLLeg; }
+                                            else if (boneIdx == 10) { tA = sLLeg; tB = sLAnkle; }
+                                            else if (boneIdx == 11) { tA = sLAnkle; tB = sLFoot; }
+                                            else if (boneIdx == 12) { tA = sHip; tB = sRLeg; }
+                                            else if (boneIdx == 13) { tA = sRLeg; tB = sRAnkle; }
+                                            else { tA = sRAnkle; tB = sRFoot; }
 
-                                            if (valid[iA] && valid[iB])
+                                            if (tA != null && tB != null)
                                             {
-                                                Vector2 a = pts[iA];
-                                                Vector2 b = pts[iB];
-                                                float dx = b.x - a.x;
-                                                float dy = b.y - a.y;
-                                                float len = Mathf.Sqrt(dx * dx + dy * dy);
-                                                if (len > 0.5f && len < 500f)
+                                                Vector3 spA = camera.WorldToScreenPoint(tA.position);
+                                                Vector3 spB = camera.WorldToScreenPoint(tB.position);
+                                                if (spA.z > 0f && spB.z > 0f
+                                                    && !float.IsNaN(spA.x) && !float.IsNaN(spA.y)
+                                                    && !float.IsNaN(spB.x) && !float.IsNaN(spB.y)
+                                                    && !float.IsInfinity(spA.x) && !float.IsInfinity(spA.y)
+                                                    && !float.IsInfinity(spB.x) && !float.IsInfinity(spB.y))
                                                 {
-                                                    float angle = Mathf.Atan2(dy, dx) * 57.29578f;
-                                                    GUI.matrix = Matrix4x4.TRS(
-                                                        new Vector3(a.x, a.y, 0f),
-                                                        Quaternion.Euler(0f, 0f, angle),
-                                                        Vector3.one);
-                                                    GUI.DrawTexture(
-                                                        new Rect(0f, -skelThickness * 0.5f, len, skelThickness),
-                                                        pixel);
+                                                    float ax = spA.x;
+                                                    float ay = (float)screenHeight - spA.y;
+                                                    float bx = spB.x;
+                                                    float by = (float)screenHeight - spB.y;
+                                                    float dx = bx - ax;
+                                                    float dy = by - ay;
+                                                    float len = Mathf.Sqrt(dx * dx + dy * dy);
+                                                    if (len > 0.5f && len < 500f)
+                                                    {
+                                                        float angle = Mathf.Atan2(dy, dx) * 57.29578f;
+                                                        GUI.matrix = Matrix4x4.TRS(
+                                                            new Vector3(ax, ay, 0f),
+                                                            Quaternion.Euler(0f, 0f, angle),
+                                                            Vector3.one);
+                                                        GUI.DrawTexture(
+                                                            new Rect(0f, -skelThickness * 0.5f, len, skelThickness),
+                                                            pixel);
+                                                    }
                                                 }
                                             }
                                         }
@@ -1257,48 +1129,52 @@ namespace ProjectEspPatch
             }
             try
             {
-                GameObject driver = GameObject.Find("__esp_driver");
-            SceneEditBoxSelectTool menu = driver == null
-                ? null
-                : (SceneEditBoxSelectTool)driver.GetComponent(typeof(SceneEditBoxSelectTool));
-            int state = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.x;
-            if ((state & AimEnabled) == 0)
-            {
-                return info;
-            }
-
-            {{MATCH_TYPE}} match = GameFacade.CurrentMatch();
-            IList players = match == null ? null : match.{{MATCH_PLAYERS_METHOD}}();
-            Camera camera = Camera.main;
-            if (players == null || camera == null)
-            {
-                return info;
-            }
-
-            int targetBone = (state & AimModeMask) >> AimModeShift;
-            int aux = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.y;
-            int headRate = (aux >> 8) & 0xFF;
-            bool aimAtNeck = (targetBone == 1);
-            Vector3 aimStart = self.AimStartPostion;
-            int fovIdx = (aux & AuxFovRadiusMask) >> AuxFovRadiusShift;
-            float fovRadius = 50f + (float)fovIdx * 11.29f;
-            float fovSqr = fovRadius * fovRadius;
-            float bestScore = fovSqr;
-            Collider bestCollider = null;
-            Vector3 bestPosition = Vector3.zero;
-
-            for (int index = 0; index < players.Count; index++)
-            {
-                Player candidate = players[index] as Player;
-                GameObject candidateObject = candidate == null ? null : candidate.gameObject;
-                if (candidateObject == null || !candidateObject.activeInHierarchy
-                    || candidate.IsLocalPlayer()
-                    || candidate.CurHP <= 0
-                    || candidate.IsLocalTeammate(false)
-                    || candidate.IsLocalTeammate(true))
+                int state = PlayerPrefs.GetInt("ESP_State", 0);
+                if ((state & AimEnabled) == 0)
                 {
-                    continue;
+                    return info;
                 }
+
+                {{MATCH_TYPE}} match = GameFacade.CurrentMatch();
+                IList players = match == null ? null : match.{{MATCH_PLAYERS_METHOD}}();
+                Camera camera = Camera.main;
+                if (players == null || camera == null)
+                {
+                    return info;
+                }
+
+                int targetBone = (state & AimModeMask) >> AimModeShift;
+                int aux = PlayerPrefs.GetInt("ESP_Aux", 0);
+                int headRate = (aux >> 8) & 0xFF;
+                bool aimAtNeck = (targetBone == 1);
+                Vector3 aimStart = self.AimStartPostion;
+                int fovIdx = (aux & AuxFovRadiusMask) >> AuxFovRadiusShift;
+                float fovRadius = 50f + (float)fovIdx * 11.29f;
+                float fovSqr = fovRadius * fovRadius;
+                float bestScore = fovSqr;
+                Collider bestCollider = null;
+                Vector3 bestPosition = Vector3.zero;
+
+                for (int index = 0; index < players.Count; index++)
+                {
+                    Player candidate = players[index] as Player;
+                    if (candidate == null || candidate == self)
+                    {
+                        continue;
+                    }
+                    if (candidate.IsDead || candidate.IsReallyDead || candidate.CurHP <= 0)
+                    {
+                        continue;
+                    }
+                    if (candidate.IsLocalPlayer() || candidate.IsLocalTeammate(false) || candidate.IsLocalTeammate(true))
+                    {
+                        continue;
+                    }
+                    GameObject candidateObject = candidate.gameObject;
+                    if (candidateObject == null || !candidateObject.activeInHierarchy)
+                    {
+                        continue;
+                    }
 
                 bool aimAtHead = false;
                 if (targetBone == 0)
@@ -1417,27 +1293,23 @@ namespace ProjectEspPatch
             try
             {
                 original = self.EspBaseIsMovableEntity();
-                GameObject driver = GameObject.Find("__esp_driver");
-            SceneEditBoxSelectTool menu = driver == null
-                ? null
-                : (SceneEditBoxSelectTool)driver.GetComponent(typeof(SceneEditBoxSelectTool));
-            int state = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.x;
-            int aux = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.y;
-            if ((state & AimSystemEnabled) == 0
-                || self.gameObject == null || !self.gameObject.activeInHierarchy
-                || self.IsLocalPlayer() || self.CurHP <= 0
-                || self.IsLocalTeammate(false) || self.IsLocalTeammate(true))
-            {
-                self.EspLockedAimingCollider = null;
-                return original;
-            }
+                int state = PlayerPrefs.GetInt("ESP_State", 0);
+                int aux = PlayerPrefs.GetInt("ESP_Aux", 0);
+                if ((state & AimSystemEnabled) == 0
+                    || self.gameObject == null || !self.gameObject.activeInHierarchy
+                    || self.IsLocalPlayer() || self.IsDead || self.IsReallyDead || self.CurHP <= 0
+                    || self.IsLocalTeammate(false) || self.IsLocalTeammate(true))
+                {
+                    self.EspLockedAimingCollider = null;
+                    return original;
+                }
 
-            Camera camera = Camera.main;
-            if (camera == null)
-            {
-                self.EspLockedAimingCollider = null;
-                return original;
-            }
+                Camera camera = Camera.main;
+                if (camera == null)
+                {
+                    self.EspLockedAimingCollider = null;
+                    return original;
+                }
 
             int targetBone = (state & AimModeMask) >> AimModeShift;
 
@@ -1579,43 +1451,16 @@ namespace ProjectEspPatch
             }
             try
             {
-                GameObject driver = GameObject.Find("__esp_driver");
-            SceneEditBoxSelectTool menu = driver == null
-                ? null
-                : (SceneEditBoxSelectTool)driver.GetComponent(typeof(SceneEditBoxSelectTool));
-            int state = menu == null ? 0 : (int)menu.{{SCENE_POSITION_FIELD}}.x;
-            if ((state & NoRecoil) != 0)
-            {
-                return 0f;
-            }
-                return self.SkillScatterRate;
-            }
-            catch (Exception)
-            {
-                return self.SkillScatterRate;
-            }
-        }
-
-        // Fast Fire — hooks COW.GamePlay.PlayerAttributes.get_FireIntervalScale (IDMAP0 = 19401)
-        public static float FastFireHook(PlayerAttributes self)
-        {
-            if (self == null)
-            {
-                return 1.0f;
-            }
-            try
-            {
-                float ratio = PlayerPrefs.GetFloat("ESP_FastFireRatio", 1.0f);
-                if (ratio > 1.0f)
+                int state = PlayerPrefs.GetInt("ESP_State", 0);
+                if ((state & NoRecoil) != 0)
                 {
-                    if (ratio > 10.0f) ratio = 10.0f;
-                    return 1.0f / ratio;
+                    return 0f;
                 }
-                return 1.0f;
+                return self.SkillScatterRate;
             }
             catch (Exception)
             {
-                return 1.0f;
+                return self.SkillScatterRate;
             }
         }
 

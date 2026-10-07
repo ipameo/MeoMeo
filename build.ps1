@@ -191,11 +191,8 @@ try {
     $configWriter.Write([int]0)
 
     $configWriter.Write('COW.GamePlay.PlayerAttributes')
-    $configWriter.Write([int]2)
+    $configWriter.Write([int]1)
     $configWriter.Write('GetScatterRate')
-    $configWriter.Write('System.Single')
-    $configWriter.Write([int]0)
-    $configWriter.Write('get_FireIntervalScale')
     $configWriter.Write('System.Single')
     $configWriter.Write([int]0)
 
@@ -235,7 +232,7 @@ if (-not $verification.valid -or @($verification.errors).Count -ne 0 `
     throw 'Generated patch did not pass strict VM verification.'
 }
 if ($report.magic -ne '0x66A319B20DB4A2CB' -or $report.remaining_bytes -ne 0 `
-    -or $methods.Count -lt 7 -or $redirects.Count -ne 7) {
+    -or $methods.Count -lt 6 -or $redirects.Count -ne 6) {
     throw 'Generated patch failed structural assertions.'
 }
 
@@ -245,7 +242,6 @@ $expectedRedirects = @(
     'COW.GamePlay.Player|get_LastAimingInfoFromWeapon',
     'COW.GamePlay.Player|get_IsMovableEntity',
     'COW.GamePlay.PlayerAttributes|GetScatterRate',
-    'COW.GamePlay.PlayerAttributes|get_FireIntervalScale',
     'COW.UIModelLogin|GetffantihackEnabled'
 )
 $actualRedirects = @($redirects | ForEach-Object {
@@ -469,8 +465,6 @@ $configContent = @"
   `"ShowGuestBtn`" : true,
   `"AutoResetGuest`" : false,
   `"Fly`" : false,
-  `"FastFire`" : false,
-  `"FastFireRatio`" : 1.0,
   `"FastReload`" : false,
   `"testCodePatch`" : true
 }

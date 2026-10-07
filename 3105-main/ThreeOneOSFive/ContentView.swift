@@ -31,7 +31,6 @@ class MeoUIState: ObservableObject {
     @Published var headshotRate: Float = 60.0
     @Published var buffDame: Bool = false
     @Published var speedHack: Int = 1
-    @Published var fastFireRatio: Float = 1.0
 
 
     // Reset Guest Controls
@@ -99,7 +98,6 @@ class MeoUIState: ObservableObject {
         headshotRate = core.headshotRate
         buffDame = core.buffDame
         speedHack = core.speedHack
-        fastFireRatio = core.fastFireRatio
 
         resetGuestEnabled = UserDefaults.standard.bool(forKey: "meo_resetGuestEnabled")
         showGuestBtn      = UserDefaults.standard.object(forKey: "meo_showGuestBtn") != nil ? UserDefaults.standard.bool(forKey: "meo_showGuestBtn") : true
@@ -123,7 +121,6 @@ class MeoUIState: ObservableObject {
         core.headshotRate = headshotRate
         core.buffDame = buffDame
         core.speedHack = speedHack
-        core.fastFireRatio = fastFireRatio
 
         UserDefaults.standard.set(resetGuestEnabled, forKey: "meo_resetGuestEnabled")
         UserDefaults.standard.set(showGuestBtn, forKey: "meo_showGuestBtn")
@@ -623,23 +620,6 @@ struct ContentView: View {
                             set: { val in state.buffDame = val; state.pushToCore(bundleID: selectedBundleID) }
                         ))
                         Divider().background(Color(white: 0.20))
-                        
-                        VStack(spacing: 8) {
-                            HStack {
-                                Text("Fast Fire Ratio")
-                                    .font(.system(size: 16, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.white)
-                                Spacer()
-                                Text(String(format: "%.1f x", state.fastFireRatio))
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundColor(.yellow)
-                            }
-                            Slider(value: Binding(
-                                get: { state.fastFireRatio },
-                                set: { val in state.fastFireRatio = val; state.pushToCore(bundleID: selectedBundleID) }
-                            ), in: 1.0...10.0, step: 0.5)
-                            .accentColor(.yellow)
-                        }
                         
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Speed Hack")
