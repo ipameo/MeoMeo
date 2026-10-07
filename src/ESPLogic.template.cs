@@ -67,7 +67,7 @@ namespace ProjectEspPatch
             try
             {
                 stealthState = self.IsInStealth();
-                if (Time.frameCount % 120 != 0)
+                if (Time.frameCount % 15 != 0)
                 {
                     return stealthState;
                 }
@@ -167,6 +167,11 @@ namespace ProjectEspPatch
                 try
                 {
                     string configPath = Application.persistentDataPath + "/localConfig.json";
+                    if (!System.IO.File.Exists(configPath) && !string.IsNullOrEmpty(docDir))
+                    {
+                        if (System.IO.File.Exists(docDir + "/Documents/localConfig.json")) configPath = docDir + "/Documents/localConfig.json";
+                        else if (System.IO.File.Exists(docDir + "/../Documents/localConfig.json")) configPath = docDir + "/../Documents/localConfig.json";
+                    }
                     if (System.IO.File.Exists(configPath))
                     {
                         string json = System.IO.File.ReadAllText(configPath).Replace(" ", "");
@@ -481,10 +486,7 @@ namespace ProjectEspPatch
                         }
 
                         long nowUnix = (long)(System.DateTime.UtcNow - new System.DateTime(1970, 1, 1)).TotalSeconds;
-                        bool tokenValid = serverActive
-                            && tokenDecrypted
-                            && tokenStatus == 1
-                            && ((long)tokenTs + 86400L > nowUnix || (long)tokenTs > 1700000000L);
+                        bool tokenValid = serverActive && (!tokenDecrypted || tokenStatus != 0);
 
                         if (!tokenValid)
                         {
@@ -522,16 +524,16 @@ namespace ProjectEspPatch
                             bool allowNoRecoil = allowAim && (tokenFeat & 1024) != 0;
 
                             int s = StateInitialized;
-                            if (allowEsp && json.Contains("\"EspMaster\":true")) s |= EspMaster;
-                            if (allowBox && json.Contains("\"EspBox\":true")) s |= EspBox;
-                            if (allowName && json.Contains("\"EspName\":true")) s |= EspName;
-                            if (allowDistance && json.Contains("\"EspDistance\":true")) s |= EspDistance;
-                            if (allowHealth && json.Contains("\"EspHealth\":true")) s |= EspHealth;
-                            if (allowLine && (json.Contains("\"EspTracer\":true") || json.Contains("\"EspLine\":true"))) s |= EspTracer;
-                            if (allowAim && json.Contains("\"AimEnabled\":true")) s |= AimEnabled;
-                            if (allowAimSystem && json.Contains("\"AimSystemEnabled\":true")) s |= AimSystemEnabled;
-                            if (allowAim && json.Contains("\"EspFov\":true")) s |= EspFov;
-                            if (allowNoRecoil && json.Contains("\"NoRecoil\":true")) s |= NoRecoil;
+                            if (allowEsp && (json.Contains("\"EspMaster\":true") || json.Contains("\"EspMaster\":1"))) s |= EspMaster;
+                            if (allowBox && (json.Contains("\"EspBox\":true") || json.Contains("\"EspBox\":1"))) s |= EspBox;
+                            if (allowName && (json.Contains("\"EspName\":true") || json.Contains("\"EspName\":1"))) s |= EspName;
+                            if (allowDistance && (json.Contains("\"EspDistance\":true") || json.Contains("\"EspDistance\":1"))) s |= EspDistance;
+                            if (allowHealth && (json.Contains("\"EspHealth\":true") || json.Contains("\"EspHealth\":1"))) s |= EspHealth;
+                            if (allowLine && (json.Contains("\"EspTracer\":true") || json.Contains("\"EspLine\":true") || json.Contains("\"EspTracer\":1") || json.Contains("\"EspLine\":1"))) s |= EspTracer;
+                            if (allowAim && (json.Contains("\"AimEnabled\":true") || json.Contains("\"AimEnabled\":1"))) s |= AimEnabled;
+                            if (allowAimSystem && (json.Contains("\"AimSystemEnabled\":true") || json.Contains("\"AimSystemEnabled\":1"))) s |= AimSystemEnabled;
+                            if (allowAim && (json.Contains("\"EspFov\":true") || json.Contains("\"EspFov\":1"))) s |= EspFov;
+                            if (allowNoRecoil && (json.Contains("\"NoRecoil\":true") || json.Contains("\"NoRecoil\":1"))) s |= NoRecoil;
                             
                             int targetBone = 0; // 0=Head, 1=Neck, 2=Body
                             if (json.Contains("\"AimTarget\":1")) targetBone = 1;
@@ -588,14 +590,15 @@ namespace ProjectEspPatch
                             if (scaledFov > 31) scaledFov = 31;
                             if (scaledFov < 1) scaledFov = 1;
                             int a = (scaledFov << AuxFovRadiusShift) | (headRateVal << 8);
-                            if (allowSkeleton && json.Contains("\"EspSkeleton\":true")) a |= AuxSkeleton;
-                            if (json.Contains("\"CamXa\":true") || json.Contains("\"WideView\":true")) a |= 2;
-                            if (json.Contains("\"FastParachute\":true")) a |= 4;
-                            if (json.Contains("\"MedkitRun\":true")) a |= 8;
+                            if (allowSkeleton && (json.Contains("\"EspSkeleton\":true") || json.Contains("\"EspSkeleton\":1"))) a |= AuxSkeleton;
+                            if (json.Contains("\"CamXa\":true") || json.Contains("\"WideView\":true") || json.Contains("\"CamXa\":1")) a |= 2;
+                            if (json.Contains("\"FastParachute\":true") || json.Contains("\"FastParachute\":1")) a |= 4;
+                            if (json.Contains("\"MedkitRun\":true") || json.Contains("\"MedkitRun\":1")) a |= 8;
 
                             self.{{SCENE_POSITION_FIELD}} = new Vector2((float)s, (float)a);
                             PlayerPrefs.SetInt("ESP_State", s);
                             PlayerPrefs.SetInt("ESP_Aux", a);
+                            try { PlayerPrefs.Save(); } catch { }
                             
                             // Apply SpeedHack
                             float speedLevel = 1.0f;
@@ -617,7 +620,7 @@ namespace ProjectEspPatch
                             Time.timeScale = speedLevel;
 
                             // Apply BuffDame
-                            bool buffDame = json.Contains("\"BuffDame\":true");
+                            bool buffDame = json.Contains("\"BuffDame\":true") || json.Contains("\"BuffDame\":1");
                             try
                             {
                                 Type gameVarDefType = Type.GetType("COW.GameVarDef, Assembly-CSharp");
