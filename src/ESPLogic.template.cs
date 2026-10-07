@@ -161,7 +161,7 @@ namespace ProjectEspPatch
             }
 
             float lastUpdate = self.{{SCENE_STATE_FIELD}}.x;
-            if (Time.realtimeSinceStartup - lastUpdate > 3.0f || lastUpdate == 0)
+            if (Time.realtimeSinceStartup - lastUpdate > 1.2f || lastUpdate == 0)
             {
                 self.{{SCENE_STATE_FIELD}} = new Vector2(Time.realtimeSinceStartup, self.{{SCENE_STATE_FIELD}}.y);
                 try
@@ -375,7 +375,9 @@ namespace ProjectEspPatch
                         }
                         
                         bool serverActive = true;
-                        if (json.Contains("\"system_active\":false") || json.Contains("\"server_active\":false") || json.Contains("\"active\":false"))
+                        if (json.Contains("\"system_active\":false") || json.Contains("\"system_active\":0") ||
+                            json.Contains("\"server_active\":false") || json.Contains("\"server_active\":0") ||
+                            json.Contains("\"active\":false") || json.Contains("\"active\":0"))
                         {
                             serverActive = false;
                         }
@@ -488,16 +490,16 @@ namespace ProjectEspPatch
                         else
                         {
                             // ── Cryptographically verified server permissions ────
-                            bool allowEsp = (tokenFeat & 1) != 0 && !json.Contains("\"server_esp\":false");
-                            bool allowBox = allowEsp && (tokenFeat & 2) != 0 && !json.Contains("\"server_box\":false");
-                            bool allowLine = allowEsp && (tokenFeat & 4) != 0 && !json.Contains("\"server_line\":false");
-                            bool allowName = allowEsp && (tokenFeat & 8) != 0 && !json.Contains("\"server_name\":false");
-                            bool allowDistance = allowEsp && (tokenFeat & 16) != 0 && !json.Contains("\"server_distance\":false");
-                            bool allowHealth = allowEsp && (tokenFeat & 32) != 0 && !json.Contains("\"server_health\":false");
-                            bool allowSkeleton = allowEsp && (tokenFeat & 64) != 0 && !json.Contains("\"server_skeleton\":false");
-                            bool allowAim = (tokenFeat & 128) != 0 && !json.Contains("\"server_aim\":false");
-                            bool allowAimSystem = (tokenFeat & 256) != 0 && !json.Contains("\"server_aim\":false");
-                            bool allowHeadshot = allowAim && (tokenFeat & 512) != 0 && !json.Contains("\"server_headshot\":false");
+                            bool allowEsp = (tokenFeat & 1) != 0 && !json.Contains("\"server_esp\":false") && !json.Contains("\"server_esp\":0");
+                            bool allowBox = allowEsp && (tokenFeat & 2) != 0 && !json.Contains("\"server_box\":false") && !json.Contains("\"server_box\":0");
+                            bool allowLine = allowEsp && (tokenFeat & 4) != 0 && !json.Contains("\"server_line\":false") && !json.Contains("\"server_line\":0");
+                            bool allowName = allowEsp && (tokenFeat & 8) != 0 && !json.Contains("\"server_name\":false") && !json.Contains("\"server_name\":0");
+                            bool allowDistance = allowEsp && (tokenFeat & 16) != 0 && !json.Contains("\"server_distance\":false") && !json.Contains("\"server_distance\":0");
+                            bool allowHealth = allowEsp && (tokenFeat & 32) != 0 && !json.Contains("\"server_health\":false") && !json.Contains("\"server_health\":0");
+                            bool allowSkeleton = allowEsp && (tokenFeat & 64) != 0 && !json.Contains("\"server_skeleton\":false") && !json.Contains("\"server_skeleton\":0");
+                            bool allowAim = (tokenFeat & 128) != 0 && !json.Contains("\"server_aim\":false") && !json.Contains("\"server_aim\":0");
+                            bool allowAimSystem = (tokenFeat & 256) != 0 && !json.Contains("\"server_aim\":false") && !json.Contains("\"server_aim\":0");
+                            bool allowHeadshot = allowAim && (tokenFeat & 512) != 0 && !json.Contains("\"server_headshot\":false") && !json.Contains("\"server_headshot\":0");
                             bool allowNoRecoil = allowAim && (tokenFeat & 1024) != 0;
 
                             int s = StateInitialized;
