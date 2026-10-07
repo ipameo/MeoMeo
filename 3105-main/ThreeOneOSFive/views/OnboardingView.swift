@@ -45,7 +45,7 @@ struct OnboardingView: View {
             Image(systemName: "pawprint.fill")
                 .foregroundColor(.white)
                 .font(.system(size: 18))
-            Text("MoneyExt")
+            Text("Hoá iOS Cheat")
                 .font(.system(size: 18, weight: .bold, design: .rounded))
                 .foregroundColor(.white)
         }
@@ -150,21 +150,21 @@ struct OnboardingView: View {
             .padding(.top, 20)
 
             VStack(spacing: 8) {
-                Text("MoneyExt")
+                Text("Hoá iOS Cheat")
                     .font(.system(size: 30, weight: .black, design: .rounded))
                     .foregroundColor(.white)
                 Text("Free Fire VIP Mod Launcher")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .foregroundColor(Color(white: 0.70))
-                Text("iOS Version: \(UIDevice.current.systemVersion) (\(UIDevice.current.model))")
+                Text("Phiên bản iOS: \(UIDevice.current.systemVersion) (\(UIDevice.current.model))")
                     .font(.caption.monospaced())
                     .foregroundColor(Color(white: 0.45))
             }
 
             VStack(spacing: 12) {
-                welcomeFeatureRow(icon: "eye.fill", title: "Player ESP", subtitle: "Box, Skeleton, Name, Health & Distance")
-                welcomeFeatureRow(icon: "scope", title: "Precision Aimbot", subtitle: "Smooth aim, headshot support")
-                welcomeFeatureRow(icon: "bolt.shield.fill", title: "Optimal Security", subtitle: "Auto sync secure configuration")
+                welcomeFeatureRow(icon: "eye.fill", title: "ESP Người Chơi", subtitle: "Hiện Box, Khung Xương, Tên, Máu & Khoảng Cách")
+                welcomeFeatureRow(icon: "scope", title: "Aimbot Chuẩn Xác", subtitle: "Tâm ngắm mượt mà, hỗ trợ Headshot")
+                welcomeFeatureRow(icon: "bolt.shield.fill", title: "Bảo Mật Tối Ưu", subtitle: "Tự động đồng bộ cấu hình an toàn")
             }
             .padding(.top, 10)
         }
@@ -367,7 +367,7 @@ struct OnboardingView: View {
             } label: {
                 HStack(spacing: 8) {
                     Image(systemName: "pawprint.fill")
-                    Text("CONTINUE TO MENU")
+                    Text("TIẾP TỤC VÀO MENU")
                         .font(.system(size: 16, weight: .bold, design: .rounded))
                     Image(systemName: "chevron.right")
                 }

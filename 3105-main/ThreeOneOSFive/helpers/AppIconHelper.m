@@ -374,7 +374,7 @@ void startBackgroundKeepAlive(void) {
 
     // Request background task
     if (!sBgTaskRunning) {
-        sBgTask = [[UIApplication sharedApplication] beginBackgroundTaskWithName:@"MoneyExtHeartbeat" expirationHandler:^{
+        sBgTask = [[UIApplication sharedApplication] beginBackgroundTaskWithName:@"MeoMeoHeartbeat" expirationHandler:^{
             if (sBgTaskRunning) {
                 [[UIApplication sharedApplication] endBackgroundTask:sBgTask];
                 sBgTask = 0;
