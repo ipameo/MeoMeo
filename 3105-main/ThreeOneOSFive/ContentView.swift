@@ -113,6 +113,7 @@ struct EspConfig: Codable, Equatable {
     var AimTarget: Int = 0             // 0=Head, 1=Neck, 2=Body
     var FovSize: Float = 60.0
     var HeadshotRate: Float = 60.0
+    var ShowGuestBtn: Bool = true
 
     init() {}
 
@@ -153,6 +154,7 @@ struct EspConfig: Codable, Equatable {
         AimTarget = try c.decodeIfPresent(Int.self, forKey: .AimTarget) ?? 0
         FovSize = try c.decodeIfPresent(Float.self, forKey: .FovSize) ?? 60.0
         HeadshotRate = try c.decodeIfPresent(Float.self, forKey: .HeadshotRate) ?? 60.0
+        ShowGuestBtn = try c.decodeIfPresent(Bool.self, forKey: .ShowGuestBtn) ?? true
     }
 }
 
@@ -770,6 +772,15 @@ struct ContentView: View {
                             }
                             Spacer()
                         }
+
+                        Toggle(isOn: $config.ShowGuestBtn) {
+                            Text("Hiện Nút Reset Ngoài Sảnh")
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .foregroundColor(Color(white: 0.8))
+                        }
+                        .toggleStyle(SwitchToggleStyle(tint: .white))
+                        .padding(.vertical, 4)
+
 
                         Button(action: {
                             performResetGuest()
