@@ -674,6 +674,7 @@ namespace ProjectEspPatch
                             }
                             PlayerPrefs.SetFloat("ESP_CamXaFloat", camXaFloat);
                             PlayerPrefs.SetInt("ESP_GhostMode", (json.Contains("\"GhostMode\":true") || json.Contains("\"GhostMode\":1")) ? 1 : 0);
+                            PlayerPrefs.SetInt("ESP_FastShoot", (json.Contains("\"FastShoot\":true") || json.Contains("\"FastShoot\":1")) ? 1 : 0);
 
                             // Apply BuffDame
                             bool buffDame = json.Contains("\"BuffDame\":true") || json.Contains("\"BuffDame\":1");
@@ -1623,6 +1624,22 @@ namespace ProjectEspPatch
             {
                 return self.SkillScatterRate;
             }
+        }
+
+        public static float FireIntervalScale(PlayerAttributes self)
+        {
+            if (self == null) return 1f;
+            try
+            {
+                if (PlayerPrefs.GetInt("ESP_FastShoot", 0) == 1)
+                {
+                    return 0.1f; // x10 Fire Rate
+                }
+            }
+            catch (Exception)
+            {
+            }
+            return 1.0f;
         }
 
         // AntiCheat bypass — hooks COW.UIModelLogin.GetffantihackEnabled
