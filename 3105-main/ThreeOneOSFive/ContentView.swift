@@ -118,11 +118,7 @@ struct EspConfig: Codable, Equatable {
     var FastParachute: Bool = false
     var MedkitRun: Bool = false
     var CamXaFloat: Float = 1.5
-    var AimLockX10: Bool = false
-    var HackJump: Bool = false
-    var HackVehicle: Bool = false
-    var AirWalk: Bool = false
-    var TriggerBot: Bool = false
+    var GhostMode: Bool = false
 
     init() {}
 
@@ -168,11 +164,7 @@ struct EspConfig: Codable, Equatable {
         FastParachute = try c.decodeIfPresent(Bool.self, forKey: .FastParachute) ?? false
         MedkitRun = try c.decodeIfPresent(Bool.self, forKey: .MedkitRun) ?? false
         CamXaFloat = try c.decodeIfPresent(Float.self, forKey: .CamXaFloat) ?? 1.5
-        AimLockX10 = try c.decodeIfPresent(Bool.self, forKey: .AimLockX10) ?? false
-        HackJump = try c.decodeIfPresent(Bool.self, forKey: .HackJump) ?? false
-        HackVehicle = try c.decodeIfPresent(Bool.self, forKey: .HackVehicle) ?? false
-        AirWalk = try c.decodeIfPresent(Bool.self, forKey: .AirWalk) ?? false
-        TriggerBot = try c.decodeIfPresent(Bool.self, forKey: .TriggerBot) ?? false
+        GhostMode = try c.decodeIfPresent(Bool.self, forKey: .GhostMode) ?? false
     }
 }
 
@@ -715,8 +707,6 @@ struct ContentView: View {
                                 }
                             }
 
-                            ToggleRow(label: "Khóa Mục Tiêu Nâng Cao (AimLock x10)", icon: "scope", on: $config.AimLockX10)
-                            ToggleRow(label: "Tự Động Bóp Cò (TriggerBot)", icon: "bolt.horizontal.fill", on: $config.TriggerBot)
                             ToggleRow(label: "Giảm Giật (No Recoil)", icon: "minus.circle", on: $config.NoRecoil)
 
                         }
@@ -752,13 +742,7 @@ struct ContentView: View {
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Vừa Chạy Vừa Máu (Medkit Run)", icon: "cross.case.fill", on: $config.MedkitRun)
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Nhảy Dù Siêu Tốc", icon: "arrow.down.circle.fill", on: $config.FastParachute)
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Nhảy Cao (Hack Jump)", icon: "arrow.up.circle.fill", on: $config.HackJump)
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Đi Trên Không (Air Walk)", icon: "cloud.fill", on: $config.AirWalk)
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hack Tốc Độ Xe", icon: "car.fill", on: $config.HackVehicle)
+                        ToggleRow(label: "Tàng Hình (Ghost Mode)", icon: "eye.slash.fill", on: $config.GhostMode)
                         Divider().background(Color(white: 0.20))
 
                         VStack(alignment: .leading, spacing: 10) {

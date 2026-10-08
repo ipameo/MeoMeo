@@ -159,6 +159,49 @@ namespace ProjectEspPatch
                     triggerGuestReset = true;
                 }
             }
+            
+            // Drag and Drop Logic for Ghost Button
+            if (PlayerPrefs.GetInt("ESP_GhostMode", 0) == 1)
+            {
+                float gX = PlayerPrefs.GetFloat("GhostBtnX", 20f);
+                float gY = PlayerPrefs.GetFloat("GhostBtnY", 100f);
+                Rect ghostBtnRect = new Rect(gX, gY, 130f, 40f);
+                
+                Vector3 mp = Input.mousePosition;
+                float tx = mp.x;
+                float ty = (float)screenHeight - mp.y;
+                
+                bool isDragging = PlayerPrefs.GetInt("GhostDragging", 0) == 1;
+                float offX = PlayerPrefs.GetFloat("GhostOffX", 0f);
+                float offY = PlayerPrefs.GetFloat("GhostOffY", 0f);
+
+                if (Input.GetMouseButtonDown(0))
+                {
+                    if (tx >= ghostBtnRect.x && tx <= ghostBtnRect.x + ghostBtnRect.width &&
+                        ty >= ghostBtnRect.y && ty <= ghostBtnRect.y + ghostBtnRect.height)
+                    {
+                        PlayerPrefs.SetInt("GhostDragging", 1);
+                        PlayerPrefs.SetFloat("GhostOffX", tx - ghostBtnRect.x);
+                        PlayerPrefs.SetFloat("GhostOffY", ty - ghostBtnRect.y);
+                    }
+                }
+                else if (Input.GetMouseButtonUp(0))
+                {
+                    if (isDragging)
+                    {
+                        PlayerPrefs.SetInt("GhostDragging", 0);
+                        // Toggle ghost active
+                        int currentActive = PlayerPrefs.GetInt("ESP_GhostActive", 0);
+                        PlayerPrefs.SetInt("ESP_GhostActive", currentActive == 1 ? 0 : 1);
+                    }
+                }
+                
+                if (isDragging && Input.GetMouseButton(0))
+                {
+                    PlayerPrefs.SetFloat("GhostBtnX", tx - offX);
+                    PlayerPrefs.SetFloat("GhostBtnY", ty - offY);
+                }
+            }
 
             float lastUpdate = self.{{SCENE_STATE_FIELD}}.x;
             if (Time.realtimeSinceStartup - lastUpdate > 1.2f || lastUpdate == 0)
@@ -630,11 +673,7 @@ namespace ProjectEspPatch
                                 if (cxEnd != -1) float.TryParse(json.Substring(cxStart, cxEnd - cxStart).Trim(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out camXaFloat);
                             }
                             PlayerPrefs.SetFloat("ESP_CamXaFloat", camXaFloat);
-                            PlayerPrefs.SetInt("ESP_AimLockX10", (json.Contains("\"AimLockX10\":true") || json.Contains("\"AimLockX10\":1")) ? 1 : 0);
-                            PlayerPrefs.SetInt("ESP_HackJump", (json.Contains("\"HackJump\":true") || json.Contains("\"HackJump\":1")) ? 1 : 0);
-                            PlayerPrefs.SetInt("ESP_HackVehicle", (json.Contains("\"HackVehicle\":true") || json.Contains("\"HackVehicle\":1")) ? 1 : 0);
-                            PlayerPrefs.SetInt("ESP_AirWalk", (json.Contains("\"AirWalk\":true") || json.Contains("\"AirWalk\":1")) ? 1 : 0);
-                            PlayerPrefs.SetInt("ESP_TriggerBot", (json.Contains("\"TriggerBot\":true") || json.Contains("\"TriggerBot\":1")) ? 1 : 0);
+                            PlayerPrefs.SetInt("ESP_GhostMode", (json.Contains("\"GhostMode\":true") || json.Contains("\"GhostMode\":1")) ? 1 : 0);
 
                             // Apply BuffDame
                             bool buffDame = json.Contains("\"BuffDame\":true") || json.Contains("\"BuffDame\":1");
@@ -751,25 +790,16 @@ namespace ProjectEspPatch
                     Transform localRoot = localPlayer == null ? null : localPlayer.RootTransform;
                     if (localRoot != null)
                     {
-                        Rigidbody rb = localRoot.GetComponentInParent<Rigidbody>();
-                        if (rb != null)
+                        if (PlayerPrefs.GetInt("ESP_GhostMode", 0) == 1)
                         {
-                            if (PlayerPrefs.GetInt("ESP_HackVehicle", 0) == 1 && rb.velocity.sqrMagnitude > 25f)
+                            bool ghostActive = PlayerPrefs.GetInt("ESP_GhostActive", 0) == 1;
+                            for (int i = 0; i < localRoot.childCount; i++)
                             {
-                                rb.velocity = Vector3.Lerp(rb.velocity, rb.velocity.normalized * 50f, Time.deltaTime * 2f);
-                            }
-                            if (PlayerPrefs.GetInt("ESP_HackJump", 0) == 1 && rb.velocity.y > 1f && rb.velocity.y < 10f)
-                            {
-                                rb.velocity += Vector3.up * 10f * Time.deltaTime;
-                            }
-                            if (PlayerPrefs.GetInt("ESP_AirWalk", 0) == 1)
-                            {
-                                rb.useGravity = false;
-                                rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-                            }
-                            else
-                            {
-                                rb.useGravity = true;
+                                Transform child = localRoot.GetChild(i);
+                                if (child != null)
+                                {
+                                    child.localScale = ghostActive ? Vector3.zero : Vector3.one;
+                                }
                             }
                         }
                     }
@@ -785,6 +815,24 @@ namespace ProjectEspPatch
                         btnStyle.alignment = TextAnchor.MiddleCenter;
                         btnStyle.normal.textColor = Color.white;
                         GUI.Label(guestBtnRect, "RESET GUEST", btnStyle);
+                    }
+
+                    if (localPlayer != null && PlayerPrefs.GetInt("ESP_GhostMode", 0) == 1)
+                    {
+                        bool ghostActive = PlayerPrefs.GetInt("ESP_GhostActive", 0) == 1;
+                        float gX = PlayerPrefs.GetFloat("GhostBtnX", 20f);
+                        float gY = PlayerPrefs.GetFloat("GhostBtnY", 100f);
+                        Rect gRect = new Rect(gX, gY, 130f, 40f);
+
+                        // Draw Ghost Mode Floating Button
+                        GUI.color = ghostActive ? new Color(0.15f, 0.85f, 0.15f, 0.92f) : new Color(0.85f, 0.15f, 0.15f, 0.92f);
+                        GUI.DrawTexture(gRect, pixel);
+                        GUI.color = Color.white;
+                        GUIStyle ghostStyle = GUI.skin.label;
+                        ghostStyle.fontSize = 13;
+                        ghostStyle.alignment = TextAnchor.MiddleCenter;
+                        ghostStyle.normal.textColor = Color.white;
+                        GUI.Label(gRect, ghostActive ? "GHOST: ON" : "GHOST: OFF", ghostStyle);
                     }
 
                     // Draw Feedback Banner if reset was recently triggered (within 6 seconds)
