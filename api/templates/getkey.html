@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cổng Lấy Key Free — 5 Giờ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #000000;
+            --bg-card: #0d0d0d;
+            --bg-card-hover: #141414;
+            --bg-input: #050505;
+            --border-color: #222222;
+            --border-focus: #555555;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --btn-white: #ffffff;
+            --btn-white-text: #000000;
+            --btn-dark: #161616;
+            --btn-dark-hover: #222222;
+            --card-radius: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            padding: 28px 24px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 22px;
+        }
+
+        .badge {
+            display: inline-block;
+            background: #141414;
+            border: 1px solid var(--border-color);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #888888;
+            margin-bottom: 10px;
+        }
+
+        .header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.4px;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            font-size: 11.5px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .input-box {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 12px 14px;
+            font-size: 13.5px;
+            font-family: 'JetBrains Mono', monospace;
+            color: #ffffff;
+            outline: none;
+            width: 100%;
+            transition: border-color 0.15s ease;
+        }
+
+        .input-box:focus {
+            border-color: #666666;
+        }
+
+        .btn {
+            background: var(--btn-white);
+            color: var(--btn-white-text);
+            border: 1px solid #ffffff;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 700;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.15s ease;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: #e5e5e5;
+        }
+
+        .btn-secondary {
+            background: var(--btn-dark);
+            color: #ffffff;
+            border-color: var(--border-color);
+            font-weight: 600;
+            font-size: 13px;
+            padding: 10px 14px;
+        }
+
+        .btn-secondary:hover {
+            background: var(--btn-dark-hover);
+        }
+
+        /* ── RESULT BOX ── */
+        .result-box {
+            display: none;
+            background: #050505;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 16px;
+            margin-top: 18px;
+        }
+
+        .key-display {
+            background: #111111;
+            border: 1px dashed #444444;
+            border-radius: 6px;
+            padding: 14px;
+            margin: 12px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 17px;
+            font-weight: 700;
+            color: #52c41a;
+            text-align: center;
+            word-break: break-all;
+            user-select: all;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12.5px;
+            padding: 6px 0;
+            border-bottom: 1px solid #141414;
+        }
+
+        .info-label {
+            color: var(--text-secondary);
+        }
+
+        .info-val {
+            font-weight: 600;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── INSTRUCTIONS ── */
+        .guide-box {
+            background: #070707;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 14px;
+            margin-top: 20px;
+            font-size: 12px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .guide-box ol {
+            padding-left: 18px;
+            margin-top: 6px;
+        }
+
+        .guide-box li {
+            margin-bottom: 4px;
+        }
+
+        /* ── TOAST ── */
+        #toast {
+            visibility: hidden;
+            min-width: 200px;
+            background-color: #141414;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            padding: 10px 16px;
+            position: fixed;
+            z-index: 1100;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.25s, visibility 0.25s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="card">
+            <div class="header">
+                <div class="badge">HỆ THỐNG GETKEY FREE</div>
+                <h1>Kích Hoạt Key 5 Giờ</h1>
+                <p>Nhập mã thiết bị (HWID) từ App Mod để lấy link vượt và nhận License Key dùng thử 5 giờ.</p>
+            </div>
+
+            <!-- STEP 1: NHẬP HWID ĐỂ TẠO LINK VƯỢT -->
+            <div id="stepInitSection">
+                <div class="form-group">
+                    <label>MÃ HWID CỦA BẠN (Lấy trong App):</label>
+                    <input type="text" id="hwidInput" class="input-box" placeholder="Dán mã HWID máy bạn vào đây..." autocomplete="off" spellcheck="false">
+                </div>
+
+                <button id="btnInitGetkey" class="btn" onclick="startGetkey()">
+                    🚀 Bắt Đầu Lấy Link Vượt
+                </button>
+            </div>
+
+            <!-- STEP 2: KHI USER HOÀN THÀNH VƯỢT LINK (CÓ ST & CLAIM & SIG TRÊN URL) -->
+            <div id="stepClaimSection" style="display: none;">
+                <div style="text-align: center; padding: 14px 0;">
+                    <div style="font-size: 28px; margin-bottom: 8px;">⏳</div>
+                    <p id="claimStatusText" style="font-size: 13.5px; color: #ffffff; margin-bottom: 14px; line-height: 1.5;">
+                        Bạn đã hoàn thành vượt link! Đang xác thực và cấp mã License Key 5 giờ...
+                    </p>
+                    <button id="btnClaimKey" class="btn" onclick="claimKey()">
+                        🎁 Nhận Mã License Key (5 Giờ)
+                    </button>
+                    <div id="claimErrorBox" style="display: none; margin-top: 14px;">
+                        <p id="claimErrorMsg" style="color: #ff4d4f; font-size: 12.5px; margin-bottom: 10px;"></p>
+                        <a href="/hoagetkey" class="btn btn-secondary">🔄 Thử Lại Từ Đầu</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KẾT QUẢ HIỂN THỊ KEY -->
+            <div id="resultBox" class="result-box">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-weight: 700; font-size: 13px; color: #ffffff;">MÃ LICENSE KEY CỦA BẠN:</span>
+                    <span style="font-size: 11px; background: #0d2818; color: #52c41a; padding: 2px 6px; border-radius: 4px; font-weight: 700;">5 GIỜ</span>
+                </div>
+                <div id="keyVal" class="key-display">—</div>
+                
+                <div class="info-row">
+                    <span class="info-label">Thiết bị (HWID):</span>
+                    <span class="info-val" id="resHwid">—</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Thời hạn:</span>
+                    <span class="info-val">5 Giờ / 1 Máy</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Trạng thái:</span>
+                    <span class="info-val" style="color: #52c41a;">Đã Kích Hoạt</span>
+                </div>
+
+                <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+                    <button class="btn" onclick="copyClaimedKey()">📋 Sao Chép Key & Mở App</button>
+                    <a href="/hoagetkey" class="btn btn-secondary" style="text-align: center;">🔗 Vượt Link Cho Máy Khác</a>
+                </div>
+            </div>
+
+            <!-- HƯỚNG DẪN -->
+            <div class="guide-box">
+                <strong>📌 Hướng Dẫn Lấy Key:</strong>
+                <ol>
+                    <li>Mở App trên điện thoại, bấm vào nút copy mã <strong>HWID</strong>.</li>
+                    <li>Dán mã HWID vào ô trên rồi bấm <strong>"Bắt Đầu Lấy Link Vượt"</strong>.</li>
+                    <li>Vượt qua link rút gọn <code>vuotlink.xyz</code> (chờ đếm ngược giây và bấm Get Link).</li>
+                    <li>Sau khi hoàn thành, hệ thống tự động quay về trang này và cấp Key 5 giờ cho máy bạn!</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast">Thông báo</div>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const stParam = urlParams.get("st") || "{{ st }}";
+        const claimParam = urlParams.get("claim") || "{{ claim }}";
+        const sigParam = urlParams.get("sig") || "{{ sig }}";
+        let claimedKeyStr = "";
+
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            toast.innerText = msg;
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), 2800);
+        }
+
+        function copyToClipboard(text, successMsg = "Đã sao chép!") {
+            if (!text) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(`📋 ${successMsg}`);
+                }).catch(() => fallbackCopy(text, successMsg));
+            } else {
+                fallbackCopy(text, successMsg);
+            }
+        }
+
+        function fallbackCopy(text, successMsg) {
+            const temp = document.createElement("textarea");
+            temp.value = text;
+            temp.style.position = "fixed";
+            temp.style.opacity = "0";
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand("copy");
+            document.body.removeChild(temp);
+            showToast(`📋 ${successMsg}`);
+        }
+
+        function copyClaimedKey() {
+            if (claimedKeyStr) {
+                copyToClipboard(claimedKeyStr, `Đã copy key: ${claimedKeyStr}`);
+            }
+        }
+
+        // ── BƯỚC 1: NHẬP HWID VÀ TẠO LINK VUOTLINK ──
+        async function startGetkey() {
+            const hwid = document.getElementById("hwidInput").value.trim().toUpperCase();
+            if (!hwid || hwid.length < 8) {
+                showToast("⚠️ Vui lòng nhập đúng mã HWID máy bạn!");
+                document.getElementById("hwidInput").focus();
+                return;
+            }
+
+            // Lưu HWID vào localStorage để tiện dùng
+            try {
+                localStorage.setItem("saved_hwid", hwid);
+            } catch (e) {}
+
+            const btn = document.getElementById("btnInitGetkey");
+            btn.disabled = true;
+            btn.innerText = "⏳ Đang tạo link vượt...";
+
+            try {
+                const res = await fetch("/api/getkey/init", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ hwid })
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.ok) {
+                    btn.disabled = false;
+                    btn.innerText = "🚀 Bắt Đầu Lấy Link Vượt";
+                    showToast(`❌ ${data.error || "Không thể khởi tạo GetKey"}`);
+                    return;
+                }
+
+                // Luôn bắt buộc chuyển hướng sang vuotlink.xyz
+                btn.innerText = "🔗 Đang chuyển hướng sang vuotlink.xyz...";
+                showToast("🔗 Chuyển hướng sang vuotlink.xyz, vui lòng hoàn thành để lấy key!");
+                setTimeout(() => {
+                    window.location.href = data.vuotlink_url;
+                }, 600);
+
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false;
+                btn.innerText = "🚀 Bắt Đầu Lấy Link Vượt";
+                showToast("❌ Lỗi kết nối máy chủ!");
+            }
+        }
+
+        // ── BƯỚC 2: XÁC THỰC SAU KHI VƯỢT LINK XONG (CÓ ST & CLAIM & SIG) ──
+        async function claimKey() {
+            if (!stParam || !claimParam || !sigParam) {
+                showToast("❌ Thiếu thông tin xác thực vượt link!");
+                document.getElementById("claimErrorBox").style.display = "block";
+                document.getElementById("claimErrorMsg").innerText = "Bạn phải vượt qua trang vuotlink.xyz mới có mã xác thực để nhận key.";
+                document.getElementById("btnClaimKey").style.display = "none";
+                return;
+            }
+
+            const btn = document.getElementById("btnClaimKey");
+            btn.disabled = true;
+            btn.innerText = "⏳ Đang cấp phát key 5 giờ...";
+            document.getElementById("claimStatusText").innerText = "Đang kiểm tra vượt link hợp lệ và cấp License Key 5 giờ...";
+            document.getElementById("claimErrorBox").style.display = "none";
+
+            try {
+                const res = await fetch("/api/getkey/claim", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        st: stParam,
+                        claim: claimParam,
+                        sig: sigParam
+                    })
+                });
+                const data = await res.json();
+
+                if (!res.ok || !data.ok) {
+                    btn.disabled = false;
+                    btn.innerText = "🎁 Thử Nhận Lại";
+                    document.getElementById("claimStatusText").innerText = "Xác thực vượt link không thành công.";
+                    document.getElementById("claimErrorBox").style.display = "block";
+                    document.getElementById("claimErrorMsg").innerText = data.error || "Không thể cấp key";
+                    showToast(`❌ ${data.error || "Không thể cấp key"}`);
+                    return;
+                }
+
+                claimedKeyStr = data.key;
+                document.getElementById("stepClaimSection").style.display = "none";
+                document.getElementById("stepInitSection").style.display = "none";
+                document.getElementById("resultBox").style.display = "block";
+                document.getElementById("keyVal").innerText = data.key;
+                document.getElementById("resHwid").innerText = data.hwid || "Đã khoá máy";
+                showToast("🎉 " + data.message);
+                copyToClipboard(data.key, `Tự động copy key: ${data.key}`);
+
+            } catch (err) {
+                console.error(err);
+                btn.disabled = false;
+                btn.innerText = "🎁 Thử Nhận Lại";
+                document.getElementById("claimErrorBox").style.display = "block";
+                document.getElementById("claimErrorMsg").innerText = "Lỗi kết nối máy chủ khi cấp key!";
+                showToast("❌ Lỗi kết nối máy chủ!");
+            }
+        }
+
+        // Tự động kiểm tra:
+        // - Nếu có st, claim, sig trên URL (vừa vượt link xong): tự động claimKey
+        // - Nếu chưa: nạp lại HWID đã lưu từ trước nếu có
+        window.addEventListener("DOMContentLoaded", () => {
+            if (stParam && claimParam && sigParam && stParam.length >= 10) {
+                document.getElementById("stepInitSection").style.display = "none";
+                document.getElementById("stepClaimSection").style.display = "block";
+                claimKey();
+            } else {
+                try {
+                    const savedHwid = localStorage.getItem("saved_hwid");
+                    if (savedHwid) {
+                        const input = document.getElementById("hwidInput");
+                        if (input && !input.value) {
+                            input.value = savedHwid;
+                        }
+                    }
+                } catch (e) {}
+            }
+        });
+    </script>
+</body>
+
+</html>
+

@@ -1,0 +1,178 @@
+{
+  "dump": "C:\\Users\\Administrator\\Downloads\\FIX-CRASH-ESP\\project-freefire_c#\\project-freefire_c#\\dumps\\unknown_package_name_1.132.1.cs",
+  "version": "1.132.1",
+  "dump_sha256": "483EBC2C6A245A5EE32844D996F16E5B614C1105EE363EE575ABE01652CCFEC2",
+  "placeholders": {
+    "MATCH_TYPE": "JMAGGLCNGIG",
+    "MATCH_PLAYERS_METHOD": "ILPNGCMEFFI",
+    "AIM_INFO_TYPE": "CGKJLKPMGDJ",
+    "PLAYER_AIM_INFO_FIELD": "FDMIEDDNCEC",
+    "SCENE_MENU_FIELD": "AFHAOIAPPNB",
+    "SCENE_POSITION_FIELD": "OHPFLEDNOJK",
+    "SCENE_STATE_FIELD": "DIGCJIKHGJP",
+    "AIM_GAME_OBJECT_FIELD": "JHAINOBIFMA",
+    "AIM_COLLIDER_FIELD": "JINDNOFABKB",
+    "AIM_HIT_POSITION_FIELD": "HPCOJHGFEEG",
+    "AIM_TRACE_POSITION_FIELD": "DOJDNHCGFGK",
+    "AIM_DIRECTION_FIELD": "HLDECMJFKJK",
+    "AIM_ORIGIN_FIELD": "EKPLMDDKOGB",
+    "AIM_HIT_TYPE": "LKOOALMKJND",
+    "AIM_HIT_TYPE_FIELD": "DKPDBLLJEAA",
+    "AIM_FLAG_A_FIELD": "EFMBNPNFGHM",
+    "AIM_FLAG_B_FIELD": "CEOKOILBODN",
+    "AIM_SECONDARY_ORIGIN_FIELD": "ONMKMEGMHOL",
+    "AIM_SHORT_FIELD": "CLOLKHNMNEK",
+    "SPEED_TYPE": "KGCCMFBFCAC"
+  },
+  "bindings": [
+    [
+      "TYPE",
+      "COW.GamePlay.EMKJHAJNPDH",
+      "COW.GamePlay.JMAGGLCNGIG"
+    ],
+    [
+      "TYPE",
+      "COW.GamePlay.GMPGMPFNMFP",
+      "COW.GamePlay.CGKJLKPMGDJ"
+    ],
+    [
+      "TYPE",
+      "COW.GamePlay.JKCLPFEFMNG",
+      "COW.GamePlay.LKOOALMKJND"
+    ],
+    [
+      "TYPE",
+      "COW.GamePlay.PlayerAttributes+BDACINNPFDD",
+      "COW.GamePlay.PlayerAttributes+KGCCMFBFCAC"
+    ],
+    [
+      "METHOD",
+      "COW.GamePlay.EMKJHAJNPDH",
+      "GEPFGOHGOJI",
+      "ILPNGCMEFFI"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.Player",
+      "AKFLHNOIHED",
+      "FDMIEDDNCEC"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.SceneEditBoxSelectTool",
+      "DKNELPFOCHG",
+      "AFHAOIAPPNB"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.SceneEditBoxSelectTool",
+      "FMMMAPKGAAJ",
+      "OHPFLEDNOJK"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.SceneEditBoxSelectTool",
+      "EEKIAPPAGCL",
+      "DIGCJIKHGJP"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.GMPGMPFNMFP",
+      "HLIJMDODPIM",
+      "JHAINOBIFMA"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.GMPGMPFNMFP",
+      "OCEBCHENIOK",
+      "JINDNOFABKB"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.GMPGMPFNMFP",
+      "MBGBCLNJOMK",
+      "HPCOJHGFEEG"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.GMPGMPFNMFP",
+      "DGFLGBEOGPG",
+      "DOJDNHCGFGK"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.GMPGMPFNMFP",
+      "IKDEGKIICJP",
+      "HLDECMJFKJK"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.GMPGMPFNMFP",
+      "LMAEGPEAECO",
+      "EKPLMDDKOGB"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.GMPGMPFNMFP",
+      "FLCLOHCBJEI",
+      "DKPDBLLJEAA"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.GMPGMPFNMFP",
+      "DEDOKPCAHAC",
+      "EFMBNPNFGHM"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.GMPGMPFNMFP",
+      "GGJOADOBLID",
+      "CEOKOILBODN"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.GMPGMPFNMFP",
+      "KPEICEMCHIF",
+      "ONMKMEGMHOL"
+    ],
+    [
+      "FIELD",
+      "COW.GamePlay.GMPGMPFNMFP",
+      "LNOIFBAFGOK",
+      "CLOLKHNMNEK"
+    ]
+  ],
+  "details": {
+    "match_type": "COW.GamePlay.JMAGGLCNGIG",
+    "match_players_method": "ILPNGCMEFFI",
+    "aim_info_type": "COW.GamePlay.CGKJLKPMGDJ",
+    "aim_hit_type": "COW.GamePlay.LKOOALMKJND",
+    "speed_type": "COW.GamePlay.PlayerAttributes.KGCCMFBFCAC",
+    "source_lines": {
+      "match_method": 731177,
+      "player_aim_field": 717981,
+      "scene_fields": [
+        804287,
+        804288,
+        804289
+      ],
+      "aim_layout": [
+        787950,
+        787951,
+        787952,
+        787953,
+        787954,
+        787955,
+        787956,
+        787957,
+        787958,
+        787959,
+        787960,
+        787961,
+        787962,
+        787963,
+        787964
+      ]
+    }
+  }
+}

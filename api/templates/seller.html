@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cổng Quản Trị Seller — {{ seller.name }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-body: #000000;
+            --bg-card: #0d0d0d;
+            --bg-card-hover: #141414;
+            --bg-input: #050505;
+            --border-color: #222222;
+            --border-focus: #555555;
+            --text-primary: #ffffff;
+            --text-secondary: #888888;
+            --btn-white: #ffffff;
+            --btn-white-text: #000000;
+            --btn-dark: #161616;
+            --btn-dark-hover: #222222;
+            --card-radius: 8px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 16px;
+        }
+
+        .container {
+            max-width: 960px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* ── Header ── */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid var(--border-color);
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-icon {
+            width: 36px;
+            height: 36px;
+            background: #141414;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .brand-title h1 {
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            letter-spacing: -0.3px;
+        }
+
+        .brand-title p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* ── Buttons ── */
+        .btn {
+            background: var(--btn-white);
+            color: var(--btn-white-text);
+            border: 1px solid #ffffff;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            text-decoration: none;
+        }
+
+        .btn:hover {
+            background: #e5e5e5;
+        }
+
+        .btn-secondary {
+            background: var(--btn-dark);
+            color: #ffffff;
+            border-color: var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--btn-dark-hover);
+            border-color: #444444;
+        }
+
+        .btn-danger {
+            background: #2a0b0b;
+            color: #ff6b6b;
+            border-color: #551515;
+        }
+
+        .btn-danger:hover {
+            background: #3f1010;
+        }
+
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        /* ── Cards & Grid ── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .card-header h2 {
+            font-size: 14px;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .stat-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            padding: 14px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .stat-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #ffffff;
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* ── Forms ── */
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .form-group label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .form-group input,
+        .form-group select {
+            background: #080808;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: #ffffff;
+            font-size: 13px;
+            outline: none;
+            width: 100%;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            border-color: #666666;
+        }
+
+        /* ── Tables ── */
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        table {
+            width: 100%;
+            min-width: 600px;
+            border-collapse: collapse;
+            font-size: 12.5px;
+        }
+
+        th {
+            text-align: left;
+            padding: 8px 10px;
+            color: var(--text-secondary);
+            font-size: 11px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #1a1a1a;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .key-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            color: #ffffff;
+            cursor: pointer;
+            padding: 2px 6px;
+            border-radius: 4px;
+            background: #141414;
+            border: 1px solid var(--border-color);
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-status {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 11px;
+            font-weight: 700;
+            border-radius: 4px;
+        }
+
+        .badge-active {
+            background: #0d2818;
+            color: #52c41a;
+            border: 1px solid #1e4620;
+        }
+
+        .badge-banned {
+            background: #2a0b0b;
+            color: #ff4d4f;
+            border: 1px solid #551515;
+        }
+
+        /* ── Modal ── */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+
+        .modal-card {
+            background: #0d0d0d;
+            border: 1px solid var(--border-color);
+            border-radius: var(--card-radius);
+            max-width: 440px;
+            width: 100%;
+            padding: 20px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .modal-header h3 {
+            font-size: 15px;
+            color: #ffffff;
+        }
+
+        .key-display {
+            background: #050505;
+            border: 1px dashed #555555;
+            border-radius: 6px;
+            padding: 12px;
+            margin: 14px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 16px;
+            font-weight: 700;
+            color: #ffffff;
+            text-align: center;
+            word-break: break-all;
+            user-select: all;
+        }
+
+        /* ── Toast ── */
+        #toast {
+            visibility: hidden;
+            min-width: 200px;
+            background-color: #141414;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+            padding: 10px 16px;
+            position: fixed;
+            z-index: 1100;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 13px;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.25s, visibility 0.25s;
+        }
+
+        #toast.show {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <!-- HEADER SELLER -->
+        <header>
+            <div class="brand">
+                <div class="brand-icon">💼</div>
+                <div class="brand-title">
+                    <h1>Cổng Quản Trị Seller</h1>
+                    <p>{{ seller.name }} • <span style="font-family: 'JetBrains Mono', monospace; color: #888;">Token: {{ seller_token }}</span></p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-secondary btn-sm" onclick="copySellerLink()">🔗 Copy Link Seller</button>
+                <button class="btn btn-secondary btn-sm" onclick="refreshSellerData()">🔄 Làm Mới</button>
+            </div>
+        </header>
+
+        <!-- STATS ROW -->
+        <div class="stats-grid">
+            <div class="stat-box">
+                <div class="stat-label">Tổng Key Của Bạn</div>
+                <div class="stat-value" id="statSellerTotalKeys">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Key Đang Hoạt Động</div>
+                <div class="stat-value" id="statSellerActiveKeys">0</div>
+            </div>
+        </div>
+
+        <!-- CREATE KEY & QUICK ACTIONS GRID -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; margin-bottom: 16px;">
+            <!-- FORM TẠO KEY (1-3-5-7-30 NGÀY) -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Tạo License Key Khách Hàng</h2>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="form-group">
+                        <label>Mã Key Tuỳ Chỉnh (để trống tạo ngẫu nhiên)</label>
+                        <input type="text" id="sellerCustomKey" placeholder="VD: SELLER-VIP-XXXX">
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label>Thời Hạn (Ngày)</label>
+                            <select id="sellerKeyDays">
+                                <option value="1">1 Ngày (Test)</option>
+                                <option value="3">3 Ngày</option>
+                                <option value="5">5 Ngày</option>
+                                <option value="7">7 Ngày (Tuần)</option>
+                                <option value="30" selected>30 Ngày (Tháng)</option>
+                                <option value="90">90 Ngày (Quý)</option>
+                                <option value="365">365 Ngày (Năm)</option>
+                                <option value="9999">Vĩnh Viễn</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Số Lượng Máy (HWID)</label>
+                            <select id="sellerKeyDevices">
+                                <option value="1" selected>1 Máy (Chuẩn)</option>
+                                <option value="2">2 Máy</option>
+                                <option value="3">3 Máy</option>
+                                <option value="5">5 Máy</option>
+                                <option value="10">10 Máy</option>
+                                <option value="99999">Không Giới Hạn HWID</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn" onclick="sellerCreateKey()" style="height: 38px; justify-content: center; margin-top: 4px;">+ Tạo Key Mới</button>
+                </div>
+            </div>
+
+            <!-- THAO TÁC NHANH (RESET HWID / XOÁ KEY) -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>Thao Tác Nhanh Theo Key</h2>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <div class="form-group">
+                        <label>Nhập License Key cần thao tác:</label>
+                        <input type="text" id="sellerQuickKey" placeholder="Dán mã key...">
+                    </div>
+                    <p style="font-size: 11px; color: var(--text-secondary); line-height: 1.4;">
+                        Bạn có thể Reset HWID để khách đổi máy mới hoặc Xoá Key vĩnh viễn khỏi danh sách quản lý của bạn.
+                    </p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px;">
+                        <button class="btn btn-secondary" onclick="sellerQuickResetHwid()" style="justify-content: center; height: 36px;">🔄 Reset HWID</button>
+                        <button class="btn btn-danger" onclick="sellerQuickDeleteKey()" style="justify-content: center; height: 36px;">🗑️ Xoá Key</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- DANH SÁCH KEY RIÊNG CỦA SELLER -->
+        <div class="card">
+            <div class="card-header">
+                <h2>Danh Sách License Key Của Bạn</h2>
+                <input type="text" id="searchSellerKeyInput" oninput="filterSellerKeys()" placeholder="Tìm kiếm key..."
+                    style="background: #080808; border: 1px solid var(--border-color); color: #ffffff; padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 160px;">
+            </div>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>License Key</th>
+                            <th>Hạn Dùng</th>
+                            <th>Thiết Bị (HWID)</th>
+                            <th>Trạng Thái</th>
+                            <th>Ngày Tạo</th>
+                            <th style="text-align: right;">Thao Tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sellerKeysTableBody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-secondary);">Đang tải danh sách key...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL HIỂN THỊ KEY VỪA TẠO + NÚT COPY -->
+    <div id="newKeyModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Tạo Key Thành Công</h3>
+                <button class="btn btn-secondary btn-sm" onclick="closeNewKeyModal()">✕</button>
+            </div>
+            <p style="font-size: 13px; color: var(--text-secondary);">Key đã lưu vào hệ thống của bạn. Bấm nút dưới để copy gửi khách:</p>
+            <div id="newKeyModalValue" class="key-display">—</div>
+            <div style="display: flex; gap: 8px;">
+                <button class="btn" style="flex: 1; justify-content: center;" onclick="copyNewKeyModal()">📋 Sao Chép Key</button>
+                <button class="btn btn-secondary" onclick="closeNewKeyModal()">Đóng</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast">Thông báo</div>
+
+    <script>
+        const SELLER_TOKEN = "{{ seller_token }}";
+        let cachedSellerKeys = [];
+        let lastCreatedKey = "";
+
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            toast.innerText = msg;
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), 2400);
+        }
+
+        function copyToClipboard(text, successMsg = "Đã copy vào clipboard!") {
+            if (!text) return;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast(`📋 ${successMsg}`);
+                }).catch(() => fallbackCopy(text, successMsg));
+            } else {
+                fallbackCopy(text, successMsg);
+            }
+        }
+
+        function fallbackCopy(text, successMsg) {
+            const temp = document.createElement("textarea");
+            temp.value = text;
+            temp.style.position = "fixed";
+            temp.style.opacity = "0";
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand("copy");
+            document.body.removeChild(temp);
+            showToast(`📋 ${successMsg}`);
+        }
+
+        function copySellerLink() {
+            copyToClipboard(window.location.href, "Đã sao chép link quản trị Seller!");
+        }
+
+        function closeNewKeyModal() {
+            document.getElementById("newKeyModal").style.display = "none";
+        }
+
+        function copyNewKeyModal() {
+            if (lastCreatedKey) {
+                copyToClipboard(lastCreatedKey, `Đã sao chép key: ${lastCreatedKey}`);
+                closeNewKeyModal();
+            }
+        }
+
+        async function fetchSellerAPI(endpoint, method = "GET", body = null) {
+            const headers = { "Content-Type": "application/json" };
+            let url = endpoint;
+            const opts = { method, headers };
+
+            if (method === "GET") {
+                url += (url.includes("?") ? "&" : "?") + "token=" + encodeURIComponent(SELLER_TOKEN);
+            } else {
+                opts.body = JSON.stringify({ token: SELLER_TOKEN, ...(body || {}) });
+            }
+
+            try {
+                const res = await fetch(url, opts);
+                return await res.json();
+            } catch (e) {
+                console.error(e);
+                return null;
+            }
+        }
+
+        async function refreshSellerData() {
+            const data = await fetchSellerAPI("/api/seller/dashboard");
+            if (!data || !data.ok) {
+                showToast("❌ Không thể tải dữ liệu Seller!");
+                return;
+            }
+
+            cachedSellerKeys = data.keys || [];
+            document.getElementById("statSellerTotalKeys").innerText = data.total_keys || 0;
+            document.getElementById("statSellerActiveKeys").innerText = data.active_keys || 0;
+
+            const query = (document.getElementById("searchSellerKeyInput").value || "").trim().toLowerCase();
+            if (query) {
+                filterSellerKeys();
+            } else {
+                renderSellerKeysTable(cachedSellerKeys);
+            }
+        }
+
+        function filterSellerKeys() {
+            const query = (document.getElementById("searchSellerKeyInput").value || "").trim().toLowerCase();
+            const filtered = cachedSellerKeys.filter(k => k.license_key.toLowerCase().includes(query));
+            renderSellerKeysTable(filtered);
+        }
+
+        function renderSellerKeysTable(keys) {
+            const tbody = document.getElementById("sellerKeysTableBody");
+            if (!keys.length) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: var(--text-secondary);">Bạn chưa tạo key nào.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = keys.map(k => {
+                const isBanned = k.active === 0;
+                const statusBadge = isBanned
+                    ? `<span class="badge-status badge-banned">BANNED</span>`
+                    : `<span class="badge-status badge-active">HOẠT ĐỘNG</span>`;
+
+                const isUnlimited = k.max_devices >= 9999;
+                const deviceText = isUnlimited ? `${k.used_devices || 0} / ∞` : `${k.used_devices || 0} / ${k.max_devices || 1}`;
+
+                return `
+                    <tr>
+                        <td>
+                            <span class="key-text" onclick="copyToClipboard('${k.license_key}', 'Đã copy: ${k.license_key}')" title="Click để copy key">
+                                ${k.license_key} 📋
+                            </span>
+                        </td>
+                        <td>${k.duration_days >= 9999 ? "Vĩnh viễn" : k.duration_days + " ngày"}</td>
+                        <td>${deviceText}</td>
+                        <td>${statusBadge}</td>
+                        <td style="color: var(--text-secondary); font-size: 11px;">${k.created_at || "—"}</td>
+                        <td style="text-align: right;">
+                            <div style="display: flex; gap: 4px; justify-content: flex-end;">
+                                <button class="btn btn-secondary btn-sm" onclick="copyToClipboard('${k.license_key}', 'Đã copy: ${k.license_key}')">Copy</button>
+                                <button class="btn btn-secondary btn-sm" onclick="sellerResetHwid('${k.license_key}')">Reset HWID</button>
+                                <button class="btn btn-sm btn-danger" onclick="sellerDeleteKey('${k.license_key}')">Xoá</button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        async function sellerCreateKey() {
+            const customKey = document.getElementById("sellerCustomKey").value.trim();
+            const days = parseInt(document.getElementById("sellerKeyDays").value, 10);
+            const maxDev = parseInt(document.getElementById("sellerKeyDevices").value, 10);
+
+            const res = await fetchSellerAPI("/api/seller/create_key", "POST", {
+                key: customKey || undefined,
+                days: days,
+                max_devices: maxDev
+            });
+
+            if (res && res.ok) {
+                lastCreatedKey = res.key;
+                document.getElementById("sellerCustomKey").value = "";
+                document.getElementById("newKeyModalValue").innerText = res.key;
+                document.getElementById("newKeyModal").style.display = "flex";
+                copyToClipboard(res.key, `Tạo thành công & Đã tự động copy key: ${res.key}`);
+                refreshSellerData();
+            } else if (res && res.error) {
+                showToast(`❌ Lỗi: ${res.error}`);
+            }
+        }
+
+        async function sellerResetHwid(key) {
+            if (!confirm(`Xác nhận Reset HWID cho key: ${key}?`)) return;
+            const res = await fetchSellerAPI("/api/seller/reset_hwid", "POST", { key });
+            if (res && res.ok) {
+                showToast(`✅ ${res.message}`);
+                refreshSellerData();
+            } else if (res && res.error) {
+                showToast(`❌ Lỗi: ${res.error}`);
+            }
+        }
+
+        async function sellerDeleteKey(key) {
+            if (!confirm(`Xoá vĩnh viễn key: ${key}?`)) return;
+            const res = await fetchSellerAPI("/api/seller/delete_key", "POST", { key });
+            if (res && res.ok) {
+                showToast(`Đã xoá key ${key}`);
+                refreshSellerData();
+            } else if (res && res.error) {
+                showToast(`❌ Lỗi: ${res.error}`);
+            }
+        }
+
+        async function sellerQuickResetHwid() {
+            const key = document.getElementById("sellerQuickKey").value.trim();
+            if (!key) {
+                showToast("⚠️ Vui lòng nhập License Key!");
+                return;
+            }
+            await sellerResetHwid(key);
+            document.getElementById("sellerQuickKey").value = "";
+        }
+
+        async function sellerQuickDeleteKey() {
+            const key = document.getElementById("sellerQuickKey").value.trim();
+            if (!key) {
+                showToast("⚠️ Vui lòng nhập License Key!");
+                return;
+            }
+            await sellerDeleteKey(key);
+            document.getElementById("sellerQuickKey").value = "";
+        }
+
+        window.addEventListener("DOMContentLoaded", () => {
+            refreshSellerData();
+        });
+    </script>
+</body>
+
+</html>

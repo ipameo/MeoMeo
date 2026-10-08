@@ -1,0 +1,741 @@
+--- RECOIL ---
+public static System.Boolean ShouldReplaceAccuracyWithRecoil(System.UInt32 weaponId); // 0x3e94124
+public static System.Single RecoilFormula(System.Single[] pitchCurve, System.Single[] yawCurve, System.UInt32 fireType, System.Single fireInterval, System.Single repeatFireInterval, System.Single recoilBarFullValue); // 0x3e93e5c
+public System.Void StartGunFeelSpringRecoil(UnityEngine.Vector2 NLPIKFNHEAM, System.Single OJCIAGBICCD, System.Single CMPKCCFKJCO, UnityEngine.Vector2 JDFOOLKPHMJ); // 0x58dd114
+public System.Void ResetGunFeelSpringRecoil(); // 0x58dd1f8
+
+--- SPREAD ---
+public System.Single get_radiusSpread(); // 0x8dc8798
+public System.Single get_meshSpawnSpread(); // 0x8dc97d4
+public System.Single get_arcSpread(); // 0x8dc9e00
+public System.Single get_spread(); // 0x8cf189c
+public System.Void set_spread(System.Single value); // 0x8cf18ec
+
+--- SCATTER ---
+public System.Single get_ScatterSpeed(); // 0x69e4aa0
+public System.Single get_ScatterSpeedCrouchCreep(); // 0x69e4ab0
+public System.Single get_ScatterMax(); // 0x69e4ac0
+public System.Single get_ScatterNum(); // 0x7161468
+public System.Single get_ScatterMax(); // 0x7161478
+public System.Single get_ScatterSpeed(); // 0x71615a8
+public System.Single get_ScatterRecoverSpeed(); // 0x71615b8
+public System.Single get_ScatterMove(); // 0x71615d8
+public static System.Single AccuracyFormula(System.Single scatterNum, System.Single scatterSpeed, System.Single scatterMax, System.Single aimAssistLockDecreaseTime, System.Single aimAssistLockDecreaseTimeSight, System.Single sightAmplifyRatio, System.Single shrinkSpeed); // 0x3e93cf8
+public System.Void RefreshCrouchScatterState(); // 0x56ffa2c
+public System.Void StopCrouchScatterState(); // 0x56ffb1c
+public System.Void RefreshLyingScatterState(); // 0x570016c
+public System.Void StopLyingScatterState(); // 0x570025c
+public System.Single GetSkillBuffWeaponScatterScale(); // 0x5711d9c
+public System.Single get_SkillScatterRate(); // 0x6483d60
+public System.Void set_SkillScatterRate(System.Single BOKHFCBMCAB); // 0x6483dc0
+public System.Single get_SkillScatterRateSighting(); // 0x6483e34
+public System.Void set_SkillScatterRateSighting(System.Single BOKHFCBMCAB); // 0x6483e94
+public System.Single GetScatterRate(); // 0x6483f08
+public System.Single get_SkillStreetBoyScatterMaxScale(); // 0x6485cb8
+public System.Void set_SkillStreetBoyScatterMaxScale(System.Single BOKHFCBMCAB); // 0x6485d10
+
+--- RELOAD ---
+public System.Void DoCache(System.Collections.Generic.ICollection<GCommon.ResourceID> resIds, System.Int32 insId, GCommon.ResourceManager.LoadPriority priority, System.Boolean preload, System.Int32 instCount); // 0x157bb90
+public System.Void DoCache(GCommon.ResourceID rid, System.Int32 insId, GCommon.ResourceManager.LoadPriority priority, System.Boolean preload, System.Int32 instCount); // 0x157bf38
+public static UnityEngine.Texture2D Reload(UnityEngine.Texture2D tex, System.Byte[] data, System.Boolean forceReadable, System.String debugName); // 0x2a7efb8
+public static System.Void ChangeTexture(UnityEngine.GameObject go, System.String name, UnityEngine.Texture texture, System.String texCustomRef, System.Boolean isReloaded); // 0x34e274c
+public System.Boolean PreloadSlotDataAsset(System.String name); // 0x643cc38
+public System.Boolean PreloadSlotDataAsset(System.Int32 hash); // 0x643cc60
+public System.Boolean PreloadOverlayDataAsset(System.String name); // 0x643cc88
+public System.Boolean PreloadOverlayDataAsset(System.Int32 hash); // 0x643ccb0
+public System.Void PreloadRecipe(System.Int32 recipe); // 0x1bae124
+public System.Void PreloadRecipe(System.Int32 recipe, out System.Boolean& anyThingLoadedInCall); // 0x1bae3d4
+public System.Void PreloadRecipe(UMA.Simple.UmaRecipeSimple recipe); // 0x1bae1e0
+public System.Boolean PreloadAsset(System.String name, System.Boolean isSlot, System.Boolean cache); // 0x1bae918
+public System.Boolean PreloadAsset(System.Int32 hash, System.Boolean isSlot, System.Boolean cache); // 0x1bae77c
+public System.Void PreloadRecipeAsync(System.Int32 recipe, System.Collections.Generic.HashSet<System.Int32> preloaded); // 0x1baed70
+public System.Void SetGameOptions(System.Boolean isWaitingCabin, System.Boolean needPreload3p, System.Boolean preloadTeammateOnly, System.Boolean needRelease); // 0x1bb28fc
+public System.Void PreloadClothes(System.UInt64 userID, COW.GamePlay.BEADLMGGGGL pid, System.Boolean useHighQualityAvatar, System.UInt32 avatarId, System.Collections.Generic.List<System.UInt32> clothList, System.Boolean async); // 0x1bb35a8
+public System.Void PreloadBaseClothes(); // 0x1bb3c0c
+public System.Void PreloadBaseClothes(System.String raceName); // 0x1bb3d2c
+public System.Boolean PreloadClothes(System.Int32 hash); // 0x1bb3fe8
+public static T GetAsset(System.String ab, System.String path, System.Boolean preload); // 0xa1649fc
+public System.Void PreloadMapData(System.Int32 mapID); // 0x41bd84c
+public GCommon.ResourceID get_IngameReloadEffect(); // 0x440ab14
+public GCommon.ResourceID get_PreviewReloadEffectFemale(); // 0x440ac24
+public GCommon.ResourceID get_PreviewReloadEffectMale(); // 0x440ad34
+public System.Boolean get_HideGunWhenReload(); // 0x440cc88
+public System.Void ReLoad(); // 0x4de89f0
+public static System.Void LogEventTypePreloadResourceStaticsInfo(); // 0x53e8750
+public static System.Void PreloadGlooWorldRes(); // 0x5914fa0
+public static System.Void DoCache(System.Collections.Generic.ICollection<GCommon.ResourceID> rids, System.Int32 insID, GCommon.ResourceManager.LoadPriority priority, System.Boolean preload, System.Int32 instCount); // 0x5926fd0
+public static System.Void DoCache(GCommon.ResourceID rid, System.Int32 insID, GCommon.ResourceManager.LoadPriority priority, System.Boolean preload, System.Int32 instCount); // 0x5927128
+
+--- FIRERATE ---
+
+--- DAMAGE ---
+public override System.Void TakeDamage(COW.GamePlay.HNLIMBLIANL damageInfo, COW.GamePlay.PIAEKELILCJ damagerWeaponDynamicInfo, System.Collections.Generic.List<System.Single> checkParams, System.UInt32 vehicleDataID); // 0x158afa4
+public override System.Void TakeDamage(COW.GamePlay.HNLIMBLIANL damageInfo, COW.GamePlay.PIAEKELILCJ damagerWeaponDynamicInfo, System.Collections.Generic.List<System.Single> checkParams, System.UInt32 vehicleDataID); // 0x1fbcbf4
+public System.Void SimpleTakeDamage(System.Int32 damage, System.Int32 weaponDataID); // 0x1fbcc14
+public System.Void SetLabelString(System.String score, UnityEngine.Color color, System.Int32 weaponDataID, System.Boolean followTarget, System.Int32 shieldDamage, UnityEngine.Color shieldOutlineColor, System.String damageIconName, UnityEngine.Color damageIconColor); // 0x3f478b4
+public System.Single GetHeadShotDamageScale(System.Int32 level); // 0x43fc1d4
+public COW.SafeZoneDisplayData GetDataByDamage(System.Single damage); // 0x4d3319c
+public System.Int32 GetFontSize(System.Int32 damage); // 0x551ab88
+public System.Int32 GetFontSize(System.Int32 damage, System.Int32 defaultFontSize); // 0x551ac5c
+public System.Int32 GetNonHeadFontSize(System.Int32 damage, System.Int32 defaultFontSize); // 0x551ace8
+public static System.Boolean get_IsFriendDamage(); // 0x5934e24
+public virtual System.Boolean CanTakeDamage(COW.GamePlay.Player attacker, COW.GamePlay.OGKFEMJNCGM victim, COW.GamePlay.IOKEALMHBKN weaponData); // 0x5aa1b1c
+public System.Void ShowIIVDamageInfo(); // 0x5e11004
+public System.Void DelayHideIIVDamageInfo(); // 0x5e11638
+public System.Void DelayHideIIVDamageInfoFinish(); // 0x5e11764
+public System.Void HideIIVDamageInfo(); // 0x5e11834
+public GCommon.ResourceID GetDamageNumResId(); // 0x5e7df00
+public GCommon.ResourceID GetDamageNumResId(System.Int32 damageType); // 0x5e7df9c
+public UnityEngine.GameObject GetDamageNumObject(UnityEngine.Transform root); // 0x5e7e08c
+public System.Void RecycleDamageNumObject(UnityEngine.GameObject numObject, System.Boolean useRecycleResID, System.Int32 damageType); // 0x5e7e1d8
+public System.Void RecordKillCamInfo(COW.GamePlay.BEADLMGGGGL damagePlayerID, System.Int32 weaponDataID); // 0x6126cc8
+public System.UInt32 GetDamagerPlayerID(); // 0x6126fe0
+public System.Single get_FullDamageDistance(); // 0x69e4a40
+public System.Single get_MinDamageDistance(); // 0x69e4a50
+public System.Int32 get_SightShootMinDamage(); // 0x69e4b30
+public System.Single get_CrashMinDamage(); // 0x69ea02c
+public System.Single get_CrashMaxDamage(); // 0x69ea03c
+public System.Single get_DamageReduce(); // 0x6b409a4
+public System.Single get_DamageRatioLimb(); // 0x6b427dc
+public System.Single get_DamageRatioHead(); // 0x6b427ec
+public System.Int32 get_DamageReductionFactorExplode(); // 0x6b4281c
+
+--- HEADSHOT ---
+public System.Single GetHeadShotDamageScale(System.Int32 level); // 0x43fc1d4
+public System.Boolean GetIsHeadShotOnly(); // 0x551ec3c
+public static System.Void ProcessHeadShotHighlightEvents(COW.BaseHighlightInfo info); // 0x5d12a68
+public COW.AlbumPhotoInfo GetCurrentHeadShotPhoto(); // 0x631a15c
+public System.Void SetCurrentHeadShotPhoto(COW.AlbumPhotoInfo photoInfo); // 0x631a21c
+public System.Collections.Generic.List<COW.ReplayHighlightEvent> get_HeadShotHighlightEvents(); // 0x657c36c
+public System.Void set_HeadShotHighlightEvents(System.Collections.Generic.List<COW.ReplayHighlightEvent> value); // 0x657c3cc
+public System.Single get_UGCHeadshotDamageDecreaseScale(); // 0x7123f6c
+public System.Boolean get_OnlyHeadshot(); // 0x71559f0
+public GCommon.GEvent Reset(System.Boolean needShow, System.Int32 pelletCount, System.Int32 headShotCount, System.Single hitTime, System.Single fireInterval); // 0x162313c
+public System.Void SetKillData(System.Boolean isHeadShot, COW.GamePlay.BEADLMGGGGL victimPlayerID, COW.GamePlay.BEADLMGGGGL killerID, System.Int32 killStack, System.UInt32 scannerMarkAddCoin, COW.NotificationKillType type); // 0x1f4936c
+public System.Void SetKillData(System.Boolean isHeadShot, COW.GamePlay.BEADLMGGGGL victimPlayerID, COW.GamePlay.BEADLMGGGGL killerID, System.Int32 killStack, System.UInt32 scannerMarkAddCoin, COW.NotificationKillType type); // 0x1f49888
+public System.Void SetData(System.UInt32 kill, System.UInt32 damage, System.UInt32 dead, System.UInt32 killStack, System.UInt32 headshot); // 0x2905c08
+public System.Void SetKnockOtherDown(COW.ESPKillOperateNoti operate, System.Boolean isCounterAttack, System.UInt32 killerID, System.UInt32 gainCoins, System.Int32 knockedDownCount, System.UInt32 SkinID, System.Boolean isHeadShot); // 0x4183f60
+public System.Single get_HeadShotKillRate(); // 0x4279110
+public System.Void set_HeadShotKillRate(System.Single value); // 0x4279170
+public proto.EAccount.NewbieChoice CalFirstStepType(System.Single headShotRate, System.Single killTotalTime, System.Int32 weaponReloadTimes, System.Int32 openSightTimes); // 0x4446b38
+public proto.EAccount.NewbieChoice CalTemporaryNewBieType(System.Single headShotRate, System.Single killTotalTime, System.Int32 weaponReloadTimes, System.Int32 openSightTimes, System.Boolean isSquatupDuringUseMedicate); // 0x4446edc
+public proto.EAccount.NewbieChoice CalTemporaryFPSType(System.Single headShotRate, System.Single killTotalTime, System.Int32 weaponReloadTimes, System.Int32 openSightTimes, System.Boolean UseReleaseGrenade); // 0x4447318
+public System.Boolean get_IsCustomRoomAndHeadShotOnly(); // 0x46be6d0
+public System.Void set_IsCustomRoomAndHeadShotOnly(System.Boolean value); // 0x46be6d8
+public System.Void AddKnockDownInfo(System.String playerName, System.Int32 weaponDataID, System.UInt32 skinID, COW.GamePlay.BEADLMGGGGL beKilledId, COW.GamePlay.BEADLMGGGGL killerId, System.Boolean isHeadShot, System.UInt32 knockDownPlayerRole); // 0x46c5120
+public System.Void OnKnockOtherDown(COW.ESPKillOperateNoti operate, System.Boolean isCounterAttack, System.UInt32 killerID, System.UInt32 gainCoins, System.Int32 KnockedDownCount, System.UInt32 SkinID, System.Boolean isHeadShot); // 0x46c5b44
+public System.Void OnKill(COW.GamePlay.BEADLMGGGGL killerID, COW.GamePlay.BEADLMGGGGL beKilledID, System.Int32 weaponDataID, System.UInt32 hitbodyPart, System.UInt32 skinId, System.Boolean isPendingRevive, System.Int32 killStacks, System.Byte flags, System.Int32 killerScore, System.Int32 killerTeamScore, System.Int32 killerHypeLvl, System.UInt32 assis, System.UInt32 hitRate, System.UInt32 headShotRate, System.UInt32 bekilledKillStack, System.UInt32 scannerMarkExtraCoin, System.Boolean isAceTeam, System.Int32 knockDownNum, System.Boolean isLastKill, System.Boolean isCounterAttack, System.Byte kingKillType, System.UInt32 loadoutReinforceToken); // 0x46c7c54
+public System.Single GetHeadShotRatioValue(System.Single headShotRatio); // 0x47ee880
+public System.String GetHeadShotRatioText(System.Single headShotRatio); // 0x47ee904
+public System.UInt32 GetWeaponHeadShot(System.UInt32 weaponId); // 0x49d4508
+public override System.Void Dead(System.Boolean isHeadShot, System.Boolean isByVehicle); // 0x52fd378
+public System.Boolean IsInNoHeadShotState(); // 0x56ff978
+public System.Single get_HeadShotDamageDecreaseScale(); // 0x648626c
+
+--- SPEED ---
+public System.Void SetParams(UnityEngine.Vector3 focusA, UnityEngine.Vector3 focusB, System.Single radius, System.Single height, System.Single speedStraight, System.Single speedArc); // 0x1589fa4
+public System.Void InitDropObject(System.UInt32 id, GCommon.ResourceID _resID, UnityEngine.Vector3 _position, UnityEngine.Quaternion _rotation, UnityEngine.Vector3 _scale, UnityEngine.Vector3 _speed); // 0x159700c
+public System.Void SyncPos(System.UInt32 tickCount, UnityEngine.Vector3 _position, UnityEngine.Quaternion _rotation, UnityEngine.Vector3 _speed); // 0x1597bec
+public abstract System.Void PlayAnim(System.String animName, System.Single speed); // 0x0
+public System.Void PlayAnim(System.String animName, System.Single speed); // 0x15a5920
+public System.Single GetCurrentMaxSpeed(); // 0x550b514
+public System.Single GetCurrentMaxHighYSpeed(); // 0x550b52c
+public System.Single GetCurrentReverseMaxSpeed(); // 0x550b544
+public System.Boolean get_ReachSpeedAndTurnMax(); // 0x550b564
+public System.Void SetMaxSpeedScale(System.Single scale); // 0x550f8e4
+public System.Void SetHightSpeedSteerAngleRate(System.Single rate); // 0x550f8ec
+public System.Void SetDriverSpeedScale(System.Single scale); // 0x550f994
+public System.Single GetDriverSpeedScale(); // 0x550f99c
+public System.Void LockMaxSpeed(System.Single speed); // 0x550f9a4
+public System.Void UnLockMaxSpeed(); // 0x550f9ac
+public System.Void UpdateVehicleSpeed(System.Single rpm, System.Single velocity); // 0x5510048
+public System.Void StartBoost(System.Single torque, System.Single maxSpeed, System.Single angle, System.Boolean ingoreVelocityChange); // 0x5510510
+public System.Boolean get_ReachSpeedAndTurnMax(); // 0x5515054
+public System.Void SetMaxSpeedScale(System.Single scale); // 0x5516320
+public System.Void SetHightSpeedSteerAngleRate(System.Single rate); // 0x5516328
+public System.Void SetDriverSpeedScale(System.Single scale); // 0x55163b8
+public System.Single GetDriverSpeedScale(); // 0x55163d8
+public System.Void LockMaxSpeed(System.Single speed); // 0x55163e0
+public System.Void UnLockMaxSpeed(); // 0x55163e8
+public System.Single GetCurrentMaxSpeed(); // 0x55163f4
+public System.Single GetCurrentMaxHighYSpeed(); // 0x551640c
+public System.Void UpdateVehicleSpeed(System.Single rpm, System.Single velocity); // 0x5516af4
+public System.Void StartBoost(System.Single torque, System.Single maxSpeed, System.Single angle, System.Boolean ingoreVelocityChange); // 0x5519180
+public abstract System.Boolean get_ReachSpeedAndTurnMax(); // 0x890e6b8
+public abstract System.Void SetMaxSpeedScale(System.Single scale); // 0x8910b38
+
+--- MOVE ---
+public System.Void RemoveReferencer(System.Int32 insId); // 0x157b6fc
+public System.Void RemoveTrap(System.Int32 trapID); // 0x1595c6c
+public System.Void UpdateMoveVelocity(UnityEngine.Vector3 velocity); // 0x159e688
+public System.Void remove_onWeatherChanged(EnvWeatherController.OnWeatherChanged value); // 0x1faaa68
+public System.Collections.Generic.List<ItemEditAttributeUIData> GetUIData(COW.GamePlay.SceneEditObjectMoveObject sceneEditObject); // 0x2a7250c
+public System.Collections.Generic.List<ItemEditAttributeUIData> GetUIData(COW.GamePlay.SceneEditObjectMoveObject sceneEditObject); // 0x2a72f6c
+public System.Void RemoveData(System.Int32 index); // 0x34e87f8
+public static System.Void remove_DidInitialise(VoxelBusters.ReplayKit.ReplayKitDelegates.InitialiseCallback value); // 0x34f34c4
+public static System.Void remove_DidStartRecordAction(VoxelBusters.ReplayKit.ReplayKitDelegates.OnRecordActionCallback value); // 0x34f36a4
+public static System.Void remove_DidRecordAvailableAction(VoxelBusters.ReplayKit.ReplayKitDelegates.OnRecordActionCallback value); // 0x34f3884
+public static System.Void remove_DidStopRecordAction(VoxelBusters.ReplayKit.ReplayKitDelegates.OnRecordActionCallback value); // 0x34f3a64
+public static System.Void remove_DidSaveRecordAction(VoxelBusters.ReplayKit.ReplayKitDelegates.OnRecordActionCallback value); // 0x34f3c44
+public System.Void InitMoveEffect(COW.VehicleSkinData vehicleSkinData, UnityEngine.GameObject vehicleRoot); // 0x3f3edec
+public System.Void InitVehicleMoveEffect(COW.VehicleSkinData vehicleSkinData, UnityEngine.GameObject vehicleRoot); // 0x3f3f398
+public System.Void StartVehicleMoveEffectLoopPlay(System.Single spaceTime, System.Single durationTime); // 0x3f3f80c
+public System.Void StopVehicleMoveEffectLoopPlay(); // 0x3f3f930
+public System.Void HorseMoveStartEvent(); // 0x3f3fb04
+public System.Void HorseMoveEndEvent(); // 0x3f3fb9c
+public System.Void PlayHorseMoveEffect(); // 0x3f3fb50
+public System.Void StopHorseMoveEffect(); // 0x3f3fbe8
+public System.Void PlayVehicleMoveEffect(); // 0x3f3fd94
+public System.Void StopVehicleMoveEffect(); // 0x3f3fa60
+public System.Void PlayVehicleMoveSound(); // 0x3f3fdbc
+public System.Void StopVehicleMoveSound(); // 0x3f3fef4
+public System.Void RemovePreview(System.String previewName); // 0x644475c
+public System.Void RemoveMeshInfo(System.UInt32 _mesh_id); // 0x6445b74
+public System.Void RemoveTexureInfo(System.UInt32 _texture_id); // 0x6445d00
+public static System.Void UnRegistLEntity(StreamerType streamerType, GCommon.LEntity lEntity, System.Boolean isDynamic, System.Boolean removeLater); // 0x6447e38
+public static System.Void UnRegistVisibleHandler(StreamerType type, StreamerFacade.VisibleHandler handler, System.Boolean isDynamic, System.Boolean removeLater); // 0x6448164
+public System.Boolean MoveNext(); // 0x890e6b8
+
+--- JUMP ---
+public System.Void JumpToFrame(System.Single time); // 0x3f49f20
+public System.Void JumpToFrameAll(System.Single time); // 0x3f4a090
+public System.Void SetJumpHeightRate(System.Single rate); // 0x5511144
+public System.Void SetJumpHeightRate(System.Single rate); // 0x55199b8
+public abstract System.Void SetJumpHeightRate(System.Single rate); // 0x8910b38
+public static System.Void LogParachuteInfo(System.Boolean diving_use, System.Boolean diving_joystick_use, System.Boolean isLeadJumpOff); // 0x53d3c08
+public static System.Void RecordSlideJumpOnClick(System.Int32 slideID); // 0x53f27e8
+public static System.Void RecordSlideJumpOffClick(System.Int32 slideID); // 0x53f2ac4
+public static System.Boolean IsNoJumping(); // 0x5932df4
+public static System.Boolean IsMobileReplayJumping(); // 0x5944858
+public static System.Boolean IsReplayJumping(); // 0x5944a7c
+public COW.UIHudJumpController get_JumpBtnCtrl(); // 0x5e12a2c
+public System.Void OnJumpStatusChange(COW.GamePlay.Player.JJLAIAOJPCJ value); // 0x5e86e28
+public System.Boolean IsJumping(); // 0x61259e0
+public System.Void DebugPlayKillCamData(System.String name, System.Boolean skipJump); // 0x6128c90
+public System.Boolean get_IsJumping(); // 0x631333c
+public System.Boolean get_IsJumping(); // 0x66a58a0
+public System.Int32 get_Jump(); // 0x6b3b638
+public System.Boolean get_JumpSwitch(); // 0x6b3c9ac
+public System.Single get_MaxJumpHeight(); // 0x6b40994
+public System.Int32 get_JumpConsume(); // 0x6b409c4
+public System.Single get_HorseJumpHeight(); // 0x6c8a548
+public System.Single get_JumpHeight(); // 0x7115c58
+public System.Int32 get_JumpStatus(); // 0x7122794
+public System.Single get_JumpHeight(); // 0x7122e50
+public System.Int32 get_MaxJumpCount(); // 0x7122e60
+public System.Int32 get_JumpStatus(); // 0x7123e6c
+public System.Single get_JumpHeight(); // 0x714b1a0
+public System.Single get_HBJumpCD(); // 0x714b1b0
+public System.Void PlayJumpSound(); // 0x19f1070
+
+--- GRAVITY ---
+public override System.Void FlyCarAgainstGravity(); // 0x34e69a8
+public virtual System.Void FlyCarAgainstGravity(); // 0x5515efc
+public COW.GamePlay.INDFEKDLJCO GetLowGravityAreaManager(); // 0x5aa2d18
+public System.Single get_CustomGravity(); // 0x7115c68
+public UnityEngine.Vector3 get_Gravity(); // 0x711e340
+public System.Boolean get_EnableRotateWithGravity(); // 0x711e400
+public System.Single get_CustomGravity(); // 0x7123efc
+public System.Single get_CustomGravity(); // 0x7144f98
+public System.Boolean get_UseGravity(); // 0x7146d40
+public System.Void SetGravityAlignX(); // 0x3d84d60
+public System.Single get_CustomGravity(); // 0x5633ca4
+public System.Void ReTriggerLowGravityArea(); // 0x56da5a0
+public System.Boolean get_m_IsInLowGravityArea(); // 0x570aa50
+public System.Collections.Generic.List<System.UInt32> GetLowGravityAreasIAmIn(); // 0x570aad8
+public System.Single get_RisingGravity(); // 0x570ab30
+public System.Single get_FallingGravity(); // 0x570accc
+public System.Void PlayVFXJumpInLowGravityArea(); // 0x570b14c
+public System.Void StopVFXInLowGravityArea(); // 0x570b258
+public System.Void CheckLowGravityAreaAccidentallyClear(); // 0x56d4df8
+public override System.Void FlyCarAgainstGravity(); // 0x5ce2a3c
+public System.Void <>iFixBaseProxy_FlyCarAgainstGravity(); // 0x5ce2fac
+public UnityEngine.Vector3 get_JumpGravity(); // 0x5dc38ec
+public System.Void set_JumpGravity(UnityEngine.Vector3 BOKHFCBMCAB); // 0x5dc3950
+public System.Boolean get_HasGravity(); // 0x5fb22d4
+public UnityEngine.Vector3 get_JumpGravity(); // 0x5fd8920
+public System.Void set_JumpGravity(UnityEngine.Vector3 BOKHFCBMCAB); // 0x5fd8984
+public UnityEngine.Vector3 get_GravityDirection(); // 0x6468ca0
+public System.Void set_GravityDirection(UnityEngine.Vector3 BOKHFCBMCAB); // 0x6468d00
+public System.Boolean get_IsIgnoringGravity(); // 0x646932c
+public static COW.GamePlay.UGCRuntime.EUGCFuncState UGCAPIGetGyroscopeGravity(COW.GamePlay.UGCRuntime.StackContext stackContext); // 0x6a70948
+
+--- TELEPORT ---
+public System.Void CloseTeleportEffect(); // 0x1581410
+public System.Collections.Generic.List<ItemEditAttributeUIData> GetUIData(COW.GamePlay.SceneEditSingleTeleport sceneEditObject); // 0x2a74488
+public System.Void Teleport(); // 0x4b7d16c
+public System.Void Teleport(); // 0x4b7d25c
+public System.Void ShowTeleportKnockDownScanResultUI(COW.GamePlay.CDIMLIICANB skill, System.Collections.Generic.List<System.UInt32> scanResult); // 0x5e94120
+public System.Void HideTeleportKnockDownScanResultUI(); // 0x5e94314
+public UnityEngine.GameObject ShowTeleportFullScreenMask(GCommon.ResourceID maskUIResID, GCommon.ResourceID soundResID, System.Single duration, System.Boolean needHideAll); // 0x5e0dafc
+public System.Boolean get_IsAutoTeleport(); // 0x7152754
+public System.Void LockTeleportMachine(); // 0x1a7baf0
+public System.Void SetTeleportingState(System.Byte zoneIndex); // 0x2065abc
+public System.Void SetTeleportDoorVisible(COW.GamePlay.HLJDKAOMBGB type, System.Boolean v); // 0x23acf54
+public System.Void ResetTeleportDoorPos(); // 0x2361ecc
+public System.Boolean TryCheckClickIIVTeleportDoor(UnityEngine.Vector3 position, out UnityEngine.Vector3& transformPos); // 0x23c01a8
+public System.Boolean TryCheckClickBTTeleport(UnityEngine.Vector3 position, out UnityEngine.Vector3& transformPos, out System.UInt32& levelObjectID, out COW.GamePlay.CCEKDKHFKJO& type); // 0x23c1a3c
+public System.Boolean TryCheckClickIIVTeleportDoor(UnityEngine.Vector3 position, out UnityEngine.Vector3& transformPos); // 0x2b450c0
+public System.Void BeginBuild(System.Int64 startMs, UnityEngine.Vector2 startPos, UnityEngine.Color color, System.Boolean isTeleport, System.Boolean isLocalPlayer); // 0x2be4cac
+public System.Void SetData(message.FPFFPNMIKJN playerInfo, System.Collections.Generic.List<message.OLFMKGCPLPE> events, System.Collections.Generic.List<message.MCDIICLJAFK> teleportEvents, System.Collections.Generic.List<System.Int64> reviveReceivedMs, System.Collections.Generic.List<message.HGFANOMAHCD> positionSnapshots, message.BEBLAJGCNGA airLine, COW.UIMapUtil.MapOffsetContext mapOffsetContext, UnityEngine.Color color, System.Boolean isLocalPlayer, System.Boolean isTeammatesKillShow, System.Boolean isHiddenAfterDeath); // 0x2be2534
+public System.Void SetTeleportingState(System.Byte zoneIndex); // 0x33abc78
+public System.Void RefreshEventActionButtonsAfterTeleportCancelled(); // 0x4abe848
+public System.Void APICCTTeleport(UnityEngine.Vector3 position); // 0x527800c
+public System.Single get_TeleportDoorUseCDEndTime(); // 0x563c654
+public System.Void set_TeleportDoorUseCDEndTime(System.Single BOKHFCBMCAB); // 0x563c6ac
+public System.Single get_TeleportDoorUseCD(); // 0x563c718
+public System.Void set_TeleportDoorUseCD(System.Single BOKHFCBMCAB); // 0x563c770
+public System.Single get_IIVTeleportDoorUseCDEndTime(); // 0x563c7dc
+public System.Void set_IIVTeleportDoorUseCDEndTime(System.Single BOKHFCBMCAB); // 0x563c834
+public System.Single get_IIVTeleportDoorLastUseTime(); // 0x563c8a0
+public System.Void set_IIVTeleportDoorLastUseTime(System.Single BOKHFCBMCAB); // 0x563c900
+public System.Void PlayADSTeleportAnimation(); // 0x56adeb8
+public System.Boolean CheckCanUseIIVTeleportDoor(); // 0x56cc1bc
+
+--- FLY ---
+public override System.Void FlyCarAgainstGravity(); // 0x34e69a8
+public static AppsFlyerObjectScript get_Instance(); // 0x4b6f61c
+public virtual System.Void FlyCarAgainstGravity(); // 0x5515efc
+public static System.Void setConsentData(AppsFlyerSDK.AppsFlyerConsent appsFlyerConsent); // 0x20e6b20
+public static System.String getAppsFlyerId(); // 0x20e6ff4
+public static System.Void setUserEmails(AppsFlyerSDK.EmailCryptType cryptType, System.String[] userEmails); // 0x20e7450
+public static AppsFlyerSDK.AppsFlyerConsent ForGDPRUser(System.Boolean hasConsentForDataUsage, System.Boolean hasConsentForAdsPersonalization); // 0x20ece54
+public static AppsFlyerSDK.AppsFlyerConsent ForNonGDPRUser(); // 0x20ececc
+public AppsFlyerSDK.DeepLinkStatus get_status(); // 0x20ecf3c
+public AppsFlyerSDK.DeepLinkError get_error(); // 0x20ecf44
+public System.Void setAppsFlyerDevKey(System.String appsFlyerDevKey); // 0x20ed824
+public System.Void setConsentData(AppsFlyerSDK.AppsFlyerConsent appsFlyerConsent); // 0x20edce0
+public System.Void setUserEmails(AppsFlyerSDK.EmailCryptType cryptType, System.String[] userEmails); // 0x20edec8
+public System.String getAppsFlyerId(); // 0x20ee1c8
+public abstract System.String getAppsFlyerId(); // 0x890efe4
+public abstract System.Void setConsentData(AppsFlyerSDK.AppsFlyerConsent appsFlyerConsent); // 0x8910414
+public abstract System.Void setUserEmails(AppsFlyerSDK.EmailCryptType cryptType, System.String[] userEmails); // 0x8910028
+public static System.Void OnAppsFlyerScriptAwake(UnityEngine.MonoBehaviour handler); // 0x3f5ff78
+public static System.Boolean HasNewInstallKey(COW.AppsFlyerMgr.EnumNewInstallType type); // 0x3f62220
+public static System.Void SetNewInstallKey(COW.AppsFlyerMgr.EnumNewInstallType type); // 0x3f62330
+public System.Single get_MinFlyHeight(); // 0x47e2c70
+public System.Void set_MinFlyHeight(System.Single value); // 0x47e2c78
+public System.Single get_FlySpeedHorizontal(); // 0x47e2c90
+public System.Void set_FlySpeedHorizontal(System.Single value); // 0x47e2c98
+public System.Single get_FlySpeedVertical(); // 0x47e2ca0
+public System.Void set_FlySpeedVertical(System.Single value); // 0x47e2ca8
+public System.Single get_FlyMaxHeight(); // 0x47e2cd0
+public System.Void set_FlyMaxHeight(System.Single value); // 0x47e2cd8
+public System.Void RefreshJetFlyHudVisibility(System.Object[] data); // 0x5e30a40
+public System.Void FlyToBuffAfterDelay(System.Single delaySec, System.Action onFlyFinished); // 0x61177f4
+
+--- WALL ---
+public System.Boolean get_IsHitDeIceWall(); // 0x158e428
+public System.Void DrawAllRects(UnityEngine.RenderTexture target, System.Int32 width, System.Int32 height, UnityEngine.Color background); // 0x19abc8c
+public System.Boolean get_IceWallRandomVFX(); // 0x440cd5c
+public static COW.IceWallMakerData GetIceWallMakerData(System.Int32 level); // 0x4920594
+public System.Void PlayHitTraceIceWallPenetrated(UnityEngine.Vector3 fromPos); // 0x4928ed4
+public static System.Boolean IsPhotoWallOpen(); // 0x527f638
+public static System.Void GotHDLobbyIceWall(); // 0x5296ac8
+public static System.Void LogBagThrowItems(System.UInt32 itemDataID, System.Int32 itemNum, System.Int32 isStack, System.Int32 isSplit, System.Int32 isThrowAll); // 0x53e9160
+public static System.Boolean CheckIceWallMakerState(); // 0x5928340
+public static System.Void SetEnabelIceWallMaker(System.Boolean enable); // 0x59285a8
+public static System.Boolean IsGameShowAllFlight(); // 0x592d260
+public static System.Boolean IsUnlimitedGloowall(); // 0x5934b5c
+public virtual System.Boolean IsCache3pIcewallEnabled(COW.GamePlay.Player Owner); // 0x5a9d9f0
+public virtual System.Boolean IsGameShowAllFlight(); // 0x5aa1714
+public System.Void ClearAllMarkIceWallNearbyEnemyPoint(System.Object[] data); // 0x5e5c294
+public System.Void RecycleIceWallNearbyEnemyPoint(COW.GamePlay.BEADLMGGGGL id); // 0x5e5c784
+public System.Void ShowAllCDNGuide(); // 0x5e44298
+public System.String get_BindWalletEntityID(); // 0x715d280
+public static System.Boolean GetSmartIceWallSetting(); // 0x722c058
+public static System.Void ResetSmartIceWallSetting(); // 0x722cf38
+public static System.Void SetSmartIceWallSetting(System.Boolean enable); // 0x722cbac
+public static System.Void SetGrenadeSlotBeforeSmarIceWallEnable(); // 0x722ce58
+public static System.Void SetSmartIceWallShowSetting(System.Boolean enable); // 0x722d108
+public static System.Boolean GetSmartIceWallShowSetting(); // 0x722d1bc
+public static System.Void SetSmartIceWallChangeBackWeaponSetting(System.Boolean enable); // 0x722d270
+public static System.Boolean GetSmartIceWallChangeBackWeaponSetting(); // 0x722d39c
+public static System.Int32 GetGrenadeSlotBeforeSmartIceWallEnable(); // 0x722cb04
+public static System.Void SetHDLobbyIceWallAutoRotate(System.Boolean isOn); // 0x7233d34
+public static System.Boolean GetHDLobbyIceWallAutoRotate(); // 0x7233de8
+public System.Void OnIceWallInit(System.Object[] data); // 0x1dd7e40
+
+--- COLLIDE ---
+public System.Void OnTriggerExit(UnityEngine.Collider other); // 0x158fd6c
+public System.Void SetColliderEnable(System.Boolean isEnable, System.Int32 layerMask); // 0x15a5740
+public UnityEngine.BoxCollider get_Collider(); // 0x2a674f8
+public abstract UnityEngine.BoxCollider get_Collider(); // 0x890efe4
+public static System.Void SetColliderEnable(UnityEngine.GameObject go, System.Boolean enableCollider); // 0x34e5338
+public static System.Void SetColliderLayer(UnityEngine.GameObject go, System.UInt32 layer, System.Boolean shouldModifyTrigger); // 0x34e58dc
+public static System.Void SetColliderExtraLayer(UnityEngine.GameObject go, System.UInt32 layer, System.Boolean shouldModifyTrigger); // 0x34e59d4
+public override System.Collections.Generic.List<WheelColliderInterface> get_WheelColliders(); // 0x34e6174
+public System.Void ActiveColliders(); // 0x34e93c0
+public System.Void FindColliders(); // 0x34e9464
+public PlayerColliderChecker.HitPart GetPartByCollider(UnityEngine.Collider c); // 0x34e9784
+public System.Void Collide(ref UnityEngine.Vector3& particlePosition, System.Single particleRadius); // 0x4b75f08
+public System.Void PostCollide(ref UnityEngine.Vector3& particlePosition, ref UnityEngine.Vector3& parentParticlePosition, System.Single particleRadius); // 0x4b76d5c
+public virtual HangColliderType GetColliderType(); // 0x4b7b10c
+public System.Void Collider_Capsule(ref UnityEngine.Vector3& Pos, System.Single Rad, UnityEngine.Matrix4x4 simulationFromRenderMatrix, System.Boolean hasRenderFromSimulationMatrix); // 0x4b7b274
+public override HangColliderType GetColliderType(); // 0x4b7baac
+public System.Void Collider_Plane(ref UnityEngine.Vector3& Pos, System.Single Rad, UnityEngine.Matrix4x4 simulationFromRenderMatrix, System.Boolean hasRenderFromSimulationMatrix); // 0x4b7bbb8
+public override HangColliderType GetColliderType(); // 0x4b7bf38
+public System.Void Collider_Sphere(ref UnityEngine.Vector3& Pos, System.Single Rad, UnityEngine.Matrix4x4 simulationFromRenderMatrix, System.Boolean hasRenderFromSimulationMatrix); // 0x4b7c04c
+public override HangColliderType GetColliderType(); // 0x4b7c1a8
+public System.Void GetHangColliderCapsule(out UnityEngine.GameObject& obj, out HangCollider_Capsule& hangcollidercapsule); // 0x4b7e12c
+public System.Void GetHangColliderPlane(out UnityEngine.GameObject& obj, out HangCollider_Plane& hangcolliderplane); // 0x4b7e388
+public System.Void GetHangColliderSphere(out UnityEngine.GameObject& obj, out HangCollider_Sphere& hangcollidersphere); // 0x4b7e5e4
+public System.Void RecyleHangColliderCapsule(UnityEngine.GameObject obj); // 0x4b7eb60
+public System.Void RecyleHangColliderPlane(UnityEngine.GameObject obj); // 0x4b7ecf0
+public System.Void RecyleHangColliderSphere(UnityEngine.GameObject obj); // 0x4b7ee80
+public System.Void DeserializeCollider(UMA.UMASkeleton skeleton, HangStringProperty property); // 0x4b836b8
+public System.Void ApplyValues(HangCollider_Capsule collider); // 0x5508c68
+public System.Void ApplyValues(HangCollider_Plane collider); // 0x5508dac
+public System.Void ApplyValues(HangCollider_Sphere collider); // 0x5508ed8
+
+--- INVISIBLE ---
+public System.Void add_BecameInvisibleEvent(System.Action<RendererVisibilityNotifier> value); // 0x712ad30
+public System.Void remove_BecameInvisibleEvent(System.Action<RendererVisibilityNotifier> value); // 0x712ade4
+public System.Void ResetMultiStateRuntimeStateBeforeInvisible(); // 0x41b3e04
+public static System.Boolean IsInvisibleInCabinWaitingPhase(COW.GamePlay.Player player); // 0x592bf20
+public System.Boolean get_CenterInvisible(); // 0x6c8b5d4
+public System.Boolean get_CenterInvisible(); // 0x6c8d3fc
+public System.Boolean get_CenterInvisible(); // 0x710c154
+public System.Void ResetMultiStateSkeletonRuntimeStateBeforeInvisible(); // 0x19e8fb0
+public System.Void ResetMultiStateSkeletonRuntimeStateBeforeInvisible(); // 0x1a33a78
+public static System.Void SetSafeZoneInvisible(UITexture map, COW.UIMapUtil.ESafezoneType type, COW.UIMapUtil.EMapType mapType, COW.UIMapUtil.MapOffsetContext ctx); // 0x404a614
+public System.Boolean CheckIsInvisibleSkill(System.UInt32 itemid); // 0x42a08cc
+public System.UInt32 GetInvisibleAvatarId(System.UInt32 avatarId); // 0x42a6fc8
+public System.UInt32 GetOriginIdByInvisibleAvatarId(System.UInt32 avatarId); // 0x42a7194
+public System.UInt32 GetInvisibleAvatarIdBySkillId(System.UInt32 skillId); // 0x42a7350
+public System.Void EnsureCabinVisibleForFollowEmote(); // 0x575d87c
+public System.Void InitEasyList(GCommon.IEasyList eastlistCallBack, System.Boolean disableRefreshWhenInvisible, System.Boolean reverseItem, System.Boolean reverseData, System.Boolean cullContent); // 0x6cc2264
+
+--- GHOST ---
+public static GCommon.ResourceID ResolveGhostModelResID(); // 0x1585948
+public System.Boolean ApplyGhostVFX(COW.GamePlay.BEADLMGGGGL ownerID); // 0x1585d24
+public System.Boolean ApplyGhostMaterial(COW.GamePlay.BEADLMGGGGL ownerID); // 0x1585a44
+public System.Void ApplyGhostScale(COW.GamePlay.JCNDFEPGCJO kind, System.Boolean following); // 0x1585f60
+public System.Void PlayEffectByDate(System.Single ghostTime, System.Single ghostDelta); // 0x15a8b84
+public static System.Int32 Compare(GhostShadowRoot r1, GhostShadowRoot r2); // 0x15a9d60
+public static COW.GamePlay.Player GetLocalDeadGhostOwnerPlayer(); // 0x591d7ec
+public static COW.GamePlay.Player GetViewingDeadGhostOwnerPlayer(); // 0x591cb9c
+public static COW.GamePlay.BEADLMGGGGL GetViewingDeadGhostOwnerPlayerId(); // 0x591d998
+public static System.Boolean IsReplayDeadGhostView(); // 0x591e488
+public static System.Boolean IsJSGhostOpen(); // 0x5943aec
+public System.Void OpenJSGPSwitchDeadGhostObserverHud(); // 0x5e28bd8
+public System.Void OpenJSGPGhostFollowBtnHud(); // 0x5e28f6c
+public System.Void OpenJSGPGhostRangeAlertHud(); // 0x5e29800
+public System.Void RefreshJSGPGhostRangeAlert(System.Boolean show); // 0x5e29a00
+public System.Void RefreshTeammateHudAfterDeadGhostRevive(); // 0x5e5a740
+public System.Void RemoveJSGhostChat(COW.UIHudJSGhostChatBoxController ctrl); // 0x5e6cfc4
+public System.Void RefreshJSGhostNameHuds(); // 0x5e6d2d8
+public System.Void PlayUseGhostUIFX(); // 0x5ea0c2c
+public System.Void OpenJSGhostFireHud(); // 0x5ea3300
+public System.Void RefreshJSGhostFireHud(); // 0x5ea3560
+public System.Void OpenJSGhostAnimHud(); // 0x5ea3630
+public System.Void RefreshJSGhostAnimHud(); // 0x5ea379c
+public System.Void RefreshForDeadGhost(); // 0x1f7e344
+public System.Void BindGhost(COW.GamePlay.LevelObjectJSGhost ghost, System.String msg); // 0x1f80518
+public System.Void UnBindGhost(); // 0x1f80f40
+public System.Void RefreshForDeadGhost(); // 0x1f818a4
+public System.Void ResetForEnterDeadGhost(); // 0x1f81930
+public System.Void BindGhost(COW.GamePlay.LevelObjectJSGhost ghost); // 0x1f83694
+public System.Void UnBindGhost(); // 0x1f83a4c
+
+--- INVINCIBLE ---
+public System.Boolean WithinInvincibleContinusShootInterval(); // 0x570b8b0
+public System.Void SyncInvincibleState(System.Boolean NMFLCFHEBCB); // 0x6033334
+public System.Boolean IsInvincible(); // 0x6045420
+public System.Void SetIsInvincibleByImmortalitySkill(System.Boolean DNIGJHMHBCL); // 0x6488824
+public System.Boolean IsInvincible(); // 0x64889ec
+
+--- HP ---
+public System.Void RefreshPoint(); // 0x1594804
+public COW.GamePlay.OKDDDHDGHPG get_SettingData(); // 0x2a8093c
+public System.Void SetLastTouchPos(System.Object[] data); // 0x34f7fb0
+public override System.Void addDirtyUMA(UMA.UMAData umaToAdd, System.Boolean highPriority); // 0x643fab4
+public virtual System.Void Processed(InterApp.OpenedWithParamsDelegate.OpenedWithParams openedWithParams); // 0x16a7a10
+public virtual InterApp.OpenedWithParamsDelegate.OpenedWithParams Process(System.Collections.Generic.Dictionary<System.String,System.String> parameters); // 0x16a7a1c
+public static InterApp.OpenedWithParamsProcessor.EnumProcessStatus get_ProcessStatus(); // 0x16a7ae0
+public static System.Collections.Generic.List<InterApp.OpenedWithParamsDelegate> get_Delegates(); // 0x16a7be8
+public static System.Void AddDelegate(InterApp.OpenedWithParamsDelegate d); // 0x16a7c64
+public static System.Boolean HasDelegate(InterApp.OpenedWithParamsDelegate d); // 0x16a7e08
+public static System.Void RemoveDelegate(InterApp.OpenedWithParamsDelegate d); // 0x16a7eac
+public static InterApp.OpenedWithParamsDelegate.OpenedWithParams Process(System.Collections.Generic.Dictionary<System.String,System.String> parameters); // 0x16a7ff0
+public static System.Void Processed(InterApp.OpenedWithParamsDelegate.OpenedWithParams openedWithParams); // 0x16a8248
+public static System.Void RegisterSpontaneousMessageHandler(InterApp.OpenedWithParamsProcessor.ISpontaneousMessageHandler handler); // 0x16a8580
+public static System.Void UnregisterSpontaneousMessageHandler(InterApp.OpenedWithParamsProcessor.ISpontaneousMessageHandler handler); // 0x16a86bc
+public System.Boolean CheckIsInStreamerRange(UnityEngine.Vector3 MHPKFCCLMDG); // 0x16bbb00
+public static System.Void SceneNameToPos(SceneCollection LJHMGEDADDD, System.String CKKNLAAFDEI, out System.Int32& KHEONJKKAOJ, out System.Int32& IJJJNNGGIJE, out System.Int32& HDLGIHPNKHM); // 0x16bea5c
+public System.Void BuildCharacter(System.Boolean highPriority); // 0x17d0168
+public abstract System.Void BuildCharacter(System.Boolean highPriority); // 0x890fa88
+public System.Void UpdateSameRace(System.Boolean highPriority); // 0x19b00f4
+public System.Void UpdateNewRace(System.Boolean highPriority); // 0x19b01a8
+public virtual System.Void Dirty(System.Boolean highPriority); // 0x19b5928
+public System.Void Dirty(System.Boolean dnaDirty, System.Boolean textureDirty, System.Boolean meshDirty, System.Boolean highPriority); // 0x19b0144
+public abstract System.Void addDirtyUMA(UMA.UMAData umaToAdd, System.Boolean highPriority); // 0x891047c
+public override System.Void addDirtyUMA(UMA.UMAData umaToAdd, System.Boolean highPriority); // 0x1abdb8c
+public System.Void BuildCharacter(System.Boolean highPriority); // 0x1bbf3cc
+public static System.Collections.Generic.List<UMA.Simple.SlotOverlayHashPair> GetSharedList(System.Boolean clear); // 0x1bc42b0
+public System.Collections.Generic.List<UMA.Simple.SlotOverlayHashPair> GetSlotOverlaysInSharedList(); // 0x1bae54c
+public System.Single GetSoundtouchPitchSemiTones(); // 0x1eae780
+public FFVoice.FFVoiceErrorCode SetSoundtouchPitchSemiTones(System.Single fPitchSemiTones); // 0x1eae788
+
+--- HEALTH ---
+public System.Int32 get_Health(); // 0x6b44504
+public System.Int32 get_Health(); // 0x711cbe8
+public System.UInt32 get_Health(); // 0x5d85f84
+public System.Void set_Health(System.UInt32 BOKHFCBMCAB); // 0x5d86098
+public System.UInt32 get_CurrentHealth(); // 0x5f741c8
+
+--- CAMERA ---
+public System.Void AdaptCamera(); // 0x157dac4
+public UnityEngine.Vector3 GetCameraTrackableEntityPosition(); // 0x1594ddc
+public UnityEngine.Vector3 GetCameraTrackableEntityTopPosition(); // 0x1594df8
+public UnityEngine.Quaternion GetCameraTrackableEntityAimRotation(); // 0x1594e14
+public UnityEngine.Transform GetCameraTrackableEntityTransfrom(); // 0x1594e30
+public System.Boolean IsCameraTrackableEntityAlive(); // 0x1594e38
+public System.Boolean IsUseTransformCameraBackOffset(); // 0x15a5914
+public System.Void SetUseTransformCameraBackOffset(System.Boolean isUse); // 0x15a591c
+public UnityEngine.Camera get_OwnerCamera(); // 0x3f5118c
+public System.Void ResetCameraDepth(); // 0x3f54400
+public System.Void SetCameraSettings(); // 0x55095bc
+public static System.Void RequestCaptureCamera(UnityEngine.Camera camera); // 0x6441a60
+public static System.Void ReleaseCaptureCamera(); // 0x6441a64
+public static UnityEngine.Camera GetMainCamera(); // 0x712ca38
+public virtual System.Void Invoke(CameraNode_Shadow node, System.Boolean active); // 0x7136944
+public virtual System.IAsyncResult BeginInvoke(CameraNode_Shadow node, System.Boolean active, System.AsyncCallback callback, System.Object object); // 0x7136958
+public UnityEngine.Camera get_camera(); // 0x71363bc
+public System.Void set_camera(UnityEngine.Camera value); // 0x71363c4
+public System.Void UpdatePlanarShadow(UnityEngine.Renderer[] renderers, UnityEngine.Camera camera, UnityEngine.GameObject avatarLightGo, UnityEngine.Transform shadowPlane); // 0x7137284
+public System.Void UpdatePlanarShadow(UnityEngine.Renderer renderer, UnityEngine.Camera camera, UnityEngine.GameObject avatarLightGo, UnityEngine.Transform shadowPlane); // 0x71379a0
+public System.Void UpdateCamera(UnityEngine.Camera camera); // 0x7137310
+public System.Void OnCameraStateChanged(CameraNode_Shadow cnode, System.Boolean isActive); // 0x713997c
+public System.Boolean IsCameraEnabled(); // 0x17c51f0
+public abstract System.Boolean IsCameraEnabled(); // 0x890e6b8
+public System.Boolean IsCameraEnabled(); // 0x17c9394
+public System.Boolean IsCameraEnabled(); // 0x17ca4c4
+public static UnityEngine.Camera GetUICamera(); // 0x17cb5cc
+public UnityEngine.Camera get_MyCamera(); // 0x1d9908c
+public System.Void set_LiveChild(Cinemachine.ICinemachineCamera value); // 0x1fcbe50
+public Cinemachine.ICinemachineCamera get_LiveChild(); // 0x1fcbe58
+
+--- FOV ---
+public System.Void .ctor(System.Single fov, System.Single orthographicSize, System.Single nearClip, System.Single farClip, System.Single dutch); // 0x20e0374
+public System.Void SetSafeZoneInfoVisibleForHEXBRReviveCountdown(System.Boolean visible); // 0x5e2fd3c
+public System.Void InitCameraOriginParams(System.Single fov, System.Single near, System.Single far); // 0x65918d8
+public System.Single get_SightFOVAmplifyRatio(); // 0x69e4af0
+public System.Single get_Fov(); // 0x69e66b8
+public System.Single get_Fov(); // 0x69e88ec
+public System.Void RefershProgressInfoView(); // 0x170eae4
+public abstract System.Void RefershProgressInfoView(); // 0x890f9fc
+public System.Void UpdateTeamInfoView(); // 0x1b17958
+public System.Void UpdateTeamInfoView(); // 0x1c16d10
+public System.Void RefreshPlayerInfoView(); // 0x21d480c
+public System.Void RefreshPlayerInfoView(); // 0x22208ec
+public COW.BaseItemView2 GetBaseInfoView(); // 0x28ac9f8
+public COW.BaseItemView2 GetBaseInfoView(); // 0x28ae5a4
+public COW.MallWeaponItemView GetBaseInfoView(); // 0x28b4a9c
+public System.Void RecordCurCameraFov(); // 0x2b115d8
+public System.Void ProcessDefaultLimitIDByMatchMode(System.UInt32 matchMode, System.Boolean setByRecruitInfoValue); // 0x30e26d0
+public System.Void SetGroupInfoView(System.Int32 groupCnt, System.Int32 readyCnt, System.Boolean isLeader, System.Boolean duelMode); // 0x30f1070
+public System.Void SetLobbyGroupInfoView(); // 0x30f15ec
+public System.Void SetGameInfoView(proto.MatchStats matchStats); // 0x340098c
+public System.Void SetView(COW.UILoadingPlayerInfoView view, COW.LoadingCardShowPage showPage, System.Int32 index); // 0x381e410
+public System.Boolean RelationshipInfoVisible(proto.EFriend.RelationType relationType); // 0x4833f74
+public static System.String get_UnityMobileInfoViewerHostIp(); // 0x508be54
+public System.Void set_Fov(System.Single value); // 0x5269154
+public System.Single get_Fov(); // 0x526927c
+public System.Single get_Fov(); // 0x5316cb0
+public System.Void set_Fov(System.Single value); // 0x5316cb8
+public System.Single get_Fov(); // 0x5333c50
+public System.Boolean TryGetTypeInfoValue(COW.Gameplay.UGC.BlockEdit.SerializedGraph data, System.String key, out COW.Gameplay.UGC.BlockEdit.TypeInfo& result); // 0x557fdb8
+public abstract System.Boolean TryGetTypeInfoValue(T data, System.String key, out COW.Gameplay.UGC.BlockEdit.TypeInfo& result); // 0xa1649fc
+
+--- AIM ---
+public UnityEngine.Quaternion GetCameraTrackableEntityAimRotation(); // 0x1594e14
+public override System.Void EnableTailAimi(System.Int32 state); // 0x6440ca4
+public abstract System.Void EnableTailAimi(System.Int32 state); // 0x890fcc8
+public override System.Void EnableTailAimi(System.Int32 state); // 0x6441848
+public virtual System.Void EndInvoke(ref System.Int32& AODIMIFBNED, System.IAsyncResult PEGBBCAIMEN); // 0x17bae18
+public System.Boolean ClaimSharedBuffers(); // 0x1ac9410
+public static System.Void setImeiData(System.String aImei); // 0x20e7870
+public virtual System.Void EndInvoke(System.IAsyncResult PEGBBCAIMEN); // 0x21e8a08
+public System.Void SetExpShareInfo(System.UInt32 exp, System.UInt32 sendCnt, System.UInt32 claimCnt); // 0x3a300e4
+public System.Boolean get_IsClaimed(); // 0x3c3ad54
+public System.Void SetAwardClaimed(); // 0x3c3ad64
+public System.Boolean get_CanAimassist(); // 0x47e2d00
+public System.Boolean NeedShowFrontEndFictionDisclaimer(); // 0x55226b4
+public System.Boolean NeedShowIngameFictionDisclaimer(System.UInt32 gameMode); // 0x552271c
+public virtual System.Boolean IsAimingEnemyInGameMode(System.Boolean isAimingEnemy, COW.GamePlay.IFFHGDAPPEB player, COW.GamePlay.OGKFEMJNCGM aimTarget); // 0x5aa1644
+public System.Void ShowElectricGirlAimTargetUI(COW.GamePlay.KKOKKLECJLI skill); // 0x5e93e30
+public System.Void HideElectricGirlAimTargetUI(); // 0x5e94018
+public System.Void OnHudAutoAbsorbAimTarget(); // 0x5ea8e68
+public System.Single get_AimAssistDistance(); // 0x69e1560
+public UnityEngine.Vector3 get_AimAssistCenterOffset(); // 0x69e1570
+public System.Single get_PlayerSpeedFactorAiming(); // 0x69e4ad0
+public System.Boolean get_SightAimAssist(); // 0x69e4b40
+public System.Single get_SightAimAssistSnapRange(); // 0x69e4b50
+public System.Single get_SightAimAssistDistFalloff(); // 0x69e4b60
+public System.Boolean get_SightAimAssistDistpriority(); // 0x69e4b70
+public System.Single get_SightAimAssistDistprioMin(); // 0x69e4b80
+public System.Single get_SightAimAssistDistprioMax(); // 0x69e4b90
+public System.Single get_SightAimAssistDistprioCoef(); // 0x69e4ba0
+public System.Int32 get_AimAssistType(); // 0x7123de8
+public System.Boolean get_CanBeLockedByAimAssist(); // 0x7123df8
+
+--- ASSIST ---
+public COW.ELobbyAssistDataType get_SubType(); // 0x21f7dac
+public System.Void set_SubType(COW.ELobbyAssistDataType value); // 0x21f7db4
+public System.UInt64 get_Assist_Id(); // 0x21f7dbc
+public System.Void set_Assist_Id(System.UInt64 value); // 0x21f7dc4
+public System.Boolean CheckAssistStateIsFit(System.Boolean checkNewMessage); // 0x21f7dcc
+public System.Void AddDataToViewList(System.UInt32 index, System.Collections.Generic.List<COW.IGameAssistItemData> list); // 0x21f7de4
+public COW.ELobbyAssistDataType get_SubType(); // 0x3839c24
+public System.Void set_SubType(COW.ELobbyAssistDataType value); // 0x3839c2c
+public System.UInt64 get_Assist_Id(); // 0x3839c34
+public System.Void set_Assist_Id(System.UInt64 value); // 0x3839c3c
+public System.Boolean CheckAssistStateIsFit(System.Boolean checkNewMessage); // 0x3839c44
+public System.Void AddDataToViewList(System.UInt32 index, System.Collections.Generic.List<COW.IGameAssistItemData> list); // 0x3839df8
+public COW.ELobbyAssistDataType get_SubType(); // 0x3933da4
+public System.Void set_SubType(COW.ELobbyAssistDataType value); // 0x3933dac
+public System.UInt64 get_Assist_Id(); // 0x3933db4
+public System.Void set_Assist_Id(System.UInt64 value); // 0x3933dd0
+public System.Boolean CheckAssistStateIsFit(System.Boolean checkNewMessage); // 0x3933dd8
+public System.Void AddDataToViewList(System.UInt32 index, System.Collections.Generic.List<COW.IGameAssistItemData> list); // 0x3933f40
+public System.Boolean get_CanAimassist(); // 0x47e2d00
+public static System.Void LogEventTypeFFAssist(System.Collections.Generic.List<COW.EventLogger.EventTypeAssistInfos> assistInfos); // 0x53e3264
+public static System.Void LogEventTypeFFAssistNotice(System.Collections.Generic.List<COW.EventLogger.EventTypeAssistNoticeInfos> assistNoticeInfos); // 0x53e3370
+public static System.Void LogAIAssistantFAQ(System.UInt64 matchId, System.UInt32 gameMode, System.UInt32 matchMode, System.UInt32 groupMode, System.Boolean isUgc, System.UInt32 sceneId, System.UInt32 voiceInputCnt, System.UInt32 textInputCnt); // 0x53f5168
+public static COW.GamePlay.OFLOMKCGDAP GetObserverAssistantManager(); // 0x591e5d4
+public static COW.UIModelGameAssistantIntroduction get_UIModelGameAssistantIntroduction(); // 0x5934760
+public System.Collections.Generic.List<COW.AssistantAudioData> GetAssistantAudioDataByAvatarID(System.UInt32 avatarID); // 0x5bc2244
+public System.Collections.Generic.List<COW.AssistantAudioData> GetAssistantAudioDataByAvatarIDAndLanguage(System.UInt32 avatarID, System.String laguage, System.Boolean needCheck); // 0x5bc2308
+public System.Void ShowAssistantText(System.String playerName, System.String line); // 0x5e79ad0
+public COW.GamePlay.OFLOMKCGDAP GetObserverAssistantManager(); // 0x5e8bba8
+public System.Boolean IsAssistHighlightRead(System.UInt64 matchId); // 0x631c718
+public System.Boolean SetAssistHighlightRead(System.UInt64 matchId, System.Boolean isRead, System.Boolean needRefreshAssistView); // 0x6313dd0
+
+--- ANTIBAN ---
+
+--- REPORT ---
+public static System.Void ReportException(System.String sourceStr, System.Exception e, System.Boolean needThrow, System.Boolean showWindow); // 0x2a6ae1c
+public static System.Void ReportError(System.String sourceStr, System.String errorMsg, System.Boolean needThrow, System.Boolean needStackTrace); // 0x2a6b144
+public FFVoice.FFMagicVoiceErrorCode SetConfig(System.String strVoiceSvrDomain, System.String strDataReportSvrDomain); // 0x1ea9680
+public FFVoice.FFVoiceErrorCode SetConfig(System.String sdkValidDomain, System.String QoSReportDomain, System.String APIDomain, System.String backupSDKValidIP, System.Boolean withInternalPermissionRequest, FFVoice.FFVoiceValidateMethod preferredMethod); // 0x1ead1a0
+public FFVoice.FFVoiceErrorCode SetReportInfo(System.Int32 nTimeSec, System.String language); // 0x1eaed24
+public FFVoice.FFVoiceErrorCode ReportUserAudio(System.String reportUserID, System.String customData); // 0x1eaed68
+public FFVoice.FFVoiceErrorCode startUploadContinuousAudio(System.Int32 audioSliceDuration, System.String fixedReportUser, System.String language, System.String customData); // 0x1eaedc8
+public static System.Void DHEHFAGCCDM(proto.ReportGGPInfo OIPPGBOECEM); // 0x21e8d14
+public static System.Void GotoBugReport(); // 0x52a5e84
+public static System.Void LogBugReportJankInfo(); // 0x53bff80
+public static System.Void LogReportCheat(System.UInt64 cheater, System.UInt32 reason, COW.GamePlay.BEADLMGGGGL cheaterPlayerID, System.UInt32[] subReason, System.Boolean inGame, System.UInt32 reporteeType, System.Int32 reportScene, System.String cheaterClientVersion, System.UInt32 cheaterClientType, COW.UIModelReport.EReportMethod reportMethod); // 0x53caf64
+public static System.Void LogReportCheatInHistory(System.UInt64 cheater, System.UInt32 reason, proto.MatchStats stats, System.UInt64 matchID, System.UInt32[] subReason, System.UInt32 reporteeType, System.String cheaterClientVersion, System.UInt32 cheaterClientType); // 0x53cb918
+public static System.Void LogAssetReport(COW.Gameplay.UGC.UGCResourceShopMetaData metaData, System.Collections.Generic.List<System.UInt32> common_datas, System.String common_text, System.Collections.Generic.List<System.UInt32> other_datas, System.String other_text); // 0x53d7a2c
+public static System.Void LogUGCSurveyFeedback(System.UInt32 issue1_option_id, System.UInt32[] issue2_option_ids, System.String detail_comments, System.UInt32 survey_scene, System.String[] screenshot_urls, System.String[] video_urls, System.String language, System.String platform, System.String device_model, System.String os_version, System.String project_id, System.String project_name, System.String project_url, System.UInt32 mode_template_id, System.UInt32 group_mode, System.String editor_version, System.String game_version, System.String resource_version, System.String network_type, System.String report_log); // 0x53e5504
+public static System.Void LogOutGameReport(System.UInt32 report_scene, System.UInt64 reportee, System.UInt32 reason, System.String extra_info); // 0x53ea49c
+public static System.Void LogClanReport(System.UInt64 clan_id, System.UInt32 reason, System.String clan_name, System.String slogan); // 0x53ea5bc
+public static System.Void CacheMinorChatReport(System.UInt64 adultAccountId, System.String adultAccountNickname, System.Int32 channelType, System.UInt64 time); // 0x53ec628
+public static System.Void CacheMinorVoiceReport(System.UInt64 adultAccountId, System.String adultAccountNickname, System.Int32 channelType, System.UInt64 time); // 0x53eca9c
+public static System.Void LogEventTypeMinorChatReport(); // 0x53eced0
+public static System.Void LogEventTypeMinorVoiceReport(); // 0x53ecfc4
+public static System.Void Report(System.Exception exception); // 0x580bfe8
+public static System.Void ReportNetworkMetricEvent(proto.NetworkMetricEvent networkMetricEvent, System.String network_detail, System.UInt32 gameMode, System.UInt32 matchMode, System.UInt32 mapID, System.UInt32 groupMode); // 0x59297fc
+public COW.UIHudReportNewController ShowHudReport(System.UInt64 userId, System.String name, COW.GamePlay.BEADLMGGGGL playerID, System.Boolean InGame, System.Boolean closeOnHit, COW.UIModelReport.EReportMethod reportMethod, System.Action onReportConfirmed); // 0x5e4b6e4
+public System.Void TryShowVoiceReportWnd(COW.HUD.EWarningWndType wndType, System.String nickname); // 0x5e8f230
+public System.Void SetReportData(COW.KillCamManager.ReportData data); // 0x6128200
+public COW.KillCamManager.ReportData GetReportData(); // 0x6128268
+public System.Void ClearReportData(); // 0x61282c0
+public System.Boolean get_ShowReport(); // 0x711a19c
+public System.Boolean get_ShowReport(); // 0x715adb4
+public static System.Void RecordReportUserAudio(System.String userId); // 0x7193a5c
+
+--- SPECTATE ---
+public System.Boolean IsFriendSpectateOpen(System.UInt32 level); // 0x5520d34
+public static System.Boolean GetDisableFriendSpectateSetting(); // 0x722d8a4
+public System.Void JoinSpectate(); // 0x2748f3c
+public System.Boolean IsFriendSpectateErrorCode(System.UInt32 errorCode); // 0x38ea338
+public System.Void SetFriendSpectate(System.Boolean isFriendSpectate); // 0x38e7bd4
+public System.Void RequestSpectateRoom(System.UInt64 id, System.String code, System.Boolean solo, System.UInt32 roomType); // 0x3fbd4f4
+public System.Void RequestSpectateUGCRoom(System.UInt64 accountId, System.UInt64 roomId); // 0x3fbd978
+public System.Void RequestSetSetDisableFriendSpectateInfo(System.Boolean isHide); // 0x4470550
+public System.Void ProcessObserverRewardLimitDesc(proto.SpectateCurrencySettingDesc observerRewardLimitDesc); // 0x44707cc
+public System.Void ProcessObserverRewardDesc(System.Collections.Generic.List<proto.SpectateCurrencyRewardDesc> observerRewardDesc); // 0x447083c
+public System.Void ProcessSpectateRankLimitDescs(System.Collections.Generic.List<proto.SpectateRankLimitDesc> spectateRankLimitDescs); // 0x4470a64
+public System.UInt32 GetSpectateRankLimitKey(System.UInt32 matchMode, System.UInt32 rank); // 0x4470cd0
+public proto.SpectateCurrencyRewardDesc GetObserverRewardDescById(System.UInt32 rewardID); // 0x4470d88
+public proto.SpectateCurrencyRewardDesc GetObserverRewardCoinDesc(); // 0x4470e44
+public System.Boolean CheckMeetSpectateRankLimit(System.UInt32 matchMode, System.UInt32 rank, ref System.UInt32& levelLimit, ref System.String& limitRankName); // 0x447104c
+public System.Void OnLocalPlayerLeaveTeamTrySpectate(System.UInt32 leaveType); // 0x4471344
+public System.Boolean GotoFriendSpectatorReq(System.UInt64 spectateAccountID); // 0x44e6398
+public System.Boolean CheckGameModeAndMatchModeCanBeSpectate(System.UInt32 gameMode, System.UInt32 matchMode); // 0x46a1338
+public System.Void RequestStartMatchmakingSpectate(System.UInt64 accountID, System.UInt32 matchMode, System.UInt32 gameMode); // 0x46d4e48
+public System.Boolean RequestStartMatchmakingSpectateInternal(System.UInt64 accountID, System.UInt32 matchMode, System.UInt32 gameMode); // 0x46d536c
+public System.Boolean get_DisableFriendSpectate(); // 0x56326a4
+public System.Void set_DisableFriendSpectate(System.Boolean BOKHFCBMCAB); // 0x56326ac
+public COW.SpectateHighligntLike OGGBDBAOAHI(System.UInt32 JNPBJJGFMJB); // 0x6377fc0
+public proto.SpectateCurrencyRewardDesc __Gen_Wrap_5689(System.Object P0, System.UInt32 P1); // 0x6e86f98
+public proto.SpectateCurrencyRewardDesc __Gen_Wrap_6842(System.Object P0); // 0x6ecce24
+public System.Boolean __Gen_Wrap_10595(proto.SpectateModeDesc P0); // 0x6fa72e8
+public COW.SpectateHighligntLike __Gen_Wrap_12968(System.Object P0, System.UInt32 P1); // 0x702ef58
+
+--- BAN ---
+public static System.Int32 MLKLMCODPNC(System.String ELEAEJIBIDJ, System.String MPPDPAIDJGI, System.String BNKAHJHAMOH, System.String NMHNHBANPHK, System.String BCIGIHFCBHO, System.String MKOGPFEKNFB); // 0x21ea134
+public static System.Void DPBBANADBIB(); // 0x372705c
+public System.String GetBanReasonDesc(proto.EAccount.BanReason reasonId, System.UInt32 timeStamp); // 0x42e7bc0
+public System.String GetBanReasonUrl(proto.EAccount.BanReason reasonId); // 0x42e7e7c
+public System.String GetDefaultUrl(proto.EAccount.BanReason reasonId); // 0x42e8154
+public System.String GetBanReasonDesc(System.String banType); // 0x42e8464
+public System.Void ShowBanRoomWindow(System.Collections.Generic.List<System.String> groupMemeberNames); // 0x466c220
+public System.Void ShowBanCupAndChampionshipWindow(COW.UINavigationUtil.UINavigationFrom navigationFrom, System.Boolean isSelf); // 0x466c77c
+public System.Boolean CheckCreditBanRoom(); // 0x466db14
+public System.Boolean CheckCreditBanCupMatch(); // 0x466dbe4
+public System.Boolean CheckCreditBanChampionship(); // 0x466dcb4
+public System.Collections.Generic.Dictionary<System.Int32,System.Single> ConvertBannerInfoToDict(System.String input); // 0x4f7a120
+public System.Single GetBannerInfoDataTimeByRewardID(System.Int32 rewardID); // 0x4f7aa88
+public System.Boolean IsBannedBRTrioRank(); // 0x5521278
+public System.Boolean IsBannedCSTrioRank(); // 0x55213f8
+public System.Boolean IsSplashBannerDontShowOpen(); // 0x55214b8
+public static System.Void LogSplashBannerGoto(System.UInt32 id, System.String goto_url, System.UInt32 goto_pos); // 0x53be918
+public static System.Void LogNewBieSplashBannerGoto(System.UInt32 goto_pos); // 0x53bea64
+public static System.Void LogAnniversaySplashBannerGoto(System.UInt32 id, System.String goto_url, System.UInt32 goto_pos); // 0x53beb7c
+public static System.Void LogVeteranSplashBannerGoto(System.UInt32 gopos); // 0x53becc8
+public static System.Void LogAnniversaySplashBannerPush(System.UInt32 event_id, System.UInt32 entry_id, System.Boolean state); // 0x53bede0
+public static System.Void LogAnniversayTemplateSplashBannerPush(System.UInt32 event_id, System.UInt32 entry_id, System.Boolean state); // 0x53bef18
+public static System.Void LogBigBannerGoto(System.Int32 gopos, System.String subgopos); // 0x53ddbf8
+public static System.Void SendSplashBannerPopupLog(System.UInt32 id); // 0x53e1558
+public static System.Void SendNewBieSplashBannerPopupLog(); // 0x53e16c8
+public static System.Void SendGuildWarSplashBannerPopupLog(COW.EventLogger.EGuildWarSplashBannerType type); // 0x53e1820
+public static System.Void LogSplashBannerClose(System.UInt32 bannerId, System.Boolean isCheck); // 0x53e5264
+public static System.Void LogEventTypeAntiAddictionBanAck_IP_US(System.String installID); // 0x53ec3fc
+public static System.Void LogEventTypeAntiAddictionBan(System.Boolean inLobby, COW.EventLogger.AntiAddictionBanTriggerScene triggerScene); // 0x53ec538
+public static System.Void LogEventTypeBannedPlayerAppeal(System.UInt64 accountId, System.String region, System.Int32 level, System.Int32 banReason); // 0x53f3dc4
+
+--- KICK ---
+public FFVoice.FFVoiceErrorCode KickOtherFromChannel(System.String userID, System.String channelID, System.Int32 lastTime); // 0x1eaec74
+public System.Void <>iFixBaseProxy_OnKickFootballLineChange(System.Object[] P0); // 0x5ffc128
+public System.Void OnKickOff(COW.BaseResult error); // 0x71ba258
+public abstract System.Void OnKickOff(COW.BaseResult error); // 0x8910414
+public System.Void OnKickoff(System.String msg); // 0x71c9dbc
+public virtual System.Void ReplaceUIByConfig(System.Int32 startIndex, System.Collections.Generic.List<COW.ItemEditAttributeUIData_V2> uidataList, System.Collections.Generic.List<COW.GamePlay.PHIKICKFELI.GBCKKBMOEHJ> secondLevelUIDataList); // 0x25ac758
+public System.Void ReplaceUIByConfig(System.String entityType, System.Int32 startIndex, System.Collections.Generic.List<COW.ItemEditAttributeUIData_V2> uidataList, System.Collections.Generic.List<COW.GamePlay.PHIKICKFELI.GBCKKBMOEHJ> secondLevelUIDataList); // 0x25b8ca0
+public System.Void RefreshItemInfo(System.Collections.Generic.List<COW.GamePlay.PHIKICKFELI.GBCKKBMOEHJ> slAttributes); // 0x2706328
+public System.Void SetViewData(System.Collections.Generic.List<COW.GamePlay.PHIKICKFELI.GBCKKBMOEHJ> data, System.Single width, System.Single height); // 0x2706918
+public System.Void SetViewData(COW.GamePlay.PHIKICKFELI.GBCKKBMOEHJ data, System.Single width, System.Int32 depth, System.Boolean isLastOne); // 0x2709b14
+public System.Void ReplacePartAttributeUI(System.String entityType, System.Int32 startIndex, System.Collections.Generic.List<COW.ItemEditAttributeUIData_V2> uiDatas, System.Collections.Generic.List<COW.GamePlay.PHIKICKFELI.GBCKKBMOEHJ> secondLevelUIDatas); // 0x278ff24
+public System.Void RequestKickPlayer(System.UInt64 id); // 0x3fbfd68
+public static COW.CommonPopMenuData CreateTeamKickOut(COW.UINavigationUtil.UINavigationFrom from, System.Object id); // 0x3ff3bb0
+public static COW.CommonPopMenuData CreateGroupKickOut(COW.UINavigationUtil.UINavigationFrom from, System.Object id); // 0x3ff3f8c
+public static COW.CommonPopMenuData CreateCupTeamKickOut(COW.UINavigationUtil.UINavigationFrom from, System.Object id, System.Int32 key); // 0x3ff429c
+public static COW.CommonPopMenuData CreatePlayerKick(COW.RoomPopMeanData roomPopMeanData); // 0x3ff57e8
+public System.Boolean get_IsBeKickedWndShowing(); // 0x425affc
+public System.Void set_IsBeKickedWndShowing(System.Boolean value); // 0x425b054
+public System.Void RequestKickout(System.UInt64 kickout_id); // 0x44c490c
+public System.Boolean get_IsKickOutByUGC(); // 0x46bea60
+public System.Void set_IsKickOutByUGC(System.Boolean value); // 0x46bea68
+public System.Boolean CheckNeedBeKickedOff(); // 0x4906cc0
+public System.Void ClearBeKickedOffInfo(); // 0x4909aa0
+public System.Void RecordBeKickedOffInfo(); // 0x4909afc
+public System.Single get_LastKickFootballTime(); // 0x5623734
+public COW.GamePlay.Player get_TargetCanBeKickPlayer(); // 0x5623794
+public UnityEngine.Vector3 get_KickedPosition(); // 0x56237ec
+public System.Void ClearKickBallData(); // 0x5623858
+public System.Void UpdateKickBallTarget(System.Boolean LLOBNACOBLB); // 0x562391c
+public System.Boolean CheckCanKickBall(); // 0x56245f8
+

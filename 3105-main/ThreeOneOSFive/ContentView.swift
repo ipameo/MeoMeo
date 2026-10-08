@@ -114,6 +114,13 @@ struct EspConfig: Codable, Equatable {
     var FovSize: Float = 60.0
     var HeadshotRate: Float = 60.0
     var ShowGuestBtn: Bool = true
+    var CamXa: Bool = false
+    var FastParachute: Bool = false
+    var MedkitRun: Bool = false
+    var CamXaFloat: Float = 1.5
+    var AimLockX10: Bool = false
+    var HackJump: Bool = false
+    var HackVehicle: Bool = false
 
     init() {}
 
@@ -155,6 +162,13 @@ struct EspConfig: Codable, Equatable {
         FovSize = try c.decodeIfPresent(Float.self, forKey: .FovSize) ?? 60.0
         HeadshotRate = try c.decodeIfPresent(Float.self, forKey: .HeadshotRate) ?? 60.0
         ShowGuestBtn = try c.decodeIfPresent(Bool.self, forKey: .ShowGuestBtn) ?? true
+        CamXa = try c.decodeIfPresent(Bool.self, forKey: .CamXa) ?? false
+        FastParachute = try c.decodeIfPresent(Bool.self, forKey: .FastParachute) ?? false
+        MedkitRun = try c.decodeIfPresent(Bool.self, forKey: .MedkitRun) ?? false
+        CamXaFloat = try c.decodeIfPresent(Float.self, forKey: .CamXaFloat) ?? 1.5
+        AimLockX10 = try c.decodeIfPresent(Bool.self, forKey: .AimLockX10) ?? false
+        HackJump = try c.decodeIfPresent(Bool.self, forKey: .HackJump) ?? false
+        HackVehicle = try c.decodeIfPresent(Bool.self, forKey: .HackVehicle) ?? false
     }
 }
 
@@ -697,6 +711,7 @@ struct ContentView: View {
                                 }
                             }
 
+                            ToggleRow(label: "Khóa Mục Tiêu Nâng Cao (AimLock x10)", icon: "scope", on: $config.AimLockX10)
                             ToggleRow(label: "Giảm Giật (No Recoil)", icon: "minus.circle", on: $config.NoRecoil)
 
                         }
@@ -730,6 +745,31 @@ struct ContentView: View {
                     VStack(spacing: 14) {
                         ToggleRow(label: "Tăng Sát Thương (Buff Dame)", icon: "bolt.fill", on: $config.BuffDame)
                         Divider().background(Color(white: 0.20))
+                        ToggleRow(label: "Vừa Chạy Vừa Máu (Medkit Run)", icon: "cross.case.fill", on: $config.MedkitRun)
+                        Divider().background(Color(white: 0.20))
+                        ToggleRow(label: "Nhảy Dù Siêu Tốc", icon: "arrow.down.circle.fill", on: $config.FastParachute)
+                        Divider().background(Color(white: 0.20))
+                        ToggleRow(label: "Nhảy Cao (Hack Jump)", icon: "arrow.up.circle.fill", on: $config.HackJump)
+                        Divider().background(Color(white: 0.20))
+                        ToggleRow(label: "Hack Tốc Độ Xe", icon: "car.fill", on: $config.HackVehicle)
+                        Divider().background(Color(white: 0.20))
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                ToggleRow(label: "Góc Nhìn Rộng (CamXa)", icon: "camera.fill", on: $config.CamXa)
+                            }
+                            if config.CamXa {
+                                HStack {
+                                    Text("Tầm nhìn: \(String(format: "%.1f", config.CamXaFloat))x")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(.white)
+                                    Slider(value: $config.CamXaFloat, in: 1.0...10.0, step: 0.1)
+                                        .accentColor(.white)
+                                }
+                            }
+                        }
+                        Divider().background(Color(white: 0.20))
+
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Tốc Độ (Speed Hack)")
                                 .font(.system(size: 14, weight: .semibold))
