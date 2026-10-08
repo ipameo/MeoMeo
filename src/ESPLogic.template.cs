@@ -633,6 +633,8 @@ namespace ProjectEspPatch
                             PlayerPrefs.SetInt("ESP_AimLockX10", (json.Contains("\"AimLockX10\":true") || json.Contains("\"AimLockX10\":1")) ? 1 : 0);
                             PlayerPrefs.SetInt("ESP_HackJump", (json.Contains("\"HackJump\":true") || json.Contains("\"HackJump\":1")) ? 1 : 0);
                             PlayerPrefs.SetInt("ESP_HackVehicle", (json.Contains("\"HackVehicle\":true") || json.Contains("\"HackVehicle\":1")) ? 1 : 0);
+                            PlayerPrefs.SetInt("ESP_AirWalk", (json.Contains("\"AirWalk\":true") || json.Contains("\"AirWalk\":1")) ? 1 : 0);
+                            PlayerPrefs.SetInt("ESP_TriggerBot", (json.Contains("\"TriggerBot\":true") || json.Contains("\"TriggerBot\":1")) ? 1 : 0);
 
                             // Apply BuffDame
                             bool buffDame = json.Contains("\"BuffDame\":true") || json.Contains("\"BuffDame\":1");
@@ -759,6 +761,15 @@ namespace ProjectEspPatch
                             if (PlayerPrefs.GetInt("ESP_HackJump", 0) == 1 && rb.velocity.y > 1f && rb.velocity.y < 10f)
                             {
                                 rb.velocity += Vector3.up * 10f * Time.deltaTime;
+                            }
+                            if (PlayerPrefs.GetInt("ESP_AirWalk", 0) == 1)
+                            {
+                                rb.useGravity = false;
+                                rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+                            }
+                            else
+                            {
+                                rb.useGravity = true;
                             }
                         }
                     }

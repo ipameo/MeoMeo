@@ -121,6 +121,8 @@ struct EspConfig: Codable, Equatable {
     var AimLockX10: Bool = false
     var HackJump: Bool = false
     var HackVehicle: Bool = false
+    var AirWalk: Bool = false
+    var TriggerBot: Bool = false
 
     init() {}
 
@@ -169,6 +171,8 @@ struct EspConfig: Codable, Equatable {
         AimLockX10 = try c.decodeIfPresent(Bool.self, forKey: .AimLockX10) ?? false
         HackJump = try c.decodeIfPresent(Bool.self, forKey: .HackJump) ?? false
         HackVehicle = try c.decodeIfPresent(Bool.self, forKey: .HackVehicle) ?? false
+        AirWalk = try c.decodeIfPresent(Bool.self, forKey: .AirWalk) ?? false
+        TriggerBot = try c.decodeIfPresent(Bool.self, forKey: .TriggerBot) ?? false
     }
 }
 
@@ -712,6 +716,7 @@ struct ContentView: View {
                             }
 
                             ToggleRow(label: "Khóa Mục Tiêu Nâng Cao (AimLock x10)", icon: "scope", on: $config.AimLockX10)
+                            ToggleRow(label: "Tự Động Bóp Cò (TriggerBot)", icon: "bolt.horizontal.fill", on: $config.TriggerBot)
                             ToggleRow(label: "Giảm Giật (No Recoil)", icon: "minus.circle", on: $config.NoRecoil)
 
                         }
@@ -750,6 +755,8 @@ struct ContentView: View {
                         ToggleRow(label: "Nhảy Dù Siêu Tốc", icon: "arrow.down.circle.fill", on: $config.FastParachute)
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Nhảy Cao (Hack Jump)", icon: "arrow.up.circle.fill", on: $config.HackJump)
+                        Divider().background(Color(white: 0.20))
+                        ToggleRow(label: "Đi Trên Không (Air Walk)", icon: "cloud.fill", on: $config.AirWalk)
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Hack Tốc Độ Xe", icon: "car.fill", on: $config.HackVehicle)
                         Divider().background(Color(white: 0.20))
