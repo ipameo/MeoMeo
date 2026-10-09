@@ -743,6 +743,11 @@ struct ContentView: View {
                         ToggleRow(label: "Tăng Sát Thương (Buff Dame)", icon: "bolt.fill", on: $config.BuffDame)
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Shuriken 1 Hit (Buff Shuriken)", icon: "bolt.fill", on: $config.BuffShuriken)
+                            .onChange(of: config.BuffShuriken) { newValue in
+                                if newValue {
+                                    MemoryScanner.patchShuriken()
+                                }
+                            }
                         Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Tàng Hình (Ghost Mode)", icon: "eye.slash.fill", on: $config.GhostMode)
                         Divider().background(Color(white: 0.20))
@@ -1295,6 +1300,110 @@ struct SliderRow: View {
             }
             Slider(value: $value, in: range, step: 1)
                 .accentColor(.white)
+        }
+    }
+}
+
+public class MemoryScanner {
+    
+    public static func patchShuriken() {
+        DispatchQueue.global(qos: .background).async {
+            print("[*] Starting Shuriken Memory Patch")
+            
+            // VIP2 AOB
+            let vip2Aob: [UInt8] = [0x00,0x00,0x82,0x42,0x00,0x00,0xAA,0x42,0x1E,0x00,0x00,0x00]
+            let vip2Patch: [UInt8] = [0x0A,0xD7,0xA3,0x3C,0x0A,0xD7,0xA3,0x3C,0x0A,0xD7,0xA3,0x3C]
+            
+            // VIP3 AOB
+            let v3Aob: [UInt8] = [0x00,0x00,0x00,0x40,0x00,0x00,0x20,0x41,0x00,0x00,0x34,0x42]
+            let v3Patch1: [UInt8] = [0x01,0x00,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x40]
+            let v3Patch2: [UInt8] = [0x42,0xC8,0x00,0x00,0x01,0x00,0x00,0x00,0x00,0x00,0x00,0x40]
+            
+            // Naruto AOB
+            let narutoAob: [UInt8] = [0x00,0x00,0x00,0x41,0x00,0x00,0xB0,0x41,0x11,0x00,0x00,0x00]
+            let narutoPatch: [UInt8] = [0x0A,0xD7,0x23,0x3C,0x0A,0xD7,0x23,0x3C,0x0A,0xD7,0x23,0x3C]
+            
+            scanAndReplace(aob: vip2Aob, patch: vip2Patch, name: "VIP2")
+            scanAndReplace(aob: v3Aob, patch: v3Patch1, name: "VIP3 (v1)")
+            scanAndReplace(aob: v3Aob, patch: v3Patch2, name: "VIP3 (v2)")
+            scanAndReplace(aob: narutoAob, patch: narutoPatch, name: "Naruto")
+            
+            print("[*] Shuriken Memory Patch Finished")
+        }
+    }
+
+    private static func scanAndReplace(aob: [UInt8], patch: [UInt8], name: String) {
+        var address: mach_vm_address_t = 0
+        var size: mach_vm_size_t = 0
+        let task = mach_task_self_
+        var hits = 0
+        
+        while true {
+            var info = vm_region_basic_info_data_64_t()
+            var count = mach_msg_type_number_t(MemoryLayout<vm_region_basic_info_data_64_t>.size / MemoryLayout<Int32>.size)
+            var objectName: mach_port_t = 0
+            
+            let kr = withUnsafeMutablePointer(to: &info) { infoPtr in
+                infoPtr.withMemoryRebound(to: Int32.self, capacity: Int(count)) { int32Ptr in
+                    mach_vm_region(task, &address, &size, VM_REGION_BASIC_INFO_64, int32Ptr, &count, &objectName)
+                }
+            }
+            
+            if kr != KERN_SUCCESS {
+                break
+            }
+            
+            let protection = info.protection
+            if (protection & VM_PROT_READ) != 0 {
+                var data: pointer_t = 0
+                var dataCount: mach_msg_type_number_t = 0
+                let readKr = mach_vm_read(task, address, size, &data, &dataCount)
+                
+                if readKr == KERN_SUCCESS {
+                    let ptr = UnsafeMutableRawPointer(bitPattern: UInt(data))!
+                    var searchBase = ptr
+                    var searchSize = Int(dataCount)
+                    
+                    while searchSize >= aob.count {
+                        let match = aob.withUnsafeBufferPointer { aobBuf in
+                            return memmem(searchBase, searchSize, aobBuf.baseAddress!, aob.count)
+                        }
+                        
+                        if let matchPtr = match {
+                            let matchOffset = ptr.distance(to: matchPtr)
+                            let targetAddress = address + mach_vm_address_t(matchOffset)
+                            
+                            let originalProtection = protection
+                            if (originalProtection & VM_PROT_WRITE) == 0 {
+                                mach_vm_protect(task, targetAddress, mach_vm_size_t(patch.count), 0, originalProtection | VM_PROT_WRITE)
+                            }
+                            
+                            let writeKr = patch.withUnsafeBufferPointer { patchBuf in
+                                mach_vm_write(task, targetAddress, vm_offset_t(UInt(bitPattern: patchBuf.baseAddress!)), mach_msg_type_number_t(patch.count))
+                            }
+                            
+                            if writeKr == KERN_SUCCESS {
+                                hits += 1
+                            }
+                            
+                            if (originalProtection & VM_PROT_WRITE) == 0 {
+                                mach_vm_protect(task, targetAddress, mach_vm_size_t(patch.count), 0, originalProtection)
+                            }
+                            
+                            searchBase = matchPtr.advanced(by: aob.count)
+                            searchSize = Int(dataCount) - ptr.distance(to: searchBase)
+                        } else {
+                            break
+                        }
+                    }
+                    vm_deallocate(task, data, vm_size_t(dataCount))
+                }
+            }
+            address += size
+        }
+        
+        if hits > 0 {
+            print("[+] \(name) patched \(hits) sites")
         }
     }
 }
