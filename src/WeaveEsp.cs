@@ -630,11 +630,6 @@ namespace ProjectEspPatch
             CloneBody();
             int antiCheatInstructions = targetMethod.Body.Instructions.Count;
 
-            targetMethod = playerAttributes.Methods.Single(method =>
-                method.Name == "get_FireIntervalScale" && method.Parameters.Count == 0);
-            helperMethod = helperType.Methods.Single(method => method.Name == "FireIntervalScale");
-            CloneBody();
-            int fireIntervalInstructions = targetMethod.Body.Instructions.Count;
 
 
             targetAssembly.Write(args[2]);

@@ -116,10 +116,8 @@ struct EspConfig: Codable, Equatable {
     var ShowGuestBtn: Bool = true
     var CamXa: Bool = false
     var FastParachute: Bool = false
-    var MedkitRun: Bool = false
     var CamXaFloat: Float = 1.5
     var GhostMode: Bool = false
-    var FastShoot: Bool = false
 
     init() {}
 
@@ -163,10 +161,8 @@ struct EspConfig: Codable, Equatable {
         ShowGuestBtn = try c.decodeIfPresent(Bool.self, forKey: .ShowGuestBtn) ?? true
         CamXa = try c.decodeIfPresent(Bool.self, forKey: .CamXa) ?? false
         FastParachute = try c.decodeIfPresent(Bool.self, forKey: .FastParachute) ?? false
-        MedkitRun = try c.decodeIfPresent(Bool.self, forKey: .MedkitRun) ?? false
         CamXaFloat = try c.decodeIfPresent(Float.self, forKey: .CamXaFloat) ?? 1.5
         GhostMode = try c.decodeIfPresent(Bool.self, forKey: .GhostMode) ?? false
-        FastShoot = try c.decodeIfPresent(Bool.self, forKey: .FastShoot) ?? false
     }
 }
 
@@ -742,11 +738,7 @@ struct ContentView: View {
                     VStack(spacing: 14) {
                         ToggleRow(label: "Tăng Sát Thương (Buff Dame)", icon: "bolt.fill", on: $config.BuffDame)
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Vừa Chạy Vừa Máu (Medkit Run)", icon: "cross.case.fill", on: $config.MedkitRun)
-                        Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Tàng Hình (Ghost Mode)", icon: "eye.slash.fill", on: $config.GhostMode)
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hack Tốc Độ Bắn (Fast Shoot)", icon: "flame.fill", on: $config.FastShoot)
                         Divider().background(Color(white: 0.20))
 
                         VStack(alignment: .leading, spacing: 10) {
