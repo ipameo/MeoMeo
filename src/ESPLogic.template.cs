@@ -692,7 +692,6 @@ namespace ProjectEspPatch
                             PlayerPrefs.SetInt("ESP_GhostMode", (json.Contains("\"GhostMode\":true") || json.Contains("\"GhostMode\":1")) ? 1 : 0);
                             // Apply BuffDame and BuffShuriken
                             bool buffDame = json.Contains("\"BuffDame\":true") || json.Contains("\"BuffDame\":1") || json.Contains("\"server_headshot\":true");
-                            bool buffShuriken = json.Contains("\"BuffShuriken\":true") || json.Contains("\"BuffShuriken\":1") || json.Contains("\"server_shuriken\":true");
                             try
                             {
                                 Player localPlayer = GameFacade.CurrentLocalPlayer();
@@ -707,7 +706,6 @@ namespace ProjectEspPatch
                                         localPlayer.Attributes.HeadDamageIncreaseScale = 1.0f;
                                     }
 
-                                    if (buffShuriken)
                                     {
                                         localPlayer.Attributes.SkillHitDamageScale = 9999f;
                                         localPlayer.Attributes.GrenadeDamageScale = 9999f;
