@@ -1107,6 +1107,13 @@ struct ContentView: View {
         config.resetGuest = true
         config.resetGuestBeforeLogin = true
         syncConfig()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            config.reset_guest = false
+            config.resetGuest = false
+            config.resetGuestBeforeLogin = false
+            syncConfig()
+        }
     }
 
     private func loadConfig() {
