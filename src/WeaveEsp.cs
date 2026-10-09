@@ -519,7 +519,8 @@ namespace ProjectEspPatch
 
             TypeDefinition playerAttributes = module.GetType("COW.GamePlay.PlayerAttributes");
             foreach (string name in new[] {
-                "SkillScatterRate", "SkillScatterRateSighting", "HeadDamageIncreaseScale"
+                "SkillScatterRate", "SkillScatterRateSighting", "HeadDamageIncreaseScale",
+                "SkillHitDamageScale", "GrenadeDamageScale"
             })
             {
                 if (playerAttributes.Properties.Any(property => property.Name == name)) continue;

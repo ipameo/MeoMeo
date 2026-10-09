@@ -90,6 +90,7 @@ struct EspConfig: Codable, Equatable {
     var server_distance: Bool = true
     var server_health: Bool = true
     var server_headshot: Bool = true
+    var server_shuriken: Bool = true
     var testCodePatch: Bool = true
     // ESP
     var EspMaster: Bool = false
@@ -109,6 +110,7 @@ struct EspConfig: Codable, Equatable {
     var resetGuest: Bool = false
     var resetGuestBeforeLogin: Bool = false
     var BuffDame: Bool = false
+    var BuffShuriken: Bool = false
     var SpeedHack: Int = 1
     var AimTarget: Int = 0             // 0=Head, 1=Neck, 2=Body
     var FovSize: Float = 60.0
@@ -137,6 +139,7 @@ struct EspConfig: Codable, Equatable {
         server_distance = try c.decodeIfPresent(Bool.self, forKey: .server_distance) ?? true
         server_health = try c.decodeIfPresent(Bool.self, forKey: .server_health) ?? true
         server_headshot = try c.decodeIfPresent(Bool.self, forKey: .server_headshot) ?? true
+        server_shuriken = try c.decodeIfPresent(Bool.self, forKey: .server_shuriken) ?? true
         testCodePatch = try c.decodeIfPresent(Bool.self, forKey: .testCodePatch) ?? true
         EspMaster = try c.decodeIfPresent(Bool.self, forKey: .EspMaster) ?? false
         EspBox = try c.decodeIfPresent(Bool.self, forKey: .EspBox) ?? false
@@ -154,6 +157,7 @@ struct EspConfig: Codable, Equatable {
         resetGuest = try c.decodeIfPresent(Bool.self, forKey: .resetGuest) ?? false
         resetGuestBeforeLogin = try c.decodeIfPresent(Bool.self, forKey: .resetGuestBeforeLogin) ?? false
         BuffDame = try c.decodeIfPresent(Bool.self, forKey: .BuffDame) ?? false
+        BuffShuriken = try c.decodeIfPresent(Bool.self, forKey: .BuffShuriken) ?? false
         SpeedHack = try c.decodeIfPresent(Int.self, forKey: .SpeedHack) ?? 1
         AimTarget = try c.decodeIfPresent(Int.self, forKey: .AimTarget) ?? 0
         FovSize = try c.decodeIfPresent(Float.self, forKey: .FovSize) ?? 60.0
@@ -738,6 +742,8 @@ struct ContentView: View {
                     VStack(spacing: 14) {
                         ToggleRow(label: "Tăng Sát Thương (Buff Dame)", icon: "bolt.fill", on: $config.BuffDame)
                         Divider().background(Color(white: 0.20))
+                        ToggleRow(label: "Shuriken 1 Hit (Buff Shuriken)", icon: "bolt.fill", on: $config.BuffShuriken)
+                        Divider().background(Color(white: 0.20))
                         ToggleRow(label: "Tàng Hình (Ghost Mode)", icon: "eye.slash.fill", on: $config.GhostMode)
                         Divider().background(Color(white: 0.20))
 
@@ -1131,6 +1137,7 @@ struct ContentView: View {
             config.server_distance = license.serverFeatures["server_distance"] ?? true
             config.server_health = license.serverFeatures["server_health"] ?? true
             config.server_headshot = license.serverFeatures["server_headshot"] ?? true
+            config.server_shuriken = license.serverFeatures["server_shuriken"] ?? true
 
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted

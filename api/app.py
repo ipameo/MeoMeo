@@ -92,6 +92,7 @@ def get_server_features() -> dict:
         "server_skeleton": True,
         "server_aim": True,
         "server_headshot": True,
+        "server_shuriken": True,
     }
     raw = get_global_setting("server_features", "")
     if not raw:
@@ -764,19 +765,32 @@ def admin_add_key():
     max_devices = data.get("max_devices", 1)
     custom_key = data.get("key")
     seller_id = data.get("seller_id")
-    key = custom_key if custom_key else generate_license_key()
+    try:
+        amount = int(data.get("amount", 1))
+    except ValueError:
+        amount = 1
+        
+    if amount < 1:
+        amount = 1
+    if amount > 500:
+        amount = 500
 
     db = get_db()
+    keys_created = []
+    
     try:
-        db.execute(
-            "INSERT INTO license_keys (license_key, max_devices, duration_days, seller_id) VALUES (?, ?, ?, ?)",
-            (key, max_devices, days, seller_id),
-        )
+        for _ in range(amount):
+            key = custom_key if (custom_key and amount == 1) else generate_license_key()
+            db.execute(
+                "INSERT INTO license_keys (license_key, max_devices, duration_days, seller_id) VALUES (?, ?, ?, ?)",
+                (key, max_devices, days, seller_id),
+            )
+            keys_created.append(key)
         db.commit()
     except sqlite3.IntegrityError:
         return jsonify({"error": "key_already_exists"}), 409
 
-    return jsonify({"ok": True, "key": key, "days": days, "max_devices": max_devices, "seller_id": seller_id})
+    return jsonify({"ok": True, "keys": keys_created, "days": days, "max_devices": max_devices, "seller_id": seller_id})
 
 
 @app.route("/api/admin/revoke_key", methods=["POST"])
@@ -1168,6 +1182,15 @@ def seller_create_key():
     days = int(data.get("days", 30))
     max_devices = int(data.get("max_devices", 1))
     custom_key = (data.get("key") or "").strip()
+    try:
+        amount = int(data.get("amount", 1))
+    except ValueError:
+        amount = 1
+        
+    if amount < 1:
+        amount = 1
+    if amount > 500:
+        amount = 500
 
     # Supported seller durations: 1, 3, 5, 7, 30 days (or flexible)
     allowed_days = [1, 3, 5, 7, 30, 90, 365, 9999]
@@ -1177,18 +1200,21 @@ def seller_create_key():
     if max_devices < 1:
         max_devices = 1
 
-    key = custom_key if custom_key else generate_license_key()
     db = get_db()
+    keys_created = []
     try:
-        db.execute(
-            "INSERT INTO license_keys (license_key, max_devices, duration_days, seller_id) VALUES (?, ?, ?, ?)",
-            (key, max_devices, days, seller["id"])
-        )
+        for _ in range(amount):
+            key = custom_key if (custom_key and amount == 1) else generate_license_key()
+            db.execute(
+                "INSERT INTO license_keys (license_key, max_devices, duration_days, seller_id) VALUES (?, ?, ?, ?)",
+                (key, max_devices, days, seller["id"])
+            )
+            keys_created.append(key)
         db.commit()
     except sqlite3.IntegrityError:
         return jsonify({"ok": False, "error": "Mã Key đã tồn tại, vui lòng đổi mã khác"}), 409
 
-    return jsonify({"ok": True, "key": key, "days": days, "max_devices": max_devices})
+    return jsonify({"ok": True, "keys": keys_created, "days": days, "max_devices": max_devices})
 
 
 @app.route("/api/seller/reset_hwid", methods=["POST"])
@@ -1245,7 +1271,7 @@ def seller_delete_key():
 import urllib.request
 import urllib.parse
 
-VUOTLINK_API_KEY = "7685e29d1067fdcd8331781c81801d912ebfb882"
+VUOTLINK_API_KEY = "3396de0b7c6251eb0f1fc8251b65da29f22c6cf5"
 
 
 def purge_expired_getkey_sessions(db=None):

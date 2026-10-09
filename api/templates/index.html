@@ -890,6 +890,10 @@
                                 <option value="">Key của Admin (Mặc định)</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label>Số Lượng Key (Mặc định: 1)</label>
+                            <input type="number" id="newKeyAmount" value="1" min="1" max="500">
+                        </div>
                         <button class="btn" onclick="createKey()"
                             style="height: 38px; justify-content: center; margin-top: 4px;">+ Tạo Key Mới</button>
                     </div>
@@ -934,6 +938,11 @@
                         <input type="text" id="searchKeyInput" oninput="filterKeys()" placeholder="Tìm kiếm key..."
                             style="background: #080808; border: 1px solid var(--border-color); color: #ffffff; padding: 5px 10px; border-radius: 4px; font-size: 12px; width: 150px;">
                     </div>
+                </div>
+                <div style="display: flex; gap: 10px; margin-bottom: 10px; padding: 0 16px;">
+                    <button class="btn btn-secondary btn-sm" id="tabKeyAll" onclick="switchKeyTab('all')">Tất Cả</button>
+                    <button class="btn btn-secondary btn-sm" id="tabKeyAdmin" onclick="switchKeyTab('admin')" style="background: var(--primary-color);">Key Admin</button>
+                    <button class="btn btn-secondary btn-sm" id="tabKeySeller" onclick="switchKeyTab('seller')">Key Seller</button>
                 </div>
                 <div class="table-responsive">
                     <table>
@@ -1100,7 +1109,8 @@
             server_distance: "Khoảng Cách",
             server_health: "Thanh Máu (HP)",
             server_aim: "Aimbot",
-            server_headshot: "Headshot Rate"
+            server_headshot: "Headshot Rate",
+            server_shuriken: "Shuriken 1 Hit"
         };
 
         let cachedKeys = [];
@@ -1344,11 +1354,9 @@
 
             renderFeatures(data.features || {});
             cachedKeys = data.keys || [];
-            if (document.getElementById("searchKeyInput") && document.getElementById("searchKeyInput").value.trim()) {
-                filterKeys();
-            } else {
-                renderKeysTable(cachedKeys);
-            }
+            
+            // Always run filterKeys to apply tab logic and update stats
+            filterKeys();
 
             cachedDevices = data.devices || [];
             if (document.getElementById("searchDeviceInput") && document.getElementById("searchDeviceInput").value.trim()) {
@@ -1360,10 +1368,7 @@
             const sellers = data.sellers || [];
             renderSellersTable(sellers);
             updateSellerDropdown(sellers);
-
-            document.getElementById("statTotalKeys").innerText = cachedKeys.length;
-            const activeCount = cachedKeys.filter(k => k.active === 1).length;
-            document.getElementById("statActiveKeys").innerText = activeCount;
+            
             document.getElementById("statUsedDevices").innerText = cachedDevices.length;
         }
 
@@ -1509,20 +1514,23 @@
             const maxDev = parseInt(document.getElementById("newKeyDevices").value, 10);
             const sellerIdVal = document.getElementById("newKeySeller") ? document.getElementById("newKeySeller").value : "";
             const sellerId = sellerIdVal ? parseInt(sellerIdVal, 10) : null;
+            const amount = parseInt(document.getElementById("newKeyAmount").value, 10) || 1;
 
             const res = await fetchAPI("/api/admin/add_key", "POST", {
                 key: customKey || undefined,
                 days: days,
                 max_devices: maxDev,
-                seller_id: sellerId
+                seller_id: sellerId,
+                amount: amount
             });
 
             if (res && res.ok) {
-                lastCreatedKey = res.key;
+                const keysCreated = res.keys || [];
+                const keyText = keysCreated.join("\n");
                 document.getElementById("newKeyCustom").value = "";
-                document.getElementById("newKeyModalValue").innerText = res.key;
+                document.getElementById("newKeyModalValue").innerText = keyText;
                 document.getElementById("newKeyModal").style.display = "flex";
-                copyToClipboard(res.key, `Tạo thành công & Đã tự động copy key: ${res.key}`);
+                copyToClipboard(keyText, `Tạo thành công & Đã tự động copy ${keysCreated.length} key!`);
                 refreshData();
             } else if (res && res.error) {
                 showToast(`❌ Lỗi: ${res.error}`);
@@ -1625,14 +1633,38 @@
             }
         }
 
+        let currentKeyTab = 'admin';
+        function switchKeyTab(tab) {
+            currentKeyTab = tab;
+            document.getElementById("tabKeyAll").style.background = tab === 'all' ? 'var(--primary-color)' : '#2a2a2a';
+            document.getElementById("tabKeyAdmin").style.background = tab === 'admin' ? 'var(--primary-color)' : '#2a2a2a';
+            document.getElementById("tabKeySeller").style.background = tab === 'seller' ? 'var(--primary-color)' : '#2a2a2a';
+            filterKeys();
+        }
+
         function filterKeys() {
             const query = document.getElementById("searchKeyInput").value.toLowerCase().trim();
-            const filtered = cachedKeys.filter(k => 
-                k.license_key.toLowerCase().includes(query) || 
-                (k.seller_name && k.seller_name.toLowerCase().includes(query))
-            );
+            let filtered = cachedKeys;
+            
+            if (currentKeyTab === 'admin') {
+                filtered = filtered.filter(k => !k.seller_id);
+            } else if (currentKeyTab === 'seller') {
+                filtered = filtered.filter(k => k.seller_id);
+            }
+            
+            // Update stats based on current tab's total pool (before search query)
+            document.getElementById("statTotalKeys").innerText = filtered.length;
+            document.getElementById("statActiveKeys").innerText = filtered.filter(k => k.active === 1).length;
+
+            if (query) {
+                filtered = filtered.filter(k => 
+                    k.license_key.toLowerCase().includes(query) || 
+                    (k.seller_name && k.seller_name.toLowerCase().includes(query))
+                );
+            }
             renderKeysTable(filtered);
         }
+
 
         function filterDevices() {
             const query = (document.getElementById("searchDeviceInput").value || "").toLowerCase().trim();

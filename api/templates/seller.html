@@ -441,6 +441,11 @@
                                 <option value="99999">Không Giới Hạn HWID</option>
                             </select>
                         </div>
+                        <div class="form-group">
+                            <label>Số Lượng Key (Mặc định: 1)</label>
+                            <input type="number" id="sellerKeyAmount" value="1" min="1" max="500">
+                        </div>
+                        
                     </div>
                     <button class="btn" onclick="sellerCreateKey()" style="height: 38px; justify-content: center; margin-top: 4px;">+ Tạo Key Mới</button>
                 </div>
@@ -504,7 +509,7 @@
                 <button class="btn btn-secondary btn-sm" onclick="closeNewKeyModal()">✕</button>
             </div>
             <p style="font-size: 13px; color: var(--text-secondary);">Key đã lưu vào hệ thống của bạn. Bấm nút dưới để copy gửi khách:</p>
-            <div id="newKeyModalValue" class="key-display">—</div>
+            <div id="newKeyModalValue" class="key-display" style="white-space: pre-wrap; font-size: 12px; max-height: 200px; overflow-y: auto;">—</div>
             <div style="display: flex; gap: 8px;">
                 <button class="btn" style="flex: 1; justify-content: center;" onclick="copyNewKeyModal()">📋 Sao Chép Key</button>
                 <button class="btn btn-secondary" onclick="closeNewKeyModal()">Đóng</button>
@@ -559,8 +564,9 @@
         }
 
         function copyNewKeyModal() {
-            if (lastCreatedKey) {
-                copyToClipboard(lastCreatedKey, `Đã sao chép key: ${lastCreatedKey}`);
+            const keyText = document.getElementById("newKeyModalValue").innerText;
+            if (keyText && keyText !== "—") {
+                copyToClipboard(keyText, `Đã sao chép key!`);
                 closeNewKeyModal();
             }
         }
@@ -653,19 +659,22 @@
             const customKey = document.getElementById("sellerCustomKey").value.trim();
             const days = parseInt(document.getElementById("sellerKeyDays").value, 10);
             const maxDev = parseInt(document.getElementById("sellerKeyDevices").value, 10);
+            const amount = parseInt(document.getElementById("sellerKeyAmount").value, 10) || 1;
 
             const res = await fetchSellerAPI("/api/seller/create_key", "POST", {
                 key: customKey || undefined,
                 days: days,
-                max_devices: maxDev
+                max_devices: maxDev,
+                amount: amount
             });
 
             if (res && res.ok) {
-                lastCreatedKey = res.key;
+                const keysCreated = res.keys || [];
+                const keyText = keysCreated.join("\n");
                 document.getElementById("sellerCustomKey").value = "";
-                document.getElementById("newKeyModalValue").innerText = res.key;
+                document.getElementById("newKeyModalValue").innerText = keyText;
                 document.getElementById("newKeyModal").style.display = "flex";
-                copyToClipboard(res.key, `Tạo thành công & Đã tự động copy key: ${res.key}`);
+                copyToClipboard(keyText, `Tạo thành công & Đã tự động copy ${keysCreated.length} key!`);
                 refreshSellerData();
             } else if (res && res.error) {
                 showToast(`❌ Lỗi: ${res.error}`);
