@@ -815,25 +815,16 @@ struct ContentView: View {
                         .padding(.vertical, 4)
 
 
-                        Button(action: {
-                            performResetGuest()
-                        }) {
-                            HStack {
-                                Image(systemName: "trash.circle.fill")
-                                    .font(.system(size: 15, weight: .bold))
-                                Text("Xoá Acc Khách & Đổi ID Máy")
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                        ToggleRow(label: "Tự Động Xóa Khách (Auto Reset)", icon: "trash.circle.fill", on: $config.reset_guest)
+                            .onChange(of: config.reset_guest) { newValue in
+                                if newValue {
+                                    performResetGuest()
+                                } else {
+                                    config.resetGuest = false
+                                    config.resetGuestBeforeLogin = false
+                                    syncConfig()
+                                }
                             }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 42)
-                            .foregroundColor(.white)
-                            .background(Color(white: 0.15))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color(white: 0.30), lineWidth: 1)
-                            )
-                        }
                     }
                 }
 
@@ -1107,13 +1098,6 @@ struct ContentView: View {
         config.resetGuest = true
         config.resetGuestBeforeLogin = true
         syncConfig()
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            config.reset_guest = false
-            config.resetGuest = false
-            config.resetGuestBeforeLogin = false
-            syncConfig()
-        }
     }
 
     private func loadConfig() {

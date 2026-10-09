@@ -423,7 +423,10 @@ namespace ProjectEspPatch
                                                                  .Replace("\"resetGuestBeforeLogin\":true", "\"resetGuestBeforeLogin\":false")
                                                                  .Replace("\"reset_guest\" : true", "\"reset_guest\" : false")
                                                                  .Replace("\"resetGuest\" : true", "\"resetGuest\" : false")
-                                                                 .Replace("\"resetGuestBeforeLogin\" : true", "\"resetGuestBeforeLogin\" : false");
+                                                                 .Replace("\"resetGuestBeforeLogin\" : true", "\"resetGuestBeforeLogin\" : false")
+                                                                 .Replace("\"reset_guest\": true", "\"reset_guest\": false")
+                                                                 .Replace("\"resetGuest\": true", "\"resetGuest\": false")
+                                                                 .Replace("\"resetGuestBeforeLogin\": true", "\"resetGuestBeforeLogin\": false");
                                             System.IO.File.WriteAllText(configPath, updated);
                                             json = updated.Replace(" ", "");
                                         }
@@ -1870,7 +1873,10 @@ namespace ProjectEspPatch
                                                      .Replace("\"resetGuestBeforeLogin\":true", "\"resetGuestBeforeLogin\":false")
                                                      .Replace("\"reset_guest\" : true", "\"reset_guest\" : false")
                                                      .Replace("\"resetGuest\" : true", "\"resetGuest\" : false")
-                                                     .Replace("\"resetGuestBeforeLogin\" : true", "\"resetGuestBeforeLogin\" : false");
+                                                     .Replace("\"resetGuestBeforeLogin\" : true", "\"resetGuestBeforeLogin\" : false")
+                                                     .Replace("\"reset_guest\": true", "\"reset_guest\": false")
+                                                     .Replace("\"resetGuest\": true", "\"resetGuest\": false")
+                                                     .Replace("\"resetGuestBeforeLogin\": true", "\"resetGuestBeforeLogin\": false");
                                 System.IO.File.WriteAllText(cfgPath, updated);
                             }
                         }
