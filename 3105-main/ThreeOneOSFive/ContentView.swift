@@ -1333,8 +1333,8 @@ public class MemoryScanner {
     }
 
     private static func scanAndReplace(aob: [UInt8], patch: [UInt8], name: String) {
-        var address: mach_vm_address_t = 0
-        var size: mach_vm_size_t = 0
+        var address: vm_address_t = 0
+        var size: vm_size_t = 0
         let task = mach_task_self_
         var hits = 0
         
@@ -1345,7 +1345,7 @@ public class MemoryScanner {
             
             let kr = withUnsafeMutablePointer(to: &info) { infoPtr in
                 infoPtr.withMemoryRebound(to: Int32.self, capacity: Int(count)) { int32Ptr in
-                    mach_vm_region(task, &address, &size, VM_REGION_BASIC_INFO_64, int32Ptr, &count, &objectName)
+                    vm_region_64(task, &address, &size, VM_REGION_BASIC_INFO_64, int32Ptr, &count, &objectName)
                 }
             }
             
@@ -1357,7 +1357,7 @@ public class MemoryScanner {
             if (protection & VM_PROT_READ) != 0 {
                 var data: pointer_t = 0
                 var dataCount: mach_msg_type_number_t = 0
-                let readKr = mach_vm_read(task, address, size, &data, &dataCount)
+                let readKr = vm_read(task, address, size, &data, &dataCount)
                 
                 if readKr == KERN_SUCCESS {
                     let ptr = UnsafeMutableRawPointer(bitPattern: UInt(data))!
@@ -1365,21 +1365,35 @@ public class MemoryScanner {
                     var searchSize = Int(dataCount)
                     
                     while searchSize >= aob.count {
-                        let match = aob.withUnsafeBufferPointer { aobBuf in
-                            return memmem(searchBase, searchSize, aobBuf.baseAddress!, aob.count)
+                        var matchPtr: UnsafeMutableRawPointer? = nil
+                        let searchPtr = searchBase.assumingMemoryBound(to: UInt8.self)
+                        let end = searchSize - aob.count
+                        
+                        for i in 0...end {
+                            var found = true
+                            for j in 0..<aob.count {
+                                if searchPtr[i + j] != aob[j] {
+                                    found = false
+                                    break
+                                }
+                            }
+                            if found {
+                                matchPtr = searchBase + i
+                                break
+                            }
                         }
                         
-                        if let matchPtr = match {
+                        if let matchPtr = matchPtr {
                             let matchOffset = ptr.distance(to: matchPtr)
-                            let targetAddress = address + mach_vm_address_t(matchOffset)
+                            let targetAddress = address + vm_address_t(matchOffset)
                             
                             let originalProtection = protection
                             if (originalProtection & VM_PROT_WRITE) == 0 {
-                                mach_vm_protect(task, targetAddress, mach_vm_size_t(patch.count), 0, originalProtection | VM_PROT_WRITE)
+                                vm_protect(task, targetAddress, vm_size_t(patch.count), 0, originalProtection | VM_PROT_WRITE)
                             }
                             
                             let writeKr = patch.withUnsafeBufferPointer { patchBuf in
-                                mach_vm_write(task, targetAddress, vm_offset_t(UInt(bitPattern: patchBuf.baseAddress!)), mach_msg_type_number_t(patch.count))
+                                vm_write(task, targetAddress, vm_offset_t(UInt(bitPattern: patchBuf.baseAddress!)), mach_msg_type_number_t(patch.count))
                             }
                             
                             if writeKr == KERN_SUCCESS {
@@ -1387,7 +1401,7 @@ public class MemoryScanner {
                             }
                             
                             if (originalProtection & VM_PROT_WRITE) == 0 {
-                                mach_vm_protect(task, targetAddress, mach_vm_size_t(patch.count), 0, originalProtection)
+                                vm_protect(task, targetAddress, vm_size_t(patch.count), 0, originalProtection)
                             }
                             
                             searchBase = matchPtr.advanced(by: aob.count)
