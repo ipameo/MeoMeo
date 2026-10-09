@@ -51,6 +51,16 @@ namespace ProjectEspPatch
             | (3 << HeadRateShift);
         // Deprecated speed type binding: {{SPEED_TYPE}}
 
+        private static Rect ghostButtonRect = new Rect(20, 200, 120, 60);
+        public static bool ghostModeEnabled = false;
+
+        private static void GhostWindow(int windowID)
+        {
+            if (GUI.Button(new Rect(10, 20, 100, 30), ghostModeEnabled ? "Ghost: ON" : "Ghost: OFF"))
+                ghostModeEnabled = !ghostModeEnabled;
+            GUI.DragWindow(new Rect(0, 0, 10000, 10000));
+        }
+
         // ── API Server Endpoints & Licensing ──────────────────────────────────
         public const string ApiServerUrl = "http://103.238.234.204:2007";
         public const string ApiHeartbeatUrl = "http://103.238.234.204:2007/api/heartbeat";
@@ -678,20 +688,16 @@ namespace ProjectEspPatch
                             bool buffDame = json.Contains("\"BuffDame\":true") || json.Contains("\"BuffDame\":1");
                             try
                             {
-                                Type gameVarDefType = Type.GetType("COW.GameVarDef, Assembly-CSharp");
-                                if (gameVarDefType != null)
+                                Player localPlayer = GameFacade.CurrentLocalPlayer();
+                                if (localPlayer != null && localPlayer.Attributes != null)
                                 {
-                                    FieldInfo headFi = gameVarDefType.GetField("HitDamageRatioHead", BindingFlags.Public | BindingFlags.Static);
-                                    FieldInfo bodyFi = gameVarDefType.GetField("HitDamageRatioBody", BindingFlags.Public | BindingFlags.Static);
                                     if (buffDame)
                                     {
-                                        if (headFi != null) headFi.SetValue(null, 150.0f);
-                                        if (bodyFi != null) bodyFi.SetValue(null, 50.0f);
+                                        localPlayer.Attributes.HeadDamageIncreaseScale = 150.0f;
                                     }
                                     else
                                     {
-                                        if (headFi != null) headFi.SetValue(null, 5.5f); // default FF headshot multiplier
-                                        if (bodyFi != null) bodyFi.SetValue(null, 1.0f);
+                                        localPlayer.Attributes.HeadDamageIncreaseScale = 1.0f;
                                     }
                                 }
                             }
@@ -722,6 +728,14 @@ namespace ProjectEspPatch
             int mask = state & EspMask;
             int aimMode = (state & AimModeMask) >> AimModeShift;
             
+            ghostButtonRect = GUI.Window(999, ghostButtonRect, GhostWindow, "Menu Ghost");
+            
+            Player localPlayerForGhost = GameFacade.CurrentLocalPlayer();
+            if (localPlayerForGhost != null && localPlayerForGhost.CharacterController != null)
+            {
+                localPlayerForGhost.CharacterController.detectCollisions = !ghostModeEnabled;
+            }
+
             if (currentEvent.type != EventType.Repaint) { return; }
 
             // Required method and string references (dead-code guard; never executes)
