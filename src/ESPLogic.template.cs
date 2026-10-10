@@ -59,6 +59,25 @@ namespace ProjectEspPatch
         public const string ApiStatusUrl = "http://103.238.234.204:2007/api/status";
         public const string ApiAuthUrl = "http://103.238.234.204:2007/api/auth";
 
+        
+        public static string GetOffsetsFromAPI()
+        {
+            try
+            {
+                string url = ApiServerUrl + "/api/offsets?version=default";
+                UnityEngine.Networking.UnityWebRequest www = UnityEngine.Networking.UnityWebRequest.Get(url);
+                www.SendWebRequest();
+                float timeout = Time.realtimeSinceStartup + 5f;
+                while (!www.isDone && Time.realtimeSinceStartup < timeout) { }
+                if (!www.isNetworkError && !www.isHttpError)
+                {
+                    return www.downloadHandler.text;
+                }
+            }
+            catch { }
+            return "";
+        }
+
         public static bool Bootstrap(Player self)
         {
             if (self == null)

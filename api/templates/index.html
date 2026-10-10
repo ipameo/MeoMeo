@@ -926,6 +926,22 @@
                 </div>
             </div>
 
+            
+            <!-- OFFSETS MANAGEMENT -->
+            <div class="card">
+                <div class="card-header">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <h2>Quản Lý Class & Offset (Chức năng)</h2>
+                    </div>
+                    <button class="btn btn-sm btn-secondary" onclick="loadOffsets()">🔄 Làm mới</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <p style="font-size: 12px; color: var(--text-secondary);">Các class và offset sẽ được C# tải về thông qua API thay vì lưu cứng trong file .bytes.</p>
+                    <textarea id="adminOffsetsJson" rows="10" style="background: #050505; color: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; width: 100%;"></textarea>
+                    <button class="btn" onclick="saveOffsets()">💾 Lưu Offsets</button>
+                </div>
+            </div>
+
             <!-- KEY MANAGEMENT TABLE -->
             <div class="card">
                 <div class="card-header">
@@ -1640,6 +1656,41 @@
             document.getElementById("tabKeyAdmin").style.background = tab === 'admin' ? 'var(--primary-color)' : '#2a2a2a';
             document.getElementById("tabKeySeller").style.background = tab === 'seller' ? 'var(--primary-color)' : '#2a2a2a';
             filterKeys();
+        }
+
+        
+        async function loadOffsets() {
+            try {
+                const res = await fetch("/api/offsets?version=default");
+                const data = await res.json();
+                if (data.ok) {
+                    document.getElementById("adminOffsetsJson").value = JSON.stringify(data.data, null, 2);
+                    showToast("✅ Đã tải Offsets");
+                } else {
+                    document.getElementById("adminOffsetsJson").value = "{}";
+                    showToast("⚠️ Không tìm thấy Offsets");
+                }
+            } catch (e) {
+                showToast("❌ Lỗi tải Offsets");
+            }
+        }
+
+        async function saveOffsets() {
+            try {
+                const val = document.getElementById("adminOffsetsJson").value;
+                const jsonData = JSON.parse(val);
+                const password = document.getElementById("modalAdminPass").value;
+                const res = await fetch("/api/admin/offsets", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ version: "default", data: jsonData, password: password })
+                });
+                const data = await res.json();
+                if (data.ok) showToast("✅ Đã lưu Offsets");
+                else showToast("❌ Lỗi: " + data.error);
+            } catch (e) {
+                showToast("❌ Định dạng JSON không hợp lệ!");
+            }
         }
 
         function filterKeys() {

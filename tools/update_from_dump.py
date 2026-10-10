@@ -561,6 +561,19 @@ def main() -> int:
     print(f"version={report['version']}")
     print(f"bindings={binding_path}")
     print(f"source={source_path}")
+
+    # Upload to API
+    try:
+        import urllib.request
+        import json
+        req = urllib.request.Request('http://127.0.0.1:2007/api/admin/offsets',
+                                     data=json.dumps({"version": report['version'], "data": placeholders}).encode('utf-8'),
+                                     headers={'Content-Type': 'application/json'})
+        response = urllib.request.urlopen(req)
+        print(f"Uploaded offsets to API: {response.read().decode('utf-8')}")
+    except Exception as e:
+        print(f"Failed to upload offsets to API: {e}")
+
     return 0
 
 

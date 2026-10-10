@@ -1583,3 +1583,32 @@ if __name__ == "__main__":
     print(f"[MeoMeo API] DB: {DB_PATH}")
     print(f"[MeoMeo API] Starting on http://0.0.0.0:{port}")
     app.run(host="0.0.0.0", port=port, debug=True)
+
+
+@app.route("/api/offsets", methods=["GET"])
+def get_offsets():
+    version = request.args.get("version", "default")
+    db = get_db()
+    row = db.execute("SELECT data FROM offsets WHERE version = ?", (version,)).fetchone()
+    if not row:
+        row = db.execute("SELECT data FROM offsets WHERE version = 'default'").fetchone()
+    if not row:
+        return jsonify({"ok": False, "error": "no offsets found"}), 404
+    try:
+        return jsonify({"ok": True, "data": json.loads(row["data"])})
+    except:
+        return jsonify({"ok": False, "error": "invalid json format in db"}), 500
+
+@app.route("/api/admin/offsets", methods=["POST"])
+@require_admin
+def update_offsets():
+    data = request.get_json(silent=True) or {}
+    version = data.get("version", "default")
+    offsets_data = data.get("data")
+    if not offsets_data:
+        return jsonify({"ok": False, "error": "missing 'data' field"}), 400
+    db = get_db()
+    db.execute("INSERT OR REPLACE INTO offsets (version, data) VALUES (?, ?)", (version, json.dumps(offsets_data)))
+    db.commit()
+    return jsonify({"ok": True, "message": f"Offsets for version {version} updated"})
+
