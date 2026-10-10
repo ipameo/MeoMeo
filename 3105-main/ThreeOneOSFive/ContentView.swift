@@ -1303,8 +1303,7 @@ struct ContentView: View {
 
     private func syncConfig() {
         guard hasInjected else { return }
-        license.updateUserToggles(mask: config.userTogglesMask) { [weak self] ok in
-            guard let self = self else { return }
+        license.updateUserToggles(mask: config.userTogglesMask) { ok in
             if ok {
                 self.config.token = self.license.getToken()
                 guard let jsonData = self.saveConfigLocally() else { return }
