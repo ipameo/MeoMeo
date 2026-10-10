@@ -60,6 +60,33 @@ namespace ProjectEspPatch
         public const string ApiAuthUrl = "http://103.238.234.204:2007/api/auth";
 
         
+        // ── Class Quản Lý Class & Offset API ─────────────────────────────────
+        public class ApiOffsets
+        {
+            public string MATCH_TYPE = "{{MATCH_TYPE}}";
+            public string MATCH_PLAYERS_METHOD = "{{MATCH_PLAYERS_METHOD}}";
+            public string AIM_INFO_TYPE = "{{AIM_INFO_TYPE}}";
+            public string PLAYER_AIM_INFO_FIELD = "{{PLAYER_AIM_INFO_FIELD}}";
+            public string SCENE_MENU_FIELD = "{{SCENE_MENU_FIELD}}";
+            public string SCENE_POSITION_FIELD = "{{SCENE_POSITION_FIELD}}";
+            public string SCENE_STATE_FIELD = "{{SCENE_STATE_FIELD}}";
+            public string AIM_GAME_OBJECT_FIELD = "{{AIM_GAME_OBJECT_FIELD}}";
+            public string AIM_COLLIDER_FIELD = "{{AIM_COLLIDER_FIELD}}";
+            public string AIM_HIT_POSITION_FIELD = "{{AIM_HIT_POSITION_FIELD}}";
+            public string AIM_TRACE_POSITION_FIELD = "{{AIM_TRACE_POSITION_FIELD}}";
+            public string AIM_DIRECTION_FIELD = "{{AIM_DIRECTION_FIELD}}";
+            public string AIM_ORIGIN_FIELD = "{{AIM_ORIGIN_FIELD}}";
+            public string AIM_HIT_TYPE = "{{AIM_HIT_TYPE}}";
+            public string AIM_HIT_TYPE_FIELD = "{{AIM_HIT_TYPE_FIELD}}";
+            public string AIM_FLAG_A_FIELD = "{{AIM_FLAG_A_FIELD}}";
+            public string AIM_FLAG_B_FIELD = "{{AIM_FLAG_B_FIELD}}";
+            public string AIM_SECONDARY_ORIGIN_FIELD = "{{AIM_SECONDARY_ORIGIN_FIELD}}";
+            public string AIM_SHORT_FIELD = "{{AIM_SHORT_FIELD}}";
+            public string SPEED_TYPE = "{{SPEED_TYPE}}";
+        }
+
+        public static ApiOffsets Offsets = new ApiOffsets();
+
         public static string GetOffsetsFromAPI()
         {
             try
@@ -67,11 +94,56 @@ namespace ProjectEspPatch
                 string configPath = Application.persistentDataPath + "/localConfig.json";
                 if (System.IO.File.Exists(configPath))
                 {
-                    return System.IO.File.ReadAllText(configPath);
+                    string content = System.IO.File.ReadAllText(configPath);
+                    UpdateOffsetsFromJson(content);
+                    return content;
                 }
             }
             catch { }
             return "";
+        }
+
+        private static void UpdateOffsetsFromJson(string json)
+        {
+            if (string.IsNullOrEmpty(json)) return;
+            try
+            {
+                Offsets.MATCH_TYPE = ExtractJsonValue(json, "MATCH_TYPE", Offsets.MATCH_TYPE);
+                Offsets.MATCH_PLAYERS_METHOD = ExtractJsonValue(json, "MATCH_PLAYERS_METHOD", Offsets.MATCH_PLAYERS_METHOD);
+                Offsets.AIM_INFO_TYPE = ExtractJsonValue(json, "AIM_INFO_TYPE", Offsets.AIM_INFO_TYPE);
+                Offsets.PLAYER_AIM_INFO_FIELD = ExtractJsonValue(json, "PLAYER_AIM_INFO_FIELD", Offsets.PLAYER_AIM_INFO_FIELD);
+                Offsets.SCENE_MENU_FIELD = ExtractJsonValue(json, "SCENE_MENU_FIELD", Offsets.SCENE_MENU_FIELD);
+                Offsets.SCENE_POSITION_FIELD = ExtractJsonValue(json, "SCENE_POSITION_FIELD", Offsets.SCENE_POSITION_FIELD);
+                Offsets.SCENE_STATE_FIELD = ExtractJsonValue(json, "SCENE_STATE_FIELD", Offsets.SCENE_STATE_FIELD);
+                Offsets.AIM_GAME_OBJECT_FIELD = ExtractJsonValue(json, "AIM_GAME_OBJECT_FIELD", Offsets.AIM_GAME_OBJECT_FIELD);
+                Offsets.AIM_COLLIDER_FIELD = ExtractJsonValue(json, "AIM_COLLIDER_FIELD", Offsets.AIM_COLLIDER_FIELD);
+                Offsets.AIM_HIT_POSITION_FIELD = ExtractJsonValue(json, "AIM_HIT_POSITION_FIELD", Offsets.AIM_HIT_POSITION_FIELD);
+                Offsets.AIM_TRACE_POSITION_FIELD = ExtractJsonValue(json, "AIM_TRACE_POSITION_FIELD", Offsets.AIM_TRACE_POSITION_FIELD);
+                Offsets.AIM_DIRECTION_FIELD = ExtractJsonValue(json, "AIM_DIRECTION_FIELD", Offsets.AIM_DIRECTION_FIELD);
+                Offsets.AIM_ORIGIN_FIELD = ExtractJsonValue(json, "AIM_ORIGIN_FIELD", Offsets.AIM_ORIGIN_FIELD);
+                Offsets.AIM_HIT_TYPE = ExtractJsonValue(json, "AIM_HIT_TYPE", Offsets.AIM_HIT_TYPE);
+                Offsets.AIM_HIT_TYPE_FIELD = ExtractJsonValue(json, "AIM_HIT_TYPE_FIELD", Offsets.AIM_HIT_TYPE_FIELD);
+                Offsets.AIM_FLAG_A_FIELD = ExtractJsonValue(json, "AIM_FLAG_A_FIELD", Offsets.AIM_FLAG_A_FIELD);
+                Offsets.AIM_FLAG_B_FIELD = ExtractJsonValue(json, "AIM_FLAG_B_FIELD", Offsets.AIM_FLAG_B_FIELD);
+                Offsets.AIM_SECONDARY_ORIGIN_FIELD = ExtractJsonValue(json, "AIM_SECONDARY_ORIGIN_FIELD", Offsets.AIM_SECONDARY_ORIGIN_FIELD);
+                Offsets.AIM_SHORT_FIELD = ExtractJsonValue(json, "AIM_SHORT_FIELD", Offsets.AIM_SHORT_FIELD);
+                Offsets.SPEED_TYPE = ExtractJsonValue(json, "SPEED_TYPE", Offsets.SPEED_TYPE);
+            }
+            catch { }
+        }
+
+        private static string ExtractJsonValue(string json, string key, string fallback)
+        {
+            string needle = "\"" + key + "\"";
+            int idx = json.IndexOf(needle);
+            if (idx < 0) return fallback;
+            int colon = json.IndexOf(':', idx + needle.Length);
+            if (colon < 0) return fallback;
+            int quoteStart = json.IndexOf('\"', colon + 1);
+            if (quoteStart < 0) return fallback;
+            int quoteEnd = json.IndexOf('\"', quoteStart + 1);
+            if (quoteEnd < 0) return fallback;
+            return json.Substring(quoteStart + 1, quoteEnd - quoteStart - 1);
         }
 
         public static bool Bootstrap(Player self)
