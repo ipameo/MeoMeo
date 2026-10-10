@@ -1351,39 +1351,39 @@ struct ContentView: View {
                     return
                 }
 
-            let token = SecurityShield.githubToken
-            let urlStr = SecurityShield.payloadDownloadURL
-            guard let url = URL(string: urlStr) else {
-                self.isInjecting = false; return
-            }
-            var request = URLRequest(url: url)
-            request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
-
-            let writePatchData: (Data) -> Void = { patchData in
-                guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) else {
-                    self.isInjecting = false
-                    return
+                let token = SecurityShield.githubToken
+                let urlStr = SecurityShield.payloadDownloadURL
+                guard let url = URL(string: urlStr) else {
+                    self.isInjecting = false; return
                 }
-                let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
-                let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
-                let configURL = docsURL.appendingPathComponent("localConfig.json")
-                do {
-                    let fm = FileManager.default
-                    if !fm.fileExists(atPath: docsURL.path) {
-                        try fm.createDirectory(at: docsURL, withIntermediateDirectories: true)
+                var request = URLRequest(url: url)
+                request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+
+                let writePatchData: (Data) -> Void = { patchData in
+                    guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) else {
+                        self.isInjecting = false
+                        return
                     }
-                    try patchData.write(to: bytesURL)
-                    if let freshConfig = self.saveConfigLocally() {
-                        try freshConfig.write(to: configURL)
-                    } else {
-                        try jsonData.write(to: configURL)
-                    }
-                    self.hasInjected = true
-                    self.topTab = "Menu"
-                    self.license.startHeartbeat()
-                } catch { }
-                self.isInjecting = false
-            }
+                    let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+                    let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
+                    let configURL = docsURL.appendingPathComponent("localConfig.json")
+                    do {
+                        let fm = FileManager.default
+                        if !fm.fileExists(atPath: docsURL.path) {
+                            try fm.createDirectory(at: docsURL, withIntermediateDirectories: true)
+                        }
+                        try patchData.write(to: bytesURL)
+                        if let freshConfig = self.saveConfigLocally() {
+                            try freshConfig.write(to: configURL)
+                        } else {
+                            try jsonData.write(to: configURL)
+                        }
+                        self.hasInjected = true
+                        self.topTab = "Menu"
+                        self.license.startHeartbeat()
+                    } catch { }
+                    self.isInjecting = false
+                }
 
                 URLSession.shared.dataTask(with: request) { data, response, error in
                     DispatchQueue.main.async {
