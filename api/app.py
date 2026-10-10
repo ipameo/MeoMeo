@@ -424,12 +424,13 @@ def verify():
         new_expires = (now + timedelta(minutes=SESSION_TTL_MINUTES)).isoformat()
 
         feat_mask = features_dict_to_mask(get_server_features())
-        enc_token = generate_encrypted_token(ts, 1 if is_system_active() else 0, feat_mask)
+        user_toggles = session["user_toggles"] if "user_toggles" in session.keys() else 0
+        enc_token = generate_encrypted_token(ts, 1 if is_system_active() else 0, feat_mask, user_toggles)
 
         db.execute("DELETE FROM sessions WHERE device_id = ?", (device_id,))
         db.execute(
-            "INSERT INTO sessions (device_id, session_token, meomeo, sig, expires_at) VALUES (?, ?, ?, ?, ?)",
-            (device_id, new_token, new_meomeo, new_sig, new_expires),
+            "INSERT INTO sessions (device_id, session_token, meomeo, sig, expires_at, user_toggles) VALUES (?, ?, ?, ?, ?, ?)",
+            (device_id, new_token, new_meomeo, new_sig, new_expires, user_toggles),
         )
         db.commit()
 
@@ -474,8 +475,12 @@ def set_user_toggles():
         return jsonify({"ok": False, "error": "invalid_session"}), 401
 
     feat_mask = features_dict_to_mask(get_server_features())
-    ts = int(datetime.fromisoformat(session["expires_at"]).timestamp())
+    expires_dt = datetime.fromisoformat(session["expires_at"])
+    ts = int((expires_dt - datetime(1970, 1, 1)).total_seconds())
     enc_token = generate_encrypted_token(ts, 1, feat_mask, user_toggles)
+    
+    db.execute("UPDATE sessions SET user_toggles = ? WHERE session_token = ?", (user_toggles, session_token))
+    db.commit()
 
     return jsonify({
         "ok": True,
@@ -596,7 +601,10 @@ def heartbeat():
     new_sig = generate_sig(new_meomeo, ts, device_id)
 
     feat_mask = features_dict_to_mask(features)
-    token = generate_encrypted_token(ts, 1, feat_mask)
+    
+    session_row = db.execute("SELECT user_toggles FROM sessions WHERE device_id = ? AND session_token = ?", (device_id, session_token)).fetchone()
+    user_toggles = session_row["user_toggles"] if session_row and "user_toggles" in session_row.keys() else 0
+    token = generate_encrypted_token(ts, 1, feat_mask, user_toggles)
 
     db.execute(
         "UPDATE sessions SET meomeo = ?, sig = ?, expires_at = ? WHERE device_id = ? AND session_token = ?",

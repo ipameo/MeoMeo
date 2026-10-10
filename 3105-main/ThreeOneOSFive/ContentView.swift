@@ -1254,8 +1254,22 @@ struct ContentView: View {
         if let data = UserDefaults.standard.data(forKey: "saved_esp_config") {
             if let decoded = try? JSONDecoder().decode(EspConfig.self, from: data) {
                 config = decoded
+                return
             }
         }
+        
+        // Migration from old version
+        do {
+            let fm = FileManager.default
+            let docsURL = try fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+            let configURL = docsURL.appendingPathComponent("localConfig.json")
+            if fm.fileExists(atPath: configURL.path) {
+                let data = try Data(contentsOf: configURL)
+                if let decoded = try? JSONDecoder().decode(EspConfig.self, from: data) {
+                    config = decoded
+                }
+            }
+        } catch { }
     }
 
     private func saveConfigLocally() -> Data? {
@@ -1322,14 +1336,20 @@ struct ContentView: View {
     private func injectGame() {
         if SecurityShield.isDebuggerAttached { return }
         guard license.isAuthed else { return }
-        guard let jsonData = saveConfigLocally() else { return }
         isInjecting = true
-
-        license.checkStatus { ok in
-            guard ok else {
+        
+        license.updateUserToggles(mask: config.userTogglesMask) { _ in
+            self.config.token = self.license.getToken()
+            guard let jsonData = self.saveConfigLocally() else {
                 self.isInjecting = false
                 return
             }
+
+            self.license.checkStatus { ok in
+                guard ok else {
+                    self.isInjecting = false
+                    return
+                }
 
             let token = SecurityShield.githubToken
             let urlStr = SecurityShield.payloadDownloadURL
@@ -1365,18 +1385,19 @@ struct ContentView: View {
                 self.isInjecting = false
             }
 
-            URLSession.shared.dataTask(with: request) { data, response, error in
-                DispatchQueue.main.async {
-                    if let data = data, let http = response as? HTTPURLResponse, http.statusCode == 200 {
-                        writePatchData(data)
-                    } else if let bundledURL = Bundle.main.url(forResource: "Assembly-CSharp-patch", withExtension: "bytes"),
-                              let bundledData = try? Data(contentsOf: bundledURL) {
-                        writePatchData(bundledData)
-                    } else {
-                        self.isInjecting = false
+                URLSession.shared.dataTask(with: request) { data, response, error in
+                    DispatchQueue.main.async {
+                        if let data = data, let http = response as? HTTPURLResponse, http.statusCode == 200 {
+                            writePatchData(data)
+                        } else if let bundledURL = Bundle.main.url(forResource: "Assembly-CSharp-patch", withExtension: "bytes"),
+                                  let bundledData = try? Data(contentsOf: bundledURL) {
+                            writePatchData(bundledData)
+                        } else {
+                            self.isInjecting = false
+                        }
                     }
-                }
-            }.resume()
+                }.resume()
+            }
         }
     }
 }
