@@ -165,23 +165,23 @@ struct EspConfig: Codable, Equatable {
 
     var userTogglesMask: UInt32 {
         var mask: UInt32 = 0
-        if EspMaster { mask |= (1 << 0) }
-        if EspBox { mask |= (1 << 1) }
-        if EspLine || EspTracer { mask |= (1 << 2) }
-        if EspName { mask |= (1 << 3) }
-        if EspHealth { mask |= (1 << 4) }
-        if EspDistance { mask |= (1 << 5) }
-        if EspSkeleton { mask |= (1 << 6) }
-        if AimEnabled { mask |= (1 << 7) }
-        if AimSystemEnabled { mask |= (1 << 8) }
-        if EspFov { mask |= (1 << 9) }
-        if NoRecoil { mask |= (1 << 10) }
-        if ShowGuestBtn { mask |= (1 << 11) }
-        if reset_guest || resetGuest || resetGuestBeforeLogin { mask |= (1 << 12) }
-        if CamXa { mask |= (1 << 13) }
-        if FastParachute { mask |= (1 << 14) }
-        if GhostMode { mask |= (1 << 15) }
-        if BuffDame { mask |= (1 << 16) }
+        if EspMaster { mask |= (UInt32(1) << 0) }
+        if EspBox { mask |= (UInt32(1) << 1) }
+        if EspLine || EspTracer { mask |= (UInt32(1) << 2) }
+        if EspName { mask |= (UInt32(1) << 3) }
+        if EspHealth { mask |= (UInt32(1) << 4) }
+        if EspDistance { mask |= (UInt32(1) << 5) }
+        if EspSkeleton { mask |= (UInt32(1) << 6) }
+        if AimEnabled { mask |= (UInt32(1) << 7) }
+        if AimSystemEnabled { mask |= (UInt32(1) << 8) }
+        if EspFov { mask |= (UInt32(1) << 9) }
+        if NoRecoil { mask |= (UInt32(1) << 10) }
+        if ShowGuestBtn { mask |= (UInt32(1) << 11) }
+        if reset_guest || resetGuest || resetGuestBeforeLogin { mask |= (UInt32(1) << 12) }
+        if CamXa { mask |= (UInt32(1) << 13) }
+        if FastParachute { mask |= (UInt32(1) << 14) }
+        if GhostMode { mask |= (UInt32(1) << 15) }
+        if BuffDame { mask |= (UInt32(1) << 16) }
         
         mask |= (UInt32(AimTarget & 0x3) << 17)
         mask |= (UInt32(SpeedHack & 0x7) << 19)
@@ -196,7 +196,7 @@ struct EspConfig: Codable, Equatable {
         if hr < 0 { hr = 0 }
         mask |= (UInt32(hr & 0xF) << 27)
         
-        if CamXaFloat >= 2.0 { mask |= (1 << 31) }
+        if CamXaFloat >= 2.0 { mask |= (UInt32(1) << 31) }
         
         return mask
     }
@@ -219,7 +219,13 @@ struct EspConfig: Codable, Equatable {
         server_distance = try c.decodeIfPresent(Bool.self, forKey: .server_distance) ?? true
         server_health = try c.decodeIfPresent(Bool.self, forKey: .server_health) ?? true
         server_headshot = try c.decodeIfPresent(Bool.self, forKey: .server_headshot) ?? true
-        testCodePatch = try c.decodeIfPresent(Bool.self, forKey: .testCodePatch) ?? true
+        if let b = try? c.decodeIfPresent(Bool.self, forKey: .testCodePatch) {
+            testCodePatch = b
+        } else if let s = try? c.decodeIfPresent(String.self, forKey: .testCodePatch) {
+            testCodePatch = (s.lowercased() == "true")
+        } else {
+            testCodePatch = true
+        }
         EspMaster = try c.decodeIfPresent(Bool.self, forKey: .EspMaster) ?? false
         EspBox = try c.decodeIfPresent(Bool.self, forKey: .EspBox) ?? false
         EspLine = try c.decodeIfPresent(Bool.self, forKey: .EspLine) ?? false
@@ -327,7 +333,6 @@ class LicenseManager: ObservableObject {
                 self.authError = nil
                 self.onTokenRefreshed?()
                 completion(true, nil)
-            }
             }
         }.resume()
     }
