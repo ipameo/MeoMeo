@@ -490,31 +490,39 @@ namespace ProjectEspPatch
             })
             {
                 if (player.Properties.Any(property => property.Name == name)) continue;
-                MethodDefinition getter = player.Methods.Single(method =>
+                MethodDefinition getter = player.Methods.SingleOrDefault(method =>
                     method.Name == "get_" + name && method.Parameters.Count == 0);
+                if (getter == null) { Console.WriteLine("Missing player method: get_" + name); continue; }
                 player.Properties.Add(new PropertyDefinition(
                     name, PropertyAttributes.None, getter.ReturnType) { GetMethod = getter });
             }
-            FieldDefinition aimingInfo = player.Fields.Single(value =>
+            FieldDefinition aimingInfo = player.Fields.SingleOrDefault(value =>
                 value.Name == bindings.FieldName(
                     "COW.GamePlay.Player", "AKFLHNOIHED"));
+            if (aimingInfo != null) {
+
             aimingInfo.Attributes = (aimingInfo.Attributes & ~FieldAttributes.FieldAccessMask)
                 | FieldAttributes.Public;
-            player.Methods.Single(method =>
+            }
+            MethodDefinition isMovable = player.Methods.SingleOrDefault(method =>
                 method.Name == "<>iFixBaseProxy_get_IsMovableEntity"
-                && method.Parameters.Count == 0).Name = "EspBaseIsMovableEntity";
+                && method.Parameters.Count == 0);
+            if (isMovable != null) isMovable.Name = "EspBaseIsMovableEntity";
 
 
             TypeDefinition attackable = module.GetType("COW.GamePlay.AttackableEntity");
-            attackable.Properties.Single(property => property.SetMethod != null
+            PropertyDefinition lockedAiming = attackable.Properties.SingleOrDefault(property => property.SetMethod != null
                 && property.SetMethod.Name == "set_LockedAimingCollider"
-                && property.SetMethod.Parameters.Count == 1).Name = "EspLockedAimingCollider";
+                && property.SetMethod.Parameters.Count == 1);
+            if (lockedAiming != null) lockedAiming.Name = "EspLockedAimingCollider";
             if (!attackable.Properties.Any(property => property.Name == "IsDead"))
             {
-                MethodDefinition isDeadGetter = attackable.Methods.Single(method =>
+                MethodDefinition isDeadGetter = attackable.Methods.SingleOrDefault(method =>
                     method.Name == "get_IsDead" && method.Parameters.Count == 0);
+                if (isDeadGetter != null) {
                 attackable.Properties.Add(new PropertyDefinition(
                     "IsDead", PropertyAttributes.None, isDeadGetter.ReturnType) { GetMethod = isDeadGetter });
+                }
             }
 
             TypeDefinition playerAttributes = module.GetType("COW.GamePlay.PlayerAttributes");
@@ -524,8 +532,9 @@ namespace ProjectEspPatch
             })
             {
                 if (playerAttributes.Properties.Any(property => property.Name == name)) continue;
-                MethodDefinition getter = playerAttributes.Methods.Single(method =>
+                MethodDefinition getter = playerAttributes.Methods.SingleOrDefault(method =>
                     method.Name == "get_" + name && method.Parameters.Count == 0);
+                if (getter == null) { Console.WriteLine("Missing attr method: get_" + name); continue; }
                 MethodDefinition setter = playerAttributes.Methods.SingleOrDefault(method =>
                     method.Name == "set_" + name && method.Parameters.Count == 1);
                 playerAttributes.Properties.Add(new PropertyDefinition(
@@ -540,7 +549,8 @@ namespace ProjectEspPatch
                 bindings.FieldName("COW.GamePlay.SceneEditBoxSelectTool", "EEKIAPPAGCL")
             })
             {
-                FieldDefinition field = sceneTool.Fields.Single(value => value.Name == name);
+                FieldDefinition field = sceneTool.Fields.SingleOrDefault(value => value.Name == name);
+                if (field == null) { Console.WriteLine("Missing scene tool field: " + name); continue; }
                 field.Attributes = (field.Attributes & ~FieldAttributes.FieldAccessMask)
                     | FieldAttributes.Public;
             }

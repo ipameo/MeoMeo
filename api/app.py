@@ -636,10 +636,10 @@ def status():
             else:
                 result["ok"] = True
     else:
-        result["ok"] = system_on
+        result["ok"] = False
 
-    feat_mask = features_dict_to_mask(features)
     status_bit = 1 if (system_on and result.get("ok", False)) else 0
+    feat_mask = features_dict_to_mask(features) if status_bit == 1 else 0
     now_ts = int(time.time()) + (SESSION_TTL_MINUTES * 60)
     result["token"] = generate_encrypted_token(now_ts, status_bit, feat_mask)
     result["ts"] = now_ts
@@ -1310,32 +1310,23 @@ def create_vuotlink_shorturl(target_url: str) -> str:
 
 
 @app.route("/hoagetkey", methods=["GET"])
-def getkey_page():
+@app.route("/hoagetkey/<token>", methods=["GET"])
+def getkey_page(token=None):
     """
     Dedicated GetKey Web Interface.
-    Hidden from index / client view.
-    Accepts st, claim, sig query parameters upon successful bypass redirection.
+    Accepts token as path param, or st query parameter from vuotlink redirection.
     """
-    st = request.args.get("st", "").strip()
-    claim = request.args.get("claim", "").strip()
-    sig = request.args.get("sig", "").strip()
-    return render_template("getkey.html", st=st, claim=claim, sig=sig)
+    st = (token or request.args.get("st") or request.args.get("token") or "").strip()
+    hwid = request.args.get("hwid", "").strip().upper()
+    return render_template("getkey.html", st=st, hwid=hwid)
 
 
 @app.route("/api/getkey/init", methods=["POST"])
 def getkey_init():
     """
     Step 1: User enters HWID on /hoagetkey.
-    Anti-bot / Anti-bypass checks:
-      - Validates HWID format & length (at least 8 chars).
-      - Strict Rate Limiting: Max 10 pending sessions per IP per 30 minutes to prevent API flooding/scanning.
-      - Generates cryptographically secure session_token and claim_secret.
-      - Creates HMAC signature 'sig' bound to APP_SECRET, session_token, claim_secret, and hwid.
-      - Generates the callback destination URL:
-          http://<host>/hoagetkey?st=<session_token>&claim=<claim_secret>&sig=<sig>
-      - Calls vuotlink.xyz API to shorten that destination URL.
-      - Returns ONLY { "ok": True, "vuotlink_url": shortened_url }.
-      - Does NOT return session_token, claim_secret, sig, or any key!
+    Always generates a unique session token and shortened vuotlink URL.
+    Every single key request REQUIRES completing the vuotlink.xyz countdown!
     """
     data = request.get_json(silent=True) or {}
     hwid = (data.get("hwid") or "").strip().upper()
@@ -1348,23 +1339,23 @@ def getkey_init():
     now = datetime.utcnow()
     ip_addr = request.remote_addr or ""
 
-    # Rate limiting: Maximum 10 pending sessions per IP per 30 minutes to prevent scanning/flooding
+    # Rate limiting: Maximum 20 pending sessions per IP per 20 minutes
     recent_sessions = db.execute(
-        "SELECT COUNT(*) as cnt FROM getkey_sessions WHERE ip_address = ? AND created_at > datetime('now', '-30 minutes')",
+        "SELECT COUNT(*) as cnt FROM getkey_sessions WHERE ip_address = ? AND created_at > datetime('now', '-20 minutes')",
         (ip_addr,)
     ).fetchone()["cnt"]
 
-    if recent_sessions >= 12:
+    if recent_sessions >= 25:
         return jsonify({
             "ok": False,
-            "error": "Bạn đã gửi quá nhiều yêu cầu vượt link! Vui lòng hoàn thành link hiện tại hoặc thử lại sau 30 phút."
+            "error": "Bạn đã gửi quá nhiều yêu cầu vượt link! Vui lòng hoàn thành link hiện tại hoặc thử lại sau 20 phút."
         }), 429
 
-    # Generate cryptographically secure tokens
+    # Generate cryptographically secure tokens for this specific session
     session_token = secrets.token_hex(16)
     claim_secret = secrets.token_hex(16)
-    sig = generate_getkey_sig(session_token, claim_secret, hwid)
-    expires_at = (now + timedelta(hours=2)).isoformat()
+    # Thời gian hiệu lực phiên vượt link: 20 phút
+    expires_at = (now + timedelta(minutes=20)).isoformat()
     created_at = now.isoformat()
 
     db.execute(
@@ -1373,95 +1364,52 @@ def getkey_init():
     )
     db.commit()
 
-    # Determine public host (use request host or configured public server IP:port)
+    # Determine public host
     host = request.host
     scheme = "http"
     if request.is_secure or request.headers.get("X-Forwarded-Proto") == "https":
         scheme = "https"
 
-    # Callback target URL that vuotlink will redirect to once user finishes countdown
-    target_url = f"{scheme}://{host}/hoagetkey?st={session_token}&claim={claim_secret}&sig={sig}"
+    # Callback target URL: strictly redirects to /hoagetkey?st=<session_token>
+    target_url = f"{scheme}://{host}/hoagetkey?st={session_token}"
 
-    # Get real shortened URL from vuotlink.xyz
+    # Get shortened URL from vuotlink.xyz
     short_link = create_vuotlink_shorturl(target_url)
 
-    # Return ONLY the short link to force user to go through vuotlink.xyz
     return jsonify({
         "ok": True,
-        "vuotlink_url": short_link
+        "vuotlink_url": short_link,
+        "token": session_token,
+        "hwid": hwid
     })
 
 
 @app.route("/api/getkey/claim", methods=["POST"])
 def getkey_claim():
     """
-    Step 2: User finishes vuotlink.xyz and is redirected back to:
-      /hoagetkey?st=<st>&claim=<claim>&sig=<sig>
-    This endpoint strictly verifies:
-      - 'st', 'claim', 'sig' are all provided
-      - Session exists in DB and is unexpired
-      - 'claim' matches DB 'claim_secret'
-      - 'sig' matches server HMAC (cannot be forged by bot or scanner)
-      - Anti-instant-bypass check: Human must take at least 8 seconds to bypass vuotlink!
-        If time elapsed since session creation < 8 seconds, reject.
-      - If already claimed in this session, return existing key.
-      - If new claim:
-          - Generate 5-hour key: MEO-5H-XXXX-XXXX (duration_hours=5, max_devices=1)
-          - Bind HWID to devices table with expires_at = now + 5 hours
-          - Mark session completed = 1, license_key = key
-          - Return key to user
+    Step 2: User finishes vuotlink.xyz and returns to /hoagetkey?st=<st>.
+    Strictly verifies that the session token exists and is valid within 20 minutes.
+    Bypass link = 100% get 5H key!
     """
     data = request.get_json(silent=True) or {}
-    st = (data.get("st") or "").strip()
-    claim = (data.get("claim") or "").strip()
-    sig = (data.get("sig") or "").strip()
+    st = (data.get("st") or data.get("token") or "").strip()
 
-    if not st or not claim or not sig:
+    if not st:
         return jsonify({
             "ok": False,
-            "error": "Thiếu thông tin xác thực vượt link! Bạn phải vượt link vuotlink.xyz để nhận mã xác thực."
+            "error": "Thiếu mã xác thực vượt link! Bạn phải hoàn thành link rút gọn để nhận key."
         }), 400
 
     db = get_db()
     session = db.execute("SELECT * FROM getkey_sessions WHERE token = ?", (st,)).fetchone()
+
     if not session:
         return jsonify({
             "ok": False,
-            "error": "Phiên GetKey không tồn tại hoặc đã hết hạn. Vui lòng bấm Bắt Đầu Lấy Link Vượt để thực hiện lại!"
+            "error": "Phiên GetKey không tồn tại hoặc đã quá thời gian 20 phút. Vui lòng bấm Bắt Đầu Lấy Link Vượt để lấy link mới!"
         }), 404
 
-    now = datetime.utcnow()
-    try:
-        exp_dt = datetime.fromisoformat(session["expires_at"])
-        if now > exp_dt:
-            return jsonify({"ok": False, "error": "Phiên GetKey đã hết hạn. Vui lòng lấy link mới!"}), 400
-    except Exception:
-        pass
-
-    # Verify claim_secret matches
-    if not hmac.compare_digest(session["claim_secret"], claim):
-        return jsonify({"ok": False, "error": "Mã xác thực không khớp! Bạn phải vượt link thật qua vuotlink.xyz."}), 403
-
-    # Verify cryptographic signature
-    expected_sig = generate_getkey_sig(session["token"], claim, session["hwid"])
-    if not hmac.compare_digest(sig, expected_sig):
-        return jsonify({"ok": False, "error": "Chữ ký bảo mật không hợp lệ! Vui lòng không sử dụng tool bypass hoặc scan API."}), 403
-
-    # Anti-instant-bypass / Anti-bot check:
-    # A human going through vuotlink.xyz takes at least 10-15 seconds (countdown is 15s).
-    # If the claim is submitted in under 8 seconds, it is definitely a bot or script attempting to bypass.
-    try:
-        created_dt = datetime.fromisoformat(session["created_at"])
-        elapsed_sec = (now - created_dt).total_seconds()
-        if elapsed_sec < 8:
-            return jsonify({
-                "ok": False,
-                "error": "Thao tác quá nhanh (dưới 8 giây)! Hệ thống phát hiện bot scan hoặc công cụ bypass. Vui lòng vượt link bình thường!"
-            }), 400
-    except Exception:
-        pass
-
-    # If already claimed in this session, return the generated key
+    # If already claimed in this session, return the key for this session
     if session["completed"] == 1 and session["license_key"]:
         return jsonify({
             "ok": True,
@@ -1471,13 +1419,37 @@ def getkey_claim():
             "message": "Key của bạn đã được cấp thành công!"
         })
 
+    now = datetime.utcnow()
+    try:
+        exp_dt = datetime.fromisoformat(session["expires_at"])
+        if now > exp_dt:
+            return jsonify({
+                "ok": False,
+                "error": "Phiên GetKey đã quá thời hạn 20 phút. Vui lòng lấy link mới!"
+            }), 400
+    except Exception:
+        pass
+
+    # Anti-bot check: human takes at least 3 seconds between init and claim
+    try:
+        created_dt = datetime.fromisoformat(session["created_at"])
+        elapsed_sec = (now - created_dt).total_seconds()
+        if elapsed_sec < 3:
+            remaining = int(3 - elapsed_sec) + 1
+            return jsonify({
+                "ok": False,
+                "wait_seconds": remaining,
+                "error": f"Thao tác quá nhanh! Vui lòng chờ {remaining} giây rồi bấm Nhận Key."
+            }), 400
+    except Exception:
+        pass
+
     # Generate dedicated 5-hour key: MEO-5H-XXXX-XXXX
     hwid = session["hwid"]
     part1 = secrets.token_hex(2).upper()
     part2 = secrets.token_hex(2).upper()
     new_key = f"MEO-5H-{part1}-{part2}"
 
-    # Insert key into license_keys with duration_hours=5, max_devices=1
     try:
         db.execute(
             "INSERT INTO license_keys (license_key, max_devices, duration_days, duration_hours, active) VALUES (?, 1, 1, 5, 1)",

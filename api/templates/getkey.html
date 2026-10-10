@@ -248,7 +248,7 @@
             <div class="header">
                 <div class="badge">HỆ THỐNG GETKEY FREE</div>
                 <h1>Kích Hoạt Key 5 Giờ</h1>
-                <p>Nhập mã thiết bị (HWID) từ App Mod để lấy link vượt và nhận License Key dùng thử 5 giờ.</p>
+                <p>Nhập mã thiết bị (HWID) từ App Mod để lấy link vượt (hiệu lực 20 phút). Vượt link thành công là được cấp ngay License Key 5 giờ.</p>
             </div>
 
             <!-- STEP 1: NHẬP HWID ĐỂ TẠO LINK VƯỢT -->
@@ -263,10 +263,10 @@
                 </button>
             </div>
 
-            <!-- STEP 2: KHI USER HOÀN THÀNH VƯỢT LINK (CÓ ST & CLAIM & SIG TRÊN URL) -->
+            <!-- STEP 2: KHI USER VỪA VƯỢT LINK XONG (CÓ MÃ ST TRÊN URL) -->
             <div id="stepClaimSection" style="display: none;">
                 <div style="text-align: center; padding: 14px 0;">
-                    <div style="font-size: 28px; margin-bottom: 8px;">⏳</div>
+                    <div id="claimIcon" style="font-size: 32px; margin-bottom: 8px;">⏳</div>
                     <p id="claimStatusText" style="font-size: 13.5px; color: #ffffff; margin-bottom: 14px; line-height: 1.5;">
                         Bạn đã hoàn thành vượt link! Đang xác thực và cấp mã License Key 5 giờ...
                     </p>
@@ -274,8 +274,11 @@
                         🎁 Nhận Mã License Key (5 Giờ)
                     </button>
                     <div id="claimErrorBox" style="display: none; margin-top: 14px;">
-                        <p id="claimErrorMsg" style="color: #ff4d4f; font-size: 12.5px; margin-bottom: 10px;"></p>
-                        <a href="/hoagetkey" class="btn btn-secondary">🔄 Thử Lại Từ Đầu</a>
+                        <p id="claimErrorMsg" style="color: #ff4d4f; font-size: 12.5px; margin-bottom: 12px;"></p>
+                        <div style="display: flex; gap: 8px; justify-content: center;">
+                            <button id="btnRetryClaim" class="btn" onclick="claimKey()" style="flex: 1;">🔄 Thử Nhận Lại</button>
+                            <a href="/hoagetkey" class="btn btn-secondary" style="flex: 1; text-align: center;">🏠 Lấy Link Mới</a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -309,12 +312,12 @@
 
             <!-- HƯỚNG DẪN -->
             <div class="guide-box">
-                <strong>📌 Hướng Dẫn Lấy Key:</strong>
+                <strong>📌 Hướng Dẫn Lấy Key (Thời Gian Vượt: 20 Phút):</strong>
                 <ol>
                     <li>Mở App trên điện thoại, bấm vào nút copy mã <strong>HWID</strong>.</li>
                     <li>Dán mã HWID vào ô trên rồi bấm <strong>"Bắt Đầu Lấy Link Vượt"</strong>.</li>
-                    <li>Vượt qua link rút gọn <code>vuotlink.xyz</code> (chờ đếm ngược giây và bấm Get Link).</li>
-                    <li>Sau khi hoàn thành, hệ thống tự động quay về trang này và cấp Key 5 giờ cho máy bạn!</li>
+                    <li>Hoàn thành vượt link <code>vuotlink.xyz</code> trong vòng <strong>20 phút</strong> (đếm ngược 15s và bấm Get Link).</li>
+                    <li>Sau khi vượt link xong, hệ thống đảm bảo 100% tự động cấp mã Key 5 giờ cho máy bạn!</li>
                 </ol>
             </div>
         </div>
@@ -325,16 +328,16 @@
 
     <script>
         const urlParams = new URLSearchParams(window.location.search);
-        const stParam = urlParams.get("st") || "{{ st }}";
-        const claimParam = urlParams.get("claim") || "{{ claim }}";
-        const sigParam = urlParams.get("sig") || "{{ sig }}";
+        const stParam = urlParams.get("st") || urlParams.get("token") || "{{ st }}";
+        const hwidParam = urlParams.get("hwid") || "{{ hwid }}";
         let claimedKeyStr = "";
+        let retryCountdownInterval = null;
 
         function showToast(msg) {
             const toast = document.getElementById("toast");
             toast.innerText = msg;
             toast.classList.add("show");
-            setTimeout(() => toast.classList.remove("show"), 2800);
+            setTimeout(() => toast.classList.remove("show"), 3000);
         }
 
         function copyToClipboard(text, successMsg = "Đã sao chép!") {
@@ -366,6 +369,17 @@
             }
         }
 
+        function showResultBox(key, hwid, msg) {
+            claimedKeyStr = key;
+            document.getElementById("stepInitSection").style.display = "none";
+            document.getElementById("stepClaimSection").style.display = "none";
+            document.getElementById("resultBox").style.display = "block";
+            document.getElementById("keyVal").innerText = key;
+            document.getElementById("resHwid").innerText = hwid || "Đã liên kết máy";
+            if (msg) showToast("🎉 " + msg);
+            copyToClipboard(key, `Tự động copy key: ${key}`);
+        }
+
         // ── BƯỚC 1: NHẬP HWID VÀ TẠO LINK VUOTLINK ──
         async function startGetkey() {
             const hwid = document.getElementById("hwidInput").value.trim().toUpperCase();
@@ -375,7 +389,6 @@
                 return;
             }
 
-            // Lưu HWID vào localStorage để tiện dùng
             try {
                 localStorage.setItem("saved_hwid", hwid);
             } catch (e) {}
@@ -399,12 +412,12 @@
                     return;
                 }
 
-                // Luôn bắt buộc chuyển hướng sang vuotlink.xyz
+                // Luôn bắt buộc chuyển hướng sang vuotlink.xyz để vượt link
                 btn.innerText = "🔗 Đang chuyển hướng sang vuotlink.xyz...";
                 showToast("🔗 Chuyển hướng sang vuotlink.xyz, vui lòng hoàn thành để lấy key!");
                 setTimeout(() => {
                     window.location.href = data.vuotlink_url;
-                }, 600);
+                }, 400);
 
             } catch (err) {
                 console.error(err);
@@ -414,21 +427,23 @@
             }
         }
 
-        // ── BƯỚC 2: XÁC THỰC SAU KHI VƯỢT LINK XONG (CÓ ST & CLAIM & SIG) ──
+        // ── BƯỚC 2: XÁC THỰC SAU KHI VƯỢT LINK XONG (KHI URL CÓ ST) ──
         async function claimKey() {
-            if (!stParam || !claimParam || !sigParam) {
-                showToast("❌ Thiếu thông tin xác thực vượt link!");
+            if (!stParam) {
+                showToast("❌ Thiếu mã xác thực vượt link!");
                 document.getElementById("claimErrorBox").style.display = "block";
-                document.getElementById("claimErrorMsg").innerText = "Bạn phải vượt qua trang vuotlink.xyz mới có mã xác thực để nhận key.";
-                document.getElementById("btnClaimKey").style.display = "none";
+                document.getElementById("claimErrorMsg").innerText = "Bạn phải hoàn thành link rút gọn mới có mã xác thực để nhận key.";
                 return;
             }
+
+            document.getElementById("stepInitSection").style.display = "none";
+            document.getElementById("stepClaimSection").style.display = "block";
+            document.getElementById("claimErrorBox").style.display = "none";
 
             const btn = document.getElementById("btnClaimKey");
             btn.disabled = true;
             btn.innerText = "⏳ Đang cấp phát key 5 giờ...";
             document.getElementById("claimStatusText").innerText = "Đang kiểm tra vượt link hợp lệ và cấp License Key 5 giờ...";
-            document.getElementById("claimErrorBox").style.display = "none";
 
             try {
                 const res = await fetch("/api/getkey/claim", {
@@ -436,13 +451,32 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         st: stParam,
-                        claim: claimParam,
-                        sig: sigParam
+                        token: stParam
                     })
                 });
                 const data = await res.json();
 
                 if (!res.ok || !data.ok) {
+                    // Nếu thời gian vượt dưới 5s (anti-bot)
+                    if (data.wait_seconds && data.wait_seconds > 0) {
+                        let sec = data.wait_seconds;
+                        document.getElementById("claimStatusText").innerText = `Vui lòng chờ (${sec}s)... Hệ thống sẽ tự động nhận key.`;
+                        btn.innerText = `⏳ Chờ ${sec}s...`;
+                        
+                        if (retryCountdownInterval) clearInterval(retryCountdownInterval);
+                        retryCountdownInterval = setInterval(() => {
+                            sec--;
+                            if (sec > 0) {
+                                btn.innerText = `⏳ Chờ ${sec}s...`;
+                                document.getElementById("claimStatusText").innerText = `Vui lòng chờ (${sec}s)... Hệ thống sẽ tự động nhận key.`;
+                            } else {
+                                clearInterval(retryCountdownInterval);
+                                claimKey();
+                            }
+                        }, 1000);
+                        return;
+                    }
+
                     btn.disabled = false;
                     btn.innerText = "🎁 Thử Nhận Lại";
                     document.getElementById("claimStatusText").innerText = "Xác thực vượt link không thành công.";
@@ -452,14 +486,7 @@
                     return;
                 }
 
-                claimedKeyStr = data.key;
-                document.getElementById("stepClaimSection").style.display = "none";
-                document.getElementById("stepInitSection").style.display = "none";
-                document.getElementById("resultBox").style.display = "block";
-                document.getElementById("keyVal").innerText = data.key;
-                document.getElementById("resHwid").innerText = data.hwid || "Đã khoá máy";
-                showToast("🎉 " + data.message);
-                copyToClipboard(data.key, `Tự động copy key: ${data.key}`);
+                showResultBox(data.key, data.hwid, data.message);
 
             } catch (err) {
                 console.error(err);
@@ -471,24 +498,20 @@
             }
         }
 
-        // Tự động kiểm tra:
-        // - Nếu có st, claim, sig trên URL (vừa vượt link xong): tự động claimKey
-        // - Nếu chưa: nạp lại HWID đã lưu từ trước nếu có
+        // Tự động kiểm tra khi tải trang:
+        // CHỈ claim key nếu trên URL có tham số st (vừa vượt link về).
+        // Nếu không có st (F5 trang chủ / vào mới): Luôn ở Step 1 (nhập HWID để lấy link).
         window.addEventListener("DOMContentLoaded", () => {
-            if (stParam && claimParam && sigParam && stParam.length >= 10) {
-                document.getElementById("stepInitSection").style.display = "none";
-                document.getElementById("stepClaimSection").style.display = "block";
+            const effectiveHwid = hwidParam || localStorage.getItem("saved_hwid") || "";
+            if (effectiveHwid) {
+                const input = document.getElementById("hwidInput");
+                if (input && !input.value) {
+                    input.value = effectiveHwid;
+                }
+            }
+
+            if (stParam && stParam.length >= 8) {
                 claimKey();
-            } else {
-                try {
-                    const savedHwid = localStorage.getItem("saved_hwid");
-                    if (savedHwid) {
-                        const input = document.getElementById("hwidInput");
-                        if (input && !input.value) {
-                            input.value = savedHwid;
-                        }
-                    }
-                } catch (e) {}
             }
         });
     </script>

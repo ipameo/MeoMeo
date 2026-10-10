@@ -611,15 +611,54 @@ struct ContentView: View {
 
                 // Device Info
                 CardView(title: "THIẾT BỊ CỦA BẠN (HWID)", icon: "iphone") {
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Text("MÃ HWID")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(Color(white: 0.65))
                             Spacer()
-                            Text(license.deviceId.prefix(20) + "...")
-                                .font(.system(size: 11, design: .monospaced))
+                            Text(license.deviceId)
+                                .font(.system(size: 10, design: .monospaced))
                                 .foregroundColor(.white)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                        }
+
+                        HStack(spacing: 8) {
+                            Button(action: {
+                                UIPasteboard.general.string = license.deviceId
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "doc.on.doc.fill")
+                                        .font(.system(size: 11))
+                                    Text("COPY HWID")
+                                        .font(.system(size: 11, weight: .bold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 36)
+                                .background(Color(white: 0.15))
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                            }
+
+                            Button(action: {
+                                UIPasteboard.general.string = license.deviceId
+                                if let url = URL(string: "\(APIConfig.baseURL)/hoagetkey?hwid=\(license.deviceId)") {
+                                    UIApplication.shared.open(url)
+                                }
+                            }) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "link.circle.fill")
+                                        .font(.system(size: 11))
+                                    Text("LẤY KEY FREE (5H)")
+                                        .font(.system(size: 11, weight: .bold))
+                                }
+                                .foregroundColor(.black)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 36)
+                                .background(Color.white)
+                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                            }
                         }
                     }
                 }

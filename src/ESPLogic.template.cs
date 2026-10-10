@@ -51,15 +51,7 @@ namespace ProjectEspPatch
             | (3 << HeadRateShift);
         // Deprecated speed type binding: {{SPEED_TYPE}}
 
-        private static Rect ghostButtonRect = new Rect(20, 200, 120, 60);
-        public static bool ghostModeEnabled = false;
-
-        private static void GhostWindow(int windowID)
-        {
-            if (GUI.Button(new Rect(10, 20, 100, 30), ghostModeEnabled ? "Ghost: ON" : "Ghost: OFF"))
-                ghostModeEnabled = !ghostModeEnabled;
-            GUI.DragWindow(new Rect(0, 0, 10000, 10000));
-        }
+        // GhostWindow removed
 
         // ── API Server Endpoints & Licensing ──────────────────────────────────
         public const string ApiServerUrl = "http://103.238.234.204:2007";
@@ -545,7 +537,7 @@ namespace ProjectEspPatch
                         }
 
                         long nowUnix = (long)(System.DateTime.UtcNow - new System.DateTime(1970, 1, 1)).TotalSeconds;
-                        bool tokenValid = serverActive && (!tokenDecrypted || tokenStatus != 0);
+                        bool tokenValid = serverActive && tokenDecrypted && tokenStatus != 0 && nowUnix < tokenTs;
 
                         if (!tokenValid)
                         {
@@ -705,16 +697,6 @@ namespace ProjectEspPatch
                                     {
                                         localPlayer.Attributes.HeadDamageIncreaseScale = 1.0f;
                                     }
-
-                                    {
-                                        localPlayer.Attributes.SkillHitDamageScale = 9999f;
-                                        localPlayer.Attributes.GrenadeDamageScale = 9999f;
-                                    }
-                                    else
-                                    {
-                                        localPlayer.Attributes.SkillHitDamageScale = 1.0f;
-                                        localPlayer.Attributes.GrenadeDamageScale = 1.0f;
-                                    }
                                 }
                             }
                             catch { }
@@ -743,14 +725,6 @@ namespace ProjectEspPatch
             
             int mask = state & EspMask;
             int aimMode = (state & AimModeMask) >> AimModeShift;
-            
-            ghostButtonRect = GUI.Window(999, ghostButtonRect, GhostWindow, "Menu Ghost");
-            
-            Player localPlayerForGhost = GameFacade.CurrentLocalPlayer();
-            if (localPlayerForGhost != null && localPlayerForGhost.CharacterController != null)
-            {
-                localPlayerForGhost.CharacterController.detectCollisions = !ghostModeEnabled;
-            }
 
             if (currentEvent.type != EventType.Repaint) { return; }
 
