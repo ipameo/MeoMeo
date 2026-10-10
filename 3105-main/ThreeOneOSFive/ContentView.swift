@@ -1303,11 +1303,12 @@ struct ContentView: View {
 
     private func syncConfig() {
         guard hasInjected else { return }
-        license.updateUserToggles(mask: config.userTogglesMask) { ok in
+        license.updateUserToggles(mask: config.userTogglesMask) { [weak self] ok in
+            guard let self = self else { return }
             if ok {
-                config.token = license.getToken()
-                guard let jsonData = saveConfigLocally() else { return }
-                if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) {
+                self.config.token = self.license.getToken()
+                guard let jsonData = self.saveConfigLocally() else { return }
+                if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) {
                     let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
                     let configURL = docsURL.appendingPathComponent("localConfig.json")
                     try? jsonData.write(to: configURL)
