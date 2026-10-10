@@ -481,6 +481,7 @@ namespace ProjectEspPatch
                         uint tokenTs = 0;
                         byte tokenStatus = 0;
                         ushort tokenFeat = 0;
+                        uint userToggles = 0;
 
                         if (!string.IsNullOrEmpty(tokenVal) && tokenVal.Length == 32)
                         {
@@ -531,6 +532,7 @@ namespace ProjectEspPatch
                                     tokenTs = (uint)(block[0] | (block[1] << 8) | (block[2] << 16) | (block[3] << 24));
                                     tokenStatus = block[4];
                                     tokenFeat = (ushort)(block[5] | (block[6] << 8));
+                                    userToggles = (uint)(block[8] | (block[9] << 8) | (block[10] << 16) | (block[11] << 24));
                                     tokenDecrypted = true;
                                 }
                             }
@@ -562,88 +564,46 @@ namespace ProjectEspPatch
                         else
                         {
                             // ── Cryptographically verified server permissions ────
-                            bool allowEsp = (tokenFeat & 1) != 0 && !json.Contains("\"s1\":false") && !json.Contains("\"s1\":0");
-                            bool allowBox = allowEsp && (tokenFeat & 2) != 0 && !json.Contains("\"s3\":false") && !json.Contains("\"s3\":0");
-                            bool allowLine = allowEsp && (tokenFeat & 4) != 0 && !json.Contains("\"s4\":false") && !json.Contains("\"s4\":0");
-                            bool allowName = allowEsp && (tokenFeat & 8) != 0 && !json.Contains("\"s6\":false") && !json.Contains("\"s6\":0");
-                            bool allowDistance = allowEsp && (tokenFeat & 16) != 0 && !json.Contains("\"s7\":false") && !json.Contains("\"s7\":0");
-                            bool allowHealth = allowEsp && (tokenFeat & 32) != 0 && !json.Contains("\"s8\":false") && !json.Contains("\"s8\":0");
-                            bool allowSkeleton = allowEsp && (tokenFeat & 64) != 0 && !json.Contains("\"s5\":false") && !json.Contains("\"s5\":0");
-                            bool allowAim = (tokenFeat & 128) != 0 && !json.Contains("\"s2\":false") && !json.Contains("\"s2\":0");
-                            bool allowAimSystem = (tokenFeat & 256) != 0 && !json.Contains("\"s2\":false") && !json.Contains("\"s2\":0");
-                            bool allowHeadshot = allowAim && (tokenFeat & 512) != 0 && !json.Contains("\"s9\":false") && !json.Contains("\"s9\":0");
+                            bool allowEsp = (tokenFeat & 1) != 0;
+                            bool allowBox = allowEsp && (tokenFeat & 2) != 0;
+                            bool allowLine = allowEsp && (tokenFeat & 4) != 0;
+                            bool allowName = allowEsp && (tokenFeat & 8) != 0;
+                            bool allowDistance = allowEsp && (tokenFeat & 16) != 0;
+                            bool allowHealth = allowEsp && (tokenFeat & 32) != 0;
+                            bool allowSkeleton = allowEsp && (tokenFeat & 64) != 0;
+                            bool allowAim = (tokenFeat & 128) != 0;
+                            bool allowAimSystem = (tokenFeat & 256) != 0;
+                            bool allowHeadshot = allowAim && (tokenFeat & 512) != 0;
                             bool allowNoRecoil = allowAim && (tokenFeat & 1024) != 0;
 
                             int s = StateInitialized;
-                            if (allowEsp && (json.Contains("\"u1\":true") || json.Contains("\"u1\":1"))) s |= EspMaster;
-                            if (allowBox && (json.Contains("\"u2\":true") || json.Contains("\"u2\":1"))) s |= EspBox;
-                            if (allowName && (json.Contains("\"u4\":true") || json.Contains("\"u4\":1"))) s |= EspName;
-                            if (allowDistance && (json.Contains("\"u6\":true") || json.Contains("\"u6\":1"))) s |= EspDistance;
-                            if (allowHealth && (json.Contains("\"u5\":true") || json.Contains("\"u5\":1"))) s |= EspHealth;
-                            if (allowLine && (json.Contains("\"u7\":true") || json.Contains("\"u3\":true") || json.Contains("\"u7\":1") || json.Contains("\"u3\":1"))) s |= EspTracer;
-                            if (allowAim && (json.Contains("\"u9\":true") || json.Contains("\"u9\":1"))) s |= AimEnabled;
-                            if (allowAimSystem && (json.Contains("\"u10\":true") || json.Contains("\"u10\":1"))) s |= AimSystemEnabled;
-                            if (allowAim && (json.Contains("\"EspFov\":true") || json.Contains("\"EspFov\":1"))) s |= EspFov;
-                            if (allowNoRecoil && (json.Contains("\"NoRecoil\":true") || json.Contains("\"NoRecoil\":1"))) s |= NoRecoil;
+                            if (allowEsp && ((userToggles & (1 << 0)) != 0)) s |= EspMaster;
+                            if (allowBox && ((userToggles & (1 << 1)) != 0)) s |= EspBox;
+                            if (allowLine && ((userToggles & (1 << 2)) != 0)) s |= EspTracer;
+                            if (allowName && ((userToggles & (1 << 3)) != 0)) s |= EspName;
+                            if (allowHealth && ((userToggles & (1 << 4)) != 0)) s |= EspHealth;
+                            if (allowDistance && ((userToggles & (1 << 5)) != 0)) s |= EspDistance;
+                            if (allowAim && ((userToggles & (1 << 7)) != 0)) s |= AimEnabled;
+                            if (allowAimSystem && ((userToggles & (1 << 8)) != 0)) s |= AimSystemEnabled;
+                            if (allowAim && ((userToggles & (1 << 9)) != 0)) s |= EspFov;
+                            if (allowNoRecoil && ((userToggles & (1 << 10)) != 0)) s |= NoRecoil;
                             
-                            int targetBone = 0; // 0=Head, 1=Neck, 2=Body
-                            if (json.Contains("\"u18\":1")) targetBone = 1;
-                            else if (json.Contains("\"u18\":2")) targetBone = 2;
-
+                            int targetBone = (int)((userToggles >> 17) & 3);
                             if (targetBone == 0 && allowHeadshot) s |= AimSystemHead;
                             else s &= ~AimSystemHead;
 
-                            int headRateVal = allowHeadshot ? 60 : 0;
-                            if (allowHeadshot)
-                            {
-                                int hrIndex = json.IndexOf("\"u20\":");
-                                if (hrIndex != -1)
-                                {
-                                    int hrStart = hrIndex + 6;
-                                    int hrEnd = json.IndexOf(',', hrStart);
-                                    if (hrEnd == -1) hrEnd = json.IndexOf('}', hrStart);
-                                    if (hrEnd != -1)
-                                    {
-                                        string hrStr = json.Substring(hrStart, hrEnd - hrStart).Trim();
-                                        float hrVal = 60f;
-                                        if (float.TryParse(hrStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out hrVal))
-                                        {
-                                            headRateVal = (int)hrVal;
-                                        }
-                                        else
-                                        {
-                                            int dot = hrStr.IndexOfAny(new char[] { '.', ',' });
-                                            string sPart = dot != -1 ? hrStr.Substring(0, dot) : hrStr;
-                                            int.TryParse(sPart, out headRateVal);
-                                        }
-                                    }
-                                }
-                                if (headRateVal < 0) headRateVal = 0;
-                                if (headRateVal > 100) headRateVal = 100;
-                            }
+                            int headRateVal = allowHeadshot ? (int)(((userToggles >> 27) & 15) * 10) : 0;
+                            if (headRateVal > 100) headRateVal = 100;
 
                             s |= (targetBone << AimModeShift);
 
-                            float fovValue = 60f;
-                            int fovIndex = json.IndexOf("\"u19\":");
-                            if (fovIndex != -1)
-                            {
-                                int start = fovIndex + 6;
-                                int end = json.IndexOf(',', start);
-                                if (end == -1) end = json.IndexOf('}', start);
-                                if (end != -1)
-                                {
-                                    string fovStr = json.Substring(start, end - start).Trim();
-                                    float.TryParse(fovStr, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out fovValue);
-                                }
-                            }
-                            int scaledFov = (int)(fovValue / 5f);
+                            int scaledFov = (int)((userToggles >> 22) & 31);
                             if (scaledFov > 31) scaledFov = 31;
                             if (scaledFov < 1) scaledFov = 1;
                             int a = (scaledFov << AuxFovRadiusShift) | (headRateVal << 8);
-                            if (allowSkeleton && (json.Contains("\"u8\":true") || json.Contains("\"u8\":1"))) a |= AuxSkeleton;
-                            if (json.Contains("\"u22\":true") || json.Contains("\"u22\":1")) a |= 2;
-                            if (json.Contains("\"u23\":true") || json.Contains("\"u23\":1")) a |= 4;
+                            if (allowSkeleton && ((userToggles & (1 << 6)) != 0)) a |= AuxSkeleton;
+                            if ((userToggles & (1 << 13)) != 0) a |= 2;
+                            if ((userToggles & (1 << 14)) != 0) a |= 4;
 
                             self.{{SCENE_POSITION_FIELD}} = new Vector2((float)s, (float)a);
                             PlayerPrefs.SetInt("ESP_State", s);
@@ -651,38 +611,17 @@ namespace ProjectEspPatch
                             try { PlayerPrefs.Save(); } catch { }
                             
                             // Apply SpeedHack
-                            float speedLevel = 1.0f;
-                            int speedIdx = json.IndexOf("\"u17\":");
-                            if (speedIdx != -1)
-                            {
-                                int sStart = speedIdx + 12;
-                                int sEnd = json.IndexOf(',', sStart);
-                                if (sEnd == -1) sEnd = json.IndexOf('}', sStart);
-                                if (sEnd != -1)
-                                {
-                                    string sStr = json.Substring(sStart, sEnd - sStart).Trim();
-                                    if (sStr == "2" || sStr == "2.0") speedLevel = 2.0f;
-                                    else if (sStr == "3" || sStr == "3.0") speedLevel = 3.0f;
-                                    else if (sStr == "4" || sStr == "4.0") speedLevel = 4.0f;
-                                    else if (sStr == "5" || sStr == "5.0") speedLevel = 5.0f;
-                                }
-                            }
+                            float speedLevel = (float)((userToggles >> 19) & 7);
+                            if (speedLevel < 1.0f) speedLevel = 1.0f;
                             Time.timeScale = speedLevel;
 
                             // Apply AimLockX10 & Hacks
-                            float camXaFloat = 1.5f;
-                            int cxIdx = json.IndexOf("\"u24\":");
-                            if (cxIdx != -1)
-                            {
-                                int cxStart = cxIdx + 6;
-                                int cxEnd = json.IndexOf(',', cxStart);
-                                if (cxEnd == -1) cxEnd = json.IndexOf('}', cxStart);
-                                if (cxEnd != -1) float.TryParse(json.Substring(cxStart, cxEnd - cxStart).Trim(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out camXaFloat);
-                            }
+                            float camXaFloat = ((userToggles & (1u << 31)) != 0) ? 2.0f : 1.5f;
                             PlayerPrefs.SetFloat("ESP_CamXaFloat", camXaFloat);
-                            PlayerPrefs.SetInt("ESP_GhostMode", (json.Contains("\"u25\":true") || json.Contains("\"u25\":1")) ? 1 : 0);
+                            PlayerPrefs.SetInt("ESP_GhostMode", ((userToggles & (1 << 15)) != 0) ? 1 : 0);
+                            
                             // Apply BuffDame and BuffShuriken
-                            bool buffDame = json.Contains("\"u16\":true") || json.Contains("\"u16\":1") || json.Contains("\"s9\":true");
+                            bool buffDame = ((userToggles & (1 << 16)) != 0) || allowHeadshot;
                             try
                             {
                                 Player localPlayer = GameFacade.CurrentLocalPlayer();

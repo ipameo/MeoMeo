@@ -163,6 +163,44 @@ struct EspConfig: Codable, Equatable {
         case GhostMode = "u25"
     }
 
+    var userTogglesMask: UInt32 {
+        var mask: UInt32 = 0
+        if EspMaster { mask |= (1 << 0) }
+        if EspBox { mask |= (1 << 1) }
+        if EspLine || EspTracer { mask |= (1 << 2) }
+        if EspName { mask |= (1 << 3) }
+        if EspHealth { mask |= (1 << 4) }
+        if EspDistance { mask |= (1 << 5) }
+        if EspSkeleton { mask |= (1 << 6) }
+        if AimEnabled { mask |= (1 << 7) }
+        if AimSystemEnabled { mask |= (1 << 8) }
+        if EspFov { mask |= (1 << 9) }
+        if NoRecoil { mask |= (1 << 10) }
+        if ShowGuestBtn { mask |= (1 << 11) }
+        if reset_guest || resetGuest || resetGuestBeforeLogin { mask |= (1 << 12) }
+        if CamXa { mask |= (1 << 13) }
+        if FastParachute { mask |= (1 << 14) }
+        if GhostMode { mask |= (1 << 15) }
+        if BuffDame { mask |= (1 << 16) }
+        
+        mask |= (UInt32(AimTarget & 0x3) << 17)
+        mask |= (UInt32(SpeedHack & 0x7) << 19)
+        
+        var scaledFov = Int(FovSize / 5.0)
+        if scaledFov > 31 { scaledFov = 31 }
+        if scaledFov < 1 { scaledFov = 1 }
+        mask |= (UInt32(scaledFov & 0x1F) << 22)
+        
+        var hr = Int(HeadshotRate / 10.0)
+        if hr > 10 { hr = 10 }
+        if hr < 0 { hr = 0 }
+        mask |= (UInt32(hr & 0xF) << 27)
+        
+        if CamXaFloat >= 2.0 { mask |= (1 << 31) }
+        
+        return mask
+    }
+
     init() {}
 
     init(from decoder: Decoder) throws {
@@ -290,8 +328,42 @@ class LicenseManager: ObservableObject {
                 self.onTokenRefreshed?()
                 completion(true, nil)
             }
+            }
         }.resume()
     }
+
+    func updateUserToggles(mask: UInt32, completion: @escaping (Bool) -> Void) {
+        guard !sessionToken.isEmpty else {
+            completion(false)
+            return
+        }
+        let url = URL(string: "\(APIConfig.baseURL)/api/set_user_toggles")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = [
+            "device_id": deviceId,
+            "session_token": sessionToken,
+            "user_toggles": mask
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.timeoutInterval = 10
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                guard let data = data,
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let ok = json["ok"] as? Bool, ok,
+                      let newToken = json["token"] as? String else {
+                    completion(false)
+                    return
+                }
+                self.currentToken = newToken
+                completion(true)
+            }
+        }.resume()
+    }
+
 
     // MARK: - Heartbeat
     func startHeartbeat() {
@@ -1179,15 +1251,11 @@ struct ContentView: View {
     }
 
     private func loadConfig() {
-        do {
-            let fm = FileManager.default
-            let docsURL = try fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
-            let configURL = docsURL.appendingPathComponent("localConfig.json")
-            if fm.fileExists(atPath: configURL.path) {
-                let data = try Data(contentsOf: configURL)
-                config = try JSONDecoder().decode(EspConfig.self, from: data)
+        if let data = UserDefaults.standard.data(forKey: "saved_esp_config") {
+            if let decoded = try? JSONDecoder().decode(EspConfig.self, from: data) {
+                config = decoded
             }
-        } catch { }
+        }
     }
 
     private func saveConfigLocally() -> Data? {
@@ -1197,19 +1265,21 @@ struct ContentView: View {
             if !license.getToken().isEmpty { config.token = license.getToken() }
             if license.getTs() != 0 { config.ts = license.getTs() }
             config.system_active = license.systemActive
-            config.server_esp = license.serverFeatures["server_esp"] ?? true
-            config.server_aim = license.serverFeatures["server_aim"] ?? true
-            config.server_box = license.serverFeatures["server_box"] ?? true
-            config.server_line = license.serverFeatures["server_line"] ?? true
-            config.server_skeleton = license.serverFeatures["server_skeleton"] ?? true
-            config.server_name = license.serverFeatures["server_name"] ?? true
-            config.server_distance = license.serverFeatures["server_distance"] ?? true
-            config.server_health = license.serverFeatures["server_health"] ?? true
-            config.server_headshot = license.serverFeatures["server_headshot"] ?? true
 
+            // Save full config to UserDefaults for UI persistence
+            if let fullData = try? JSONEncoder().encode(config) {
+                UserDefaults.standard.set(fullData, forKey: "saved_esp_config")
+            }
+
+            // Only export the token to the game
+            let minimalConfig: [String: String] = [
+                "token": config.token,
+                "testCodePatch": "true"
+            ]
+            
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted
-            let data = try encoder.encode(config)
+            let data = try encoder.encode(minimalConfig)
             let fm = FileManager.default
             let docsURL = try fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
             try data.write(to: docsURL.appendingPathComponent("localConfig.json"))
@@ -1218,11 +1288,17 @@ struct ContentView: View {
     }
 
     private func syncConfig() {
-        guard let jsonData = saveConfigLocally() else { return }
-        if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) {
-            let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
-            let configURL = docsURL.appendingPathComponent("localConfig.json")
-            try? jsonData.write(to: configURL)
+        guard hasInjected else { return }
+        license.updateUserToggles(mask: config.userTogglesMask) { ok in
+            if ok {
+                config.token = license.getToken()
+                guard let jsonData = saveConfigLocally() else { return }
+                if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) {
+                    let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+                    let configURL = docsURL.appendingPathComponent("localConfig.json")
+                    try? jsonData.write(to: configURL)
+                }
+            }
         }
     }
 

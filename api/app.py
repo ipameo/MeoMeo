@@ -118,12 +118,10 @@ def fnv1a_32(data: bytes, key: bytes) -> int:
         h = ((h ^ b) * 0x01000193) & 0xFFFFFFFF
     return h
 
-def generate_encrypted_token(ts: int, status: int, features_mask: int, nonce: int = None) -> str:
-    if nonce is None:
-        nonce = secrets.randbits(32)
+def generate_encrypted_token(ts: int, status: int, features_mask: int, user_toggles: int = 0) -> str:
     feat_low = features_mask & 0xFF
     feat_high = (features_mask >> 8) & 0xFF
-    payload = struct.pack("<IBBBBI", ts & 0xFFFFFFFF, status & 0xFF, feat_low, feat_high, 0x7E, nonce & 0xFFFFFFFF)
+    payload = struct.pack("<IBBBBI", ts & 0xFFFFFFFF, status & 0xFF, feat_low, feat_high, 0x7E, user_toggles & 0xFFFFFFFF)
     checksum = fnv1a_32(payload, TOKEN_SECRET_KEY)
     block = bytearray(payload + struct.pack("<I", checksum))
     for r in range(4):
@@ -447,6 +445,42 @@ def verify():
         })
 
     return jsonify({"valid": True, "renewed": False})
+
+
+@app.route("/api/set_user_toggles", methods=["POST"])
+def set_user_toggles():
+    """
+    Update the user toggles and return a new token.
+    Body: { "device_id": "...", "session_token": "...", "user_toggles": 12345 }
+    """
+    data = request.get_json(silent=True) or {}
+    device_id = (data.get("device_id") or "").strip()
+    session_token = (data.get("session_token") or "").strip()
+    user_toggles = data.get("user_toggles", 0)
+
+    if not device_id or not session_token:
+        return jsonify({"ok": False, "error": "missing_params"}), 400
+
+    if not is_system_active():
+        return jsonify({"ok": False, "error": "system_offline"}), 503
+
+    db = get_db()
+    session = db.execute(
+        "SELECT * FROM sessions WHERE device_id = ? AND session_token = ?",
+        (device_id, session_token),
+    ).fetchone()
+
+    if session is None or datetime.utcnow() > datetime.fromisoformat(session["expires_at"]):
+        return jsonify({"ok": False, "error": "invalid_session"}), 401
+
+    feat_mask = features_dict_to_mask(get_server_features())
+    ts = int(datetime.fromisoformat(session["expires_at"]).timestamp())
+    enc_token = generate_encrypted_token(ts, 1, feat_mask, user_toggles)
+
+    return jsonify({
+        "ok": True,
+        "token": enc_token
+    })
 
 
 @app.route("/api/heartbeat", methods=["POST"])
