@@ -64,14 +64,10 @@ namespace ProjectEspPatch
         {
             try
             {
-                string url = ApiServerUrl + "/api/offsets?version=default";
-                UnityEngine.Networking.UnityWebRequest www = UnityEngine.Networking.UnityWebRequest.Get(url);
-                www.SendWebRequest();
-                float timeout = Time.realtimeSinceStartup + 5f;
-                while (!www.isDone && Time.realtimeSinceStartup < timeout) { }
-                if (!www.isNetworkError && !www.isHttpError)
+                string configPath = Application.persistentDataPath + "/localConfig.json";
+                if (System.IO.File.Exists(configPath))
                 {
-                    return www.downloadHandler.text;
+                    return System.IO.File.ReadAllText(configPath);
                 }
             }
             catch { }
