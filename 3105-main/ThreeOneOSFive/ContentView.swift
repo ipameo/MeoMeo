@@ -119,6 +119,50 @@ struct EspConfig: Codable, Equatable {
     var CamXaFloat: Float = 1.5
     var GhostMode: Bool = false
 
+    enum CodingKeys: String, CodingKey {
+        case meomeo
+        case sig
+        case token
+        case ts
+        case testCodePatch
+        case system_active = "s0"
+        case server_esp = "s1"
+        case server_aim = "s2"
+        case server_box = "s3"
+        case server_line = "s4"
+        case server_skeleton = "s5"
+        case server_name = "s6"
+        case server_distance = "s7"
+        case server_health = "s8"
+        case server_headshot = "s9"
+        
+        case EspMaster = "u1"
+        case EspBox = "u2"
+        case EspLine = "u3"
+        case EspName = "u4"
+        case EspHealth = "u5"
+        case EspDistance = "u6"
+        case EspTracer = "u7"
+        case EspSkeleton = "u8"
+        case AimEnabled = "u9"
+        case AimSystemEnabled = "u10"
+        case EspFov = "u11"
+        case NoRecoil = "u12"
+        case reset_guest = "u13"
+        case resetGuest = "u14"
+        case resetGuestBeforeLogin = "u15"
+        case BuffDame = "u16"
+        case SpeedHack = "u17"
+        case AimTarget = "u18"
+        case FovSize = "u19"
+        case HeadshotRate = "u20"
+        case ShowGuestBtn = "u21"
+        case CamXa = "u22"
+        case FastParachute = "u23"
+        case CamXaFloat = "u24"
+        case GhostMode = "u25"
+    }
+
     init() {}
 
     init(from decoder: Decoder) throws {
