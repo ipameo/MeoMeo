@@ -224,7 +224,7 @@ def parse_dump(
             if match:
                 kind, raw_name = match.groups()
                 full_name = declaration_name(namespace, raw_name)
-                keep = full_name in wanted_types or (collect_enums and kind == "enum")
+                keep = full_name in wanted_types or (collect_enums and kind == "enum" and (namespace.startswith("COW") or not namespace))
                 current = TypeDecl(full_name, kind) if keep else None
                 if current is not None:
                     result[full_name] = current

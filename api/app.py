@@ -35,11 +35,47 @@ from flask import Flask, g, jsonify, render_template, request
 # ─── Config ───────────────────────────────────────────────────────────────────
 APP_SECRET = os.environ.get("MEOMEO_SECRET", "xtr_s3cret_k3y_2024_meomeo")
 ADMIN_PASSWORD = os.environ.get("MEOMEO_ADMIN_PASS", "nxt2007")
-SESSION_TTL_MINUTES = 30  # Session token lifespan
-HEARTBEAT_GRACE_MINUTES = 10  # Extra grace after last heartbeat
+SESSION_TTL_MINUTES = 15  # Strict session lifespan (15 mins)
+HEARTBEAT_GRACE_MINUTES = 5  # Extra grace after last heartbeat
 DB_PATH = os.environ.get("MEOMEO_DB", os.path.join(os.path.dirname(__file__), "data.db"))
 
 app = Flask(__name__, template_folder=os.path.join(os.path.dirname(__file__), "templates"))
+
+DEFAULT_OFFSETS = {
+    "MATCH_TYPE": "JMAGGLCNGIG",
+    "MATCH_PLAYERS_METHOD": "ILPNGCMEFFI",
+    "AIM_INFO_TYPE": "CGKJLKPMGDJ",
+    "PLAYER_AIM_INFO_FIELD": "FDMIEDDNCEC",
+    "SCENE_MENU_FIELD": "AFHAOIAPPNB",
+    "SCENE_POSITION_FIELD": "OHPFLEDNOJK",
+    "SCENE_STATE_FIELD": "DIGCJIKHGJP",
+    "AIM_GAME_OBJECT_FIELD": "JHAINOBIFMA",
+    "AIM_COLLIDER_FIELD": "JINDNOFABKB",
+    "AIM_HIT_POSITION_FIELD": "HPCOJHGFEEG",
+    "AIM_TRACE_POSITION_FIELD": "DOJDNHCGFGK",
+    "AIM_DIRECTION_FIELD": "HLDECMJFKJK",
+    "AIM_ORIGIN_FIELD": "EKPLMDDKOGB",
+    "AIM_HIT_TYPE": "LKOOALMKJND",
+    "AIM_HIT_TYPE_FIELD": "DKPDBLLJEAA",
+    "AIM_FLAG_A_FIELD": "EFMBNPNFGHM",
+    "AIM_FLAG_B_FIELD": "CEOKOILBODN",
+    "AIM_SECONDARY_ORIGIN_FIELD": "ONMKMEGMHOL",
+    "AIM_SHORT_FIELD": "CLOLKHNMNEK",
+    "SPEED_TYPE": "KGCCMFBFCAC"
+}
+
+def get_current_offsets_dict(version="default") -> dict:
+    try:
+        db = get_db()
+        db.execute("CREATE TABLE IF NOT EXISTS offsets (version TEXT PRIMARY KEY, data TEXT)")
+        row = db.execute("SELECT data FROM offsets WHERE version = ?", (version,)).fetchone()
+        if not row:
+            row = db.execute("SELECT data FROM offsets WHERE version = 'default'").fetchone()
+        if row and row["data"]:
+            return json.loads(row["data"])
+    except Exception:
+        pass
+    return DEFAULT_OFFSETS.copy()
 
 
 # ─── Database ─────────────────────────────────────────────────────────────────
@@ -363,6 +399,7 @@ def auth():
         "system_active": True,
         "testCodePatch": True,
         "features": get_server_features(),
+        "offsets": get_current_offsets_dict(),
     })
 
 
@@ -443,6 +480,8 @@ def verify():
             "token": enc_token,
             "session_token": new_token,
             "testCodePatch": True,
+            "features": get_server_features(),
+            "offsets": get_current_offsets_dict(),
         })
 
     return jsonify({"valid": True, "renewed": False})
@@ -624,6 +663,7 @@ def heartbeat():
         "sig": new_sig,
         "ts": ts,
         "token": token,
+        "offsets": get_current_offsets_dict(),
     })
 
 
@@ -639,7 +679,7 @@ def status():
 
     system_on = is_system_active()
     features = get_server_features()
-    result = {"system_active": system_on, "features": features, "testCodePatch": True}
+    result = {"system_active": system_on, "features": features, "testCodePatch": True, "offsets": get_current_offsets_dict()}
 
     if not system_on:
         result["ok"] = False

@@ -2,7 +2,8 @@
 param(
     [string]$DumpPath,
     [switch]$NoUpdate,
-    [switch]$KeepBuildArtifacts
+    [switch]$KeepBuildArtifacts,
+    [switch]$DevToken
 )
 
 Set-StrictMode -Version 2.0
@@ -412,19 +413,31 @@ if (Test-Path (Get-ProjectPath 'meo')) {
 Write-Output "Copied patch to donemake, root, 3105-main, and meo app folders."
 
 $LocalConfig = Join-Path $DoneMakeDir 'localConfig.json'
-$rng = [Security.Cryptography.RandomNumberGenerator]::Create()
-$meomeoBytes = New-Object byte[] 16
-$rng.GetBytes($meomeoBytes)
-$meomeo = [BitConverter]::ToString($meomeoBytes).Replace('-', '').ToLower()
-$sigBytes = New-Object byte[] 16
-$rng.GetBytes($sigBytes)
-$sig = [BitConverter]::ToString($sigBytes).Replace('-', '').ToLower()
 
-$pyTokenScript = "import sys; sys.path.insert(0, 'api'); from app import generate_encrypted_token; import time; ts = int(time.time()) + 86400 * 30; token = generate_encrypted_token(ts, 1, 0x07FF); print(f'{ts}|{token}')"
-$tokenRaw = (& py -3.10 -c $pyTokenScript).Trim()
-$tokenParts = $tokenRaw.Split('|')
-$ts = [int64]$tokenParts[0]
-$encToken = $tokenParts[1]
+$meomeo = ""
+$sig = ""
+$encToken = ""
+$ts = 0
+$systemActiveStr = "false"
+$serverFeatureStr = "false"
+
+if ($DevToken) {
+    $rng = [Security.Cryptography.RandomNumberGenerator]::Create()
+    $meomeoBytes = New-Object byte[] 16
+    $rng.GetBytes($meomeoBytes)
+    $meomeo = [BitConverter]::ToString($meomeoBytes).Replace('-', '').ToLower()
+    $sigBytes = New-Object byte[] 16
+    $rng.GetBytes($sigBytes)
+    $sig = [BitConverter]::ToString($sigBytes).Replace('-', '').ToLower()
+
+    $pyTokenScript = "import sys; sys.path.insert(0, 'api'); from app import generate_encrypted_token; import time; ts = int(time.time()) + 3600; token = generate_encrypted_token(ts, 1, 0x07FF); print(f'{ts}|{token}')"
+    $tokenRaw = (& py -3.10 -c $pyTokenScript).Trim()
+    $tokenParts = $tokenRaw.Split('|')
+    $ts = [int64]$tokenParts[0]
+    $encToken = $tokenParts[1]
+    $systemActiveStr = "true"
+    $serverFeatureStr = "true"
+}
 
 $configContent = @"
 {
@@ -432,32 +445,32 @@ $configContent = @"
   `"sig`" : `"$sig`",
   `"token`" : `"$encToken`",
   `"ts`" : $ts,
-  `"system_active`" : true,
-  `"server_esp`" : true,
-  `"server_aim`" : true,
-  `"server_box`" : true,
-  `"server_line`" : true,
+  `"system_active`" : $systemActiveStr,
+  `"server_esp`" : $serverFeatureStr,
+  `"server_aim`" : $serverFeatureStr,
+  `"server_box`" : $serverFeatureStr,
+  `"server_line`" : $serverFeatureStr,
   `"server_skeleton`" : false,
-  `"server_name`" : true,
-  `"server_distance`" : true,
-  `"server_health`" : true,
-  `"server_headshot`" : true,
-  `"EspMaster`" : true,
-  `"EspBox`" : true,
-  `"EspLine`" : true,
-  `"EspName`" : true,
-  `"EspHealth`" : true,
-  `"EspDistance`" : true,
-  `"EspTracer`" : true,
+  `"server_name`" : $serverFeatureStr,
+  `"server_distance`" : $serverFeatureStr,
+  `"server_health`" : $serverFeatureStr,
+  `"server_headshot`" : $serverFeatureStr,
+  `"EspMaster`" : false,
+  `"EspBox`" : false,
+  `"EspLine`" : false,
+  `"EspName`" : false,
+  `"EspHealth`" : false,
+  `"EspDistance`" : false,
+  `"EspTracer`" : false,
   `"EspSkeleton`" : false,
-  `"AimEnabled`" : true,
-  `"AimSystemEnabled`" : true,
-  `"EspFov`" : true,
-  `"NoRecoil`" : true,
+  `"AimEnabled`" : false,
+  `"AimSystemEnabled`" : false,
+  `"EspFov`" : false,
+  `"NoRecoil`" : false,
   `"AimTarget`" : 0,
   `"FovSize`" : 60.0,
   `"HeadshotRate`" : 80.0,
-  `"PullAIEnabled`" : true,
+  `"PullAIEnabled`" : false,
   `"PullAIFov`" : 80.0,
   `"PullAIStrength`" : 60.0,
   `"PullAIBone`" : 0,
@@ -466,9 +479,33 @@ $configContent = @"
   `"AutoResetGuest`" : false,
   `"Fly`" : false,
   `"FastReload`" : false,
-  `"testCodePatch`" : true
+  `"testCodePatch`" : true,
+  `"MATCH_TYPE`" : `"$([string]$bindingInfo.placeholders.MATCH_TYPE)`",
+  `"MATCH_PLAYERS_METHOD`" : `"$([string]$bindingInfo.placeholders.MATCH_PLAYERS_METHOD)`",
+  `"AIM_INFO_TYPE`" : `"$([string]$bindingInfo.placeholders.AIM_INFO_TYPE)`",
+  `"PLAYER_AIM_INFO_FIELD`" : `"$([string]$bindingInfo.placeholders.PLAYER_AIM_INFO_FIELD)`",
+  `"SCENE_MENU_FIELD`" : `"$([string]$bindingInfo.placeholders.SCENE_MENU_FIELD)`",
+  `"SCENE_POSITION_FIELD`" : `"$([string]$bindingInfo.placeholders.SCENE_POSITION_FIELD)`",
+  `"SCENE_STATE_FIELD`" : `"$([string]$bindingInfo.placeholders.SCENE_STATE_FIELD)`",
+  `"AIM_GAME_OBJECT_FIELD`" : `"$([string]$bindingInfo.placeholders.AIM_GAME_OBJECT_FIELD)`",
+  `"AIM_COLLIDER_FIELD`" : `"$([string]$bindingInfo.placeholders.AIM_COLLIDER_FIELD)`",
+  `"AIM_HIT_POSITION_FIELD`" : `"$([string]$bindingInfo.placeholders.AIM_HIT_POSITION_FIELD)`",
+  `"AIM_TRACE_POSITION_FIELD`" : `"$([string]$bindingInfo.placeholders.AIM_TRACE_POSITION_FIELD)`",
+  `"AIM_DIRECTION_FIELD`" : `"$([string]$bindingInfo.placeholders.AIM_DIRECTION_FIELD)`",
+  `"AIM_ORIGIN_FIELD`" : `"$([string]$bindingInfo.placeholders.AIM_ORIGIN_FIELD)`",
+  `"AIM_HIT_TYPE`" : `"$([string]$bindingInfo.placeholders.AIM_HIT_TYPE)`",
+  `"AIM_HIT_TYPE_FIELD`" : `"$([string]$bindingInfo.placeholders.AIM_HIT_TYPE_FIELD)`",
+  `"AIM_FLAG_A_FIELD`" : `"$([string]$bindingInfo.placeholders.AIM_FLAG_A_FIELD)`",
+  `"AIM_FLAG_B_FIELD`" : `"$([string]$bindingInfo.placeholders.AIM_FLAG_B_FIELD)`",
+  `"AIM_SECONDARY_ORIGIN_FIELD`" : `"$([string]$bindingInfo.placeholders.AIM_SECONDARY_ORIGIN_FIELD)`",
+  `"AIM_SHORT_FIELD`" : `"$([string]$bindingInfo.placeholders.AIM_SHORT_FIELD)`",
+  `"SPEED_TYPE`" : `"$([string]$bindingInfo.placeholders.SPEED_TYPE)`"
 }
 "@
 [IO.File]::WriteAllText($LocalConfig, $configContent, [Text.Encoding]::UTF8)
 [IO.File]::WriteAllText((Get-ProjectPath 'localConfig.json'), $configContent, [Text.Encoding]::UTF8)
-Write-Output "Created localConfig.json in donemake and root folder (token=$($encToken.Substring(0,8))..., ts=$ts)."
+if ($DevToken) {
+    Write-Output "Created localConfig.json in donemake and root folder with DEV TOKEN (token=$($encToken.Substring(0,8))..., ts=$ts)."
+} else {
+    Write-Output "Created localConfig.json in donemake and root folder in SECURE LOCKED state (system_active=false, requires online authentication)."
+}

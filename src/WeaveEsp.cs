@@ -561,18 +561,20 @@ namespace ProjectEspPatch
 
         private static int Main(string[] args)
         {
-            if (args.Length == 4 && args[0] == "--adapt-target")
+            try
             {
-                WriteAdaptedTarget(args[1], args[2], args[3]);
-                return 0;
-            }
-            if (args.Length == 5 && args[0] == "--public-reference")
-            {
-                WritePublicReference(args[1], args[2], args[3], args[4]);
-                return 0;
-            }
-            if (args.Length != 4)
-            {
+                if (args.Length == 4 && args[0] == "--adapt-target")
+                {
+                    WriteAdaptedTarget(args[1], args[2], args[3]);
+                    return 0;
+                }
+                if (args.Length == 5 && args[0] == "--public-reference")
+                {
+                    WritePublicReference(args[1], args[2], args[3], args[4]);
+                    return 0;
+                }
+                if (args.Length != 4)
+                {
                 Console.Error.WriteLine(
                     "usage: WeaveEsp TARGET_DLL ESP_LOGIC_DLL OUTPUT_DLL SEARCH_DIRECTORY");
                 Console.Error.WriteLine(
@@ -653,6 +655,13 @@ namespace ProjectEspPatch
             Console.WriteLine("scatter_instructions=" + scatterInstructions);
             Console.WriteLine("anti_cheat_instructions=" + antiCheatInstructions);
             return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("FATAL EXCEPTION in WeaveEsp:");
+                Console.Error.WriteLine(ex.ToString());
+                return 1;
+            }
         }
     }
 }

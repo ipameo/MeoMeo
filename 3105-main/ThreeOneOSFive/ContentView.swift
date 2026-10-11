@@ -395,10 +395,22 @@ class LicenseManager: ObservableObject {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         request.timeoutInterval = 8
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, _, _ in
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
-            guard let data = data,
-                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return }
+            guard error == nil, let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                // API SERVER IS OFFLINE OR UNREACHABLE -> IMMEDIATELY LOCK GAME
+                DispatchQueue.main.async {
+                    self.systemActive = false
+                    self.isAuthed = false
+                    self.currentMeomeo = ""
+                    self.currentSig = ""
+                    self.currentToken = ""
+                    self.currentTs = 0
+                    self.onLiveStateChanged?(false)
+                }
+                return
+            }
             
             let isSysActive = json["system_active"] as? Bool ?? (json["ok"] as? Bool ?? false)
             let feats = json["features"] as? [String: Bool] ?? [:]
@@ -1279,26 +1291,36 @@ struct ContentView: View {
 
     private func saveConfigLocally() -> Data? {
         do {
-            if !license.getMeomeo().isEmpty { config.meomeo = license.getMeomeo() }
-            if !license.getSig().isEmpty { config.sig = license.getSig() }
-            if !license.getToken().isEmpty { config.token = license.getToken() }
-            if license.getTs() != 0 { config.ts = license.getTs() }
-            config.system_active = license.systemActive
+            if license.systemActive && license.isAuthed {
+                if !license.getMeomeo().isEmpty { config.meomeo = license.getMeomeo() }
+                if !license.getSig().isEmpty { config.sig = license.getSig() }
+                if !license.getToken().isEmpty { config.token = license.getToken() }
+                if license.getTs() != 0 { config.ts = license.getTs() }
+                config.system_active = true
+            } else {
+                config.meomeo = ""
+                config.sig = ""
+                config.token = ""
+                config.ts = 0
+                config.system_active = false
+            }
 
             // Save full config to UserDefaults for UI persistence
             if let fullData = try? JSONEncoder().encode(config) {
                 UserDefaults.standard.set(fullData, forKey: "saved_esp_config")
             }
 
-            // Only export the token to the game
-            let minimalConfig: [String: String] = [
-                "token": config.token,
-                "testCodePatch": "true"
+            // Export security state and token to target game localConfig.json
+            let minimalConfig: [String: Any] = [
+                "token": config.system_active ? config.token : "",
+                "system_active": config.system_active,
+                "ts": config.system_active ? config.ts : 0,
+                "meomeo": config.system_active ? config.meomeo : "",
+                "sig": config.system_active ? config.sig : "",
+                "testCodePatch": true
             ]
             
-            let encoder = JSONEncoder()
-            encoder.outputFormatting = .prettyPrinted
-            let data = try encoder.encode(minimalConfig)
+            let data = try JSONSerialization.data(withJSONObject: minimalConfig, options: [.prettyPrinted])
             let fm = FileManager.default
             let docsURL = try fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
             try data.write(to: docsURL.appendingPathComponent("localConfig.json"))
@@ -1308,6 +1330,18 @@ struct ContentView: View {
 
     private func syncConfig() {
         guard hasInjected else { return }
+        if !license.systemActive || !license.isAuthed {
+            self.config.system_active = false
+            self.config.token = ""
+            self.config.ts = 0
+            if let jsonData = self.saveConfigLocally(),
+               let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) {
+                let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+                let configURL = docsURL.appendingPathComponent("localConfig.json")
+                try? jsonData.write(to: configURL)
+            }
+            return
+        }
         license.updateUserToggles(mask: config.userTogglesMask) { ok in
             if ok {
                 self.config.token = self.license.getToken()
