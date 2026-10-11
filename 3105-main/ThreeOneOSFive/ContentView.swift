@@ -546,7 +546,7 @@ struct ContentView: View {
                         Image(systemName: "pawprint.fill")
                             .font(.system(size: 19, weight: .bold))
                             .foregroundColor(.white)
-                        Text("Johan Liebert")
+                        Text("MeoMeoExt")
                             .font(.system(size: 21, weight: .black, design: .rounded))
                             .foregroundColor(.white)
                     }
@@ -580,12 +580,41 @@ struct ContentView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
 
-                // ── CONTENT AREA (Ẩn tab Profile để chống lag) ──────────
-                if !license.isAuthed {
-                    authView
+                // ── CONTENT AREA ──────────────────────────────────────
+                if topTab == "Menu" {
+                    if !license.isAuthed {
+                        authView
+                    } else {
+                        menuView
+                    }
                 } else {
-                    menuView
+                    profileView
                 }
+                // ── BOTTOM TAB BAR ──────────────────────
+                HStack(spacing: 0) {
+                    ForEach(["Menu", "Profile"], id: \.self) { tab in
+                        Button(action: { withAnimation { topTab = tab } }) {
+                            VStack(spacing: 4) {
+                                Image(systemName: tab == "Menu" ? "list.bullet.rectangle" : "person.crop.circle")
+                                    .font(.system(size: 20))
+                                Text(tab)
+                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(topTab == tab ? Color.black : Color(white: 0.5))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 55)
+                            .background(topTab == tab ? Color.white : Color.clear)
+                        }
+                    }
+                }
+                .background(Color(white: 0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 15))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 15)
+                        .stroke(Color(white: 0.25), lineWidth: 1)
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
             }
         }
         .onAppear {
@@ -982,30 +1011,6 @@ struct ContentView: View {
                                 .stroke(Color(white: 0.35), lineWidth: 1)
                         )
                     }
-                }
-
-                // ── ĐỔI LICENSE KEY (KHI ẨN TAB PROFILE) ───────────────
-                Button(action: {
-                    license.storedKey = ""
-                    license.isAuthed = false
-                    license.stopHeartbeat()
-                    config.system_active = false
-                    syncConfig()
-                }) {
-                    HStack {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text("ĐỔI LICENSE KEY KHÁC")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .foregroundColor(Color(white: 0.85))
-                    .background(Color(white: 0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(white: 0.25), lineWidth: 1)
-                    )
                 }
             }
             .padding(.horizontal, 16)
