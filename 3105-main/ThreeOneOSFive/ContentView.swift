@@ -757,41 +757,20 @@ struct ContentView: View {
                                 .truncationMode(.middle)
                         }
 
-                        HStack(spacing: 8) {
-                            Button(action: {
-                                UIPasteboard.general.string = license.deviceId
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "doc.on.doc.fill")
-                                        .font(.system(size: 11))
-                                    Text("COPY HWID")
-                                        .font(.system(size: 11, weight: .bold))
-                                }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 36)
-                                .background(Color(white: 0.15))
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                        Button(action: {
+                            UIPasteboard.general.string = license.deviceId
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "doc.on.doc.fill")
+                                    .font(.system(size: 12))
+                                Text("COPY HWID THIẾT BỊ")
+                                    .font(.system(size: 12, weight: .bold))
                             }
-
-                            Button(action: {
-                                UIPasteboard.general.string = license.deviceId
-                                if let url = URL(string: "\(APIConfig.baseURL)/hoagetkey?hwid=\(license.deviceId)") {
-                                    UIApplication.shared.open(url)
-                                }
-                            }) {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "link.circle.fill")
-                                        .font(.system(size: 11))
-                                    Text("LẤY KEY FREE (5H)")
-                                        .font(.system(size: 11, weight: .bold))
-                                }
-                                .foregroundColor(.black)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 36)
-                                .background(Color.white)
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
-                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .background(Color(white: 0.15))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
                         }
                     }
                 }
