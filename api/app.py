@@ -1576,28 +1576,76 @@ def seller_page(seller_path):
     return render_template("index.html")
 
 
-# ─── Main ─────────────────────────────────────────────────────────────────────
-if __name__ == "__main__":
-    init_db()
-    port = int(os.environ.get("PORT", 2007))
-    print(f"[MeoMeo API] DB: {DB_PATH}")
-    print(f"[MeoMeo API] Starting on http://0.0.0.0:{port}")
-    app.run(host="0.0.0.0", port=port, debug=True)
+DEFAULT_OFFSETS = {
+    "MATCH_TYPE": "JMAGGLCNGIG",
+    "MATCH_PLAYERS_METHOD": "ILPNGCMEFFI",
+    "AIM_INFO_TYPE": "CGKJLKPMGDJ",
+    "PLAYER_AIM_INFO_FIELD": "FDMIEDDNCEC",
+    "SCENE_MENU_FIELD": "AFHAOIAPPNB",
+    "SCENE_POSITION_FIELD": "OHPFLEDNOJK",
+    "SCENE_STATE_FIELD": "DIGCJIKHGJP",
+    "AIM_GAME_OBJECT_FIELD": "JHAINOBIFMA",
+    "AIM_COLLIDER_FIELD": "JINDNOFABKB",
+    "AIM_HIT_POSITION_FIELD": "HPCOJHGFEEG",
+    "AIM_TRACE_POSITION_FIELD": "DOJDNHCGFGK",
+    "AIM_DIRECTION_FIELD": "HLDECMJFKJK",
+    "AIM_ORIGIN_FIELD": "EKPLMDDKOGB",
+    "AIM_HIT_TYPE": "LKOOALMKJND",
+    "AIM_HIT_TYPE_FIELD": "DKPDBLLJEAA",
+    "AIM_FLAG_A_FIELD": "EFMBNPNFGHM",
+    "AIM_FLAG_B_FIELD": "CEOKOILBODN",
+    "AIM_SECONDARY_ORIGIN_FIELD": "ONMKMEGMHOL",
+    "AIM_SHORT_FIELD": "CLOLKHNMNEK",
+    "SPEED_TYPE": "KGCCMFBFCAC"
+}
 
+OFFSETS_METADATA = [
+    {"key": "MATCH_TYPE", "group": "👥 Match & Player", "label": "Class Match Trận Đấu", "desc": "COW.GamePlay.EMKJHAJNPDH", "default": "JMAGGLCNGIG"},
+    {"key": "MATCH_PLAYERS_METHOD", "group": "👥 Match & Player", "label": "Method Lấy Players", "desc": "GEPFGOHGOJI()", "default": "ILPNGCMEFFI"},
+    {"key": "SPEED_TYPE", "group": "👥 Match & Player", "label": "Class Tốc Độ / Speed", "desc": "PlayerAttributes+BDACINNPFDD", "default": "KGCCMFBFCAC"},
+    
+    {"key": "AIM_INFO_TYPE", "group": "🎯 Silent Aim & Raycast", "label": "Class Aim Info", "desc": "COW.GamePlay.GMPGMPFNMFP", "default": "CGKJLKPMGDJ"},
+    {"key": "PLAYER_AIM_INFO_FIELD", "group": "🎯 Silent Aim & Raycast", "label": "Field Player Aim Info", "desc": "Player.AKFLHNOIHED", "default": "FDMIEDDNCEC"},
+    {"key": "AIM_GAME_OBJECT_FIELD", "group": "🎯 Silent Aim & Raycast", "label": "Field Aim GameObject", "desc": "HLIJMDODPIM", "default": "JHAINOBIFMA"},
+    {"key": "AIM_COLLIDER_FIELD", "group": "🎯 Silent Aim & Raycast", "label": "Field Aim Collider", "desc": "OCEBCHENIOK", "default": "JINDNOFABKB"},
+    {"key": "AIM_HIT_POSITION_FIELD", "group": "🎯 Silent Aim & Raycast", "label": "Field Aim Hit Position", "desc": "MBGBCLNJOMK", "default": "HPCOJHGFEEG"},
+    {"key": "AIM_TRACE_POSITION_FIELD", "group": "🎯 Silent Aim & Raycast", "label": "Field Aim Trace Position", "desc": "DGFLGBEOGPG", "default": "DOJDNHCGFGK"},
+    {"key": "AIM_DIRECTION_FIELD", "group": "🎯 Silent Aim & Raycast", "label": "Field Aim Direction", "desc": "FHELEFFODLL", "default": "HLDECMJFKJK"},
+    {"key": "AIM_ORIGIN_FIELD", "group": "🎯 Silent Aim & Raycast", "label": "Field Aim Origin", "desc": "BDKPMEBMLHB", "default": "EKPLMDDKOGB"},
+    {"key": "AIM_SECONDARY_ORIGIN_FIELD", "group": "🎯 Silent Aim & Raycast", "label": "Field Second Origin", "desc": "PHHHEDLNJNN", "default": "ONMKMEGMHOL"},
+    {"key": "AIM_HIT_TYPE", "group": "🎯 Silent Aim & Raycast", "label": "Enum Aim Hit Type", "desc": "COW.GamePlay.JKCLPFEFMNG", "default": "LKOOALMKJND"},
+    {"key": "AIM_HIT_TYPE_FIELD", "group": "🎯 Silent Aim & Raycast", "label": "Field Aim Hit Type", "desc": "IILFFPBNPGL", "default": "DKPDBLLJEAA"},
+    {"key": "AIM_FLAG_A_FIELD", "group": "🎯 Silent Aim & Raycast", "label": "Field Aim Flag A", "desc": "MBKOFBFPHHG", "default": "EFMBNPNFGHM"},
+    {"key": "AIM_FLAG_B_FIELD", "group": "🎯 Silent Aim & Raycast", "label": "Field Aim Flag B", "desc": "MIOHLHPHMOK", "default": "CEOKOILBODN"},
+    {"key": "AIM_SHORT_FIELD", "group": "🎯 Silent Aim & Raycast", "label": "Field Aim Short Value", "desc": "HFFMEBFNDKC", "default": "CLOLKHNMNEK"},
+    
+    {"key": "SCENE_MENU_FIELD", "group": "🖥️ Scene & Menu Tool", "label": "Field Menu Tool Flag", "desc": "SceneEditBoxSelectTool.DKNELPFOCHG", "default": "AFHAOIAPPNB"},
+    {"key": "SCENE_POSITION_FIELD", "group": "🖥️ Scene & Menu Tool", "label": "Field Menu Position", "desc": "SceneEditBoxSelectTool.FMMMAPKGAAJ", "default": "OHPFLEDNOJK"},
+    {"key": "SCENE_STATE_FIELD", "group": "🖥️ Scene & Menu Tool", "label": "Field Scene State Timer", "desc": "SceneEditBoxSelectTool.EEKIAPPAGCL", "default": "DIGCJIKHGJP"}
+]
 
 @app.route("/api/offsets", methods=["GET"])
 def get_offsets():
     version = request.args.get("version", "default")
     db = get_db()
+    db.execute("CREATE TABLE IF NOT EXISTS offsets (version TEXT PRIMARY KEY, data TEXT)")
     row = db.execute("SELECT data FROM offsets WHERE version = ?", (version,)).fetchone()
     if not row:
         row = db.execute("SELECT data FROM offsets WHERE version = 'default'").fetchone()
     if not row:
-        return jsonify({"ok": False, "error": "no offsets found"}), 404
+        # Tự động gieo dữ liệu mặc định từ ESPLogic
+        db.execute("INSERT OR REPLACE INTO offsets (version, data) VALUES ('default', ?)", (json.dumps(DEFAULT_OFFSETS),))
+        db.execute("INSERT OR REPLACE INTO offsets (version, data) VALUES ('1.132.1', ?)", (json.dumps(DEFAULT_OFFSETS),))
+        db.commit()
+        return jsonify({"ok": True, "version": version, "data": DEFAULT_OFFSETS})
     try:
-        return jsonify({"ok": True, "data": json.loads(row["data"])})
-    except:
-        return jsonify({"ok": False, "error": "invalid json format in db"}), 500
+        return jsonify({"ok": True, "version": version, "data": json.loads(row["data"])})
+    except Exception:
+        return jsonify({"ok": True, "version": version, "data": DEFAULT_OFFSETS})
+
+@app.route("/api/admin/offsets_meta", methods=["GET"])
+def get_offsets_meta():
+    return jsonify({"ok": True, "meta": OFFSETS_METADATA, "defaults": DEFAULT_OFFSETS})
 
 @app.route("/api/admin/offsets", methods=["POST"])
 @require_admin
@@ -1608,7 +1656,28 @@ def update_offsets():
     if not offsets_data:
         return jsonify({"ok": False, "error": "missing 'data' field"}), 400
     db = get_db()
+    db.execute("CREATE TABLE IF NOT EXISTS offsets (version TEXT PRIMARY KEY, data TEXT)")
     db.execute("INSERT OR REPLACE INTO offsets (version, data) VALUES (?, ?)", (version, json.dumps(offsets_data)))
+    if version != "default":
+        db.execute("INSERT OR REPLACE INTO offsets (version, data) VALUES ('default', ?)", (json.dumps(offsets_data),))
     db.commit()
-    return jsonify({"ok": True, "message": f"Offsets for version {version} updated"})
+    return jsonify({"ok": True, "message": f"Offsets cho phiên bản {version} đã được cập nhật thành công", "data": offsets_data})
+
+# ─── Main ─────────────────────────────────────────────────────────────────────
+if __name__ == "__main__":
+    init_db()
+    db = sqlite3.connect(DB_PATH)
+    db.execute("CREATE TABLE IF NOT EXISTS offsets (version TEXT PRIMARY KEY, data TEXT)")
+    # Gieo offsets mặc định nếu database trống
+    cur = db.execute("SELECT COUNT(*) FROM offsets")
+    if cur.fetchone()[0] == 0:
+        db.execute("INSERT OR REPLACE INTO offsets (version, data) VALUES ('default', ?)", (json.dumps(DEFAULT_OFFSETS),))
+        db.execute("INSERT OR REPLACE INTO offsets (version, data) VALUES ('1.132.1', ?)", (json.dumps(DEFAULT_OFFSETS),))
+    db.commit()
+    db.close()
+    
+    port = int(os.environ.get("PORT", 2007))
+    print(f"[MeoMeo API] DB: {DB_PATH}")
+    print(f"[MeoMeo API] Starting on http://0.0.0.0:{port}")
+    app.run(host="0.0.0.0", port=port, debug=True)
 

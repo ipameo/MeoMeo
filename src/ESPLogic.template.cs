@@ -87,10 +87,59 @@ namespace ProjectEspPatch
 
         public static ApiOffsets Offsets = new ApiOffsets();
 
+        private static float _lastOffsetFetchTime = 0f;
+        private static bool _isFetchingOffsets = false;
+
         public static string GetOffsetsFromAPI()
         {
+            if (!_isFetchingOffsets && (Time.realtimeSinceStartup - _lastOffsetFetchTime > 60f || _lastOffsetFetchTime == 0f))
+            {
+                _lastOffsetFetchTime = Time.realtimeSinceStartup;
+                _isFetchingOffsets = true;
+                try
+                {
+                    new System.Threading.Thread(new System.Threading.ThreadStart(delegate
+                    {
+                        try
+                        {
+                            using (System.Net.WebClient wc = new System.Net.WebClient())
+                            {
+                                wc.Headers[System.Net.HttpRequestHeader.ContentType] = "application/json";
+                                string json = wc.DownloadString(ApiServerUrl + "/api/offsets?version=default");
+                                if (!string.IsNullOrEmpty(json) && json.Contains("\"ok\":true") && json.Contains("\"data\":"))
+                                {
+                                    UpdateOffsetsFromJson(json);
+                                    try
+                                    {
+                                        string cachePath = Application.persistentDataPath + "/offsets_cache.json";
+                                        System.IO.File.WriteAllText(cachePath, json);
+                                    }
+                                    catch { }
+                                }
+                            }
+                        }
+                        catch { }
+                        finally
+                        {
+                            _isFetchingOffsets = false;
+                        }
+                    })).Start();
+                }
+                catch
+                {
+                    _isFetchingOffsets = false;
+                }
+            }
+
             try
             {
+                string cachePath = Application.persistentDataPath + "/offsets_cache.json";
+                if (System.IO.File.Exists(cachePath))
+                {
+                    string content = System.IO.File.ReadAllText(cachePath);
+                    UpdateOffsetsFromJson(content);
+                    return content;
+                }
                 string configPath = Application.persistentDataPath + "/localConfig.json";
                 if (System.IO.File.Exists(configPath))
                 {

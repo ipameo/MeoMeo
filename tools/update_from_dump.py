@@ -566,7 +566,7 @@ def main() -> int:
     try:
         import urllib.request
         req = urllib.request.Request('http://127.0.0.1:2007/api/admin/offsets',
-                                     data=json.dumps({"version": report['version'], "data": placeholders}).encode('utf-8'),
+                                     data=json.dumps({"password": "nxt2007", "version": report['version'], "data": placeholders}).encode('utf-8'),
                                      headers={'Content-Type': 'application/json'})
         response = urllib.request.urlopen(req)
         print(f"Uploaded offsets to API: {response.read().decode('utf-8')}")
