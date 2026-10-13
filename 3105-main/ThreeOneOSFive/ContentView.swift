@@ -534,7 +534,6 @@ struct ContentView: View {
     @State private var logs: [String] = []
     @State private var licenseKeyInput: String = ""
     @State private var isAuthenticating = false
-    @State private var antiBanTab: String = "removed"   // "removed" | "kept"
 
     private var selectedBundleID: String {
         gameTab == "ff" ? "com.dts.freefireth" : "com.dts.freefiremax"
@@ -939,113 +938,14 @@ struct ContentView: View {
                     }
                 }
 
-                // ── BẢO VỆ ANTI-BAN (SECURITY BYPASS) ──────────────────
-                CardView(title: "BẢO VỆ ANTI-BAN (12 REMOVED • 12 KEPT)", icon: "shield.lefthalf.fill") {
-                    VStack(spacing: 12) {
+                // ── BẢO VỆ ANTI-BAN ───────────────────────────────────
+                CardView(title: "BẢO VỆ ANTI-BAN", icon: "shield.lefthalf.fill") {
+                    VStack(spacing: 8) {
                         ToggleRow(label: "Kích Hoạt Anti-Ban", icon: "shield.fill", on: $config.AntiBan)
-
-                        if config.AntiBan {
-                            // Header Segmented Tabs: 12 REMOVED & 12 KEPT
-                            HStack(spacing: 8) {
-                                Button(action: { withAnimation(.easeInOut(duration: 0.2)) { antiBanTab = "removed" } }) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "xmark.shield.fill")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(antiBanTab == "removed" ? .red : Color(white: 0.6))
-                                        Text("12 REMOVED")
-                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                    }
-                                    .foregroundColor(antiBanTab == "removed" ? Color.black : Color(white: 0.65))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 32)
-                                    .background(antiBanTab == "removed" ? Color.white : Color(white: 0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                                }
-
-                                Button(action: { withAnimation(.easeInOut(duration: 0.2)) { antiBanTab = "kept" } }) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "checkmark.shield.fill")
-                                            .font(.system(size: 11))
-                                            .foregroundColor(antiBanTab == "kept" ? .green : Color(white: 0.6))
-                                        Text("12 KEPT")
-                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                    }
-                                    .foregroundColor(antiBanTab == "kept" ? Color.black : Color(white: 0.65))
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 32)
-                                    .background(antiBanTab == "kept" ? Color.white : Color(white: 0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                                }
+                            .onChange(of: config.AntiBan) { _ in
+                                _ = saveConfigLocally()
+                                syncConfig()
                             }
-
-                            if antiBanTab == "removed" {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Text("CƠ CHẾ KIỂM TRA ĐÃ GỠ BỎ (NEUTRALIZED)")
-                                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                                            .foregroundColor(Color(white: 0.55))
-                                        Spacer()
-                                        Text("12 / 12")
-                                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                            .foregroundColor(.red)
-                                    }
-                                    .padding(.bottom, 2)
-
-                                    Group {
-                                        antiBanItem(num: "01", name: "COW.GameFacade.IsEmulator", desc: "Chặn phát hiện môi trường Giả lập PC", isRemoved: true)
-                                        antiBanItem(num: "02", name: "COW.MobileReplayManager.GetReplayIsEmulatorPool", desc: "Bypass nhóm hàng chờ & Replay Pool", isRemoved: true)
-                                        antiBanItem(num: "03", name: "COW.UIModelAntiAddiction.get_IsBan", desc: "Bỏ qua kiểm tra cấm trạng thái tài khoản", isRemoved: true)
-                                        antiBanItem(num: "04", name: "COW.UIInGameScene.ShowHackerDetectedUI", desc: "Chặn popup Hacker Detected đuổi khỏi trận", isRemoved: true)
-                                        antiBanItem(num: "05", name: "COW.UIHudHackerDetectedController.SetDelayCloseAction", desc: "Chặn đóng trận & huỷ phòng tự động", isRemoved: true)
-                                        antiBanItem(num: "06", name: "COW.GamePlay.Player.get_IsBanAimAssistState", desc: "Gỡ cấm trợ ngắm (Aim Assist) từ server", isRemoved: true)
-                                    }
-                                    Group {
-                                        antiBanItem(num: "07", name: "COW.UIHudQuickReportFeedbackController.SendEventLog", desc: "Chặn gửi Telemetry & Event Log tố cáo", isRemoved: true)
-                                        antiBanItem(num: "08", name: "COW.UIHudQuickReportFeedbackController.SetFeedbackTCP", desc: "Chặn gói tin thông báo xử phạt TCP", isRemoved: true)
-                                        antiBanItem(num: "09", name: "COW.UILobbyV2GameAssistWndController.ClearDots", desc: "Xóa cờ cảnh báo báo cáo hack ở sảnh", isRemoved: true)
-                                        antiBanItem(num: "10", name: "COW.UIModelLogin.GetffantihackEnabled", desc: "Tắt công tắc SDK Garena Anti-Hack", isRemoved: true)
-                                        antiBanItem(num: "11", name: "COW.UIHudLadderMatchResultController.InitProtect", desc: "Chặn quét bất thường kết quả trận đấu", isRemoved: true)
-                                        antiBanItem(num: "12", name: "GarenaMSDK.DeviceId_Tracking", desc: "Xóa sạch UUID & Keychain định danh cũ", isRemoved: true)
-                                    }
-                                }
-                                .padding(10)
-                                .background(Color(white: 0.05))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                            } else {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    HStack {
-                                        Text("TRẠNG THÁI AN TOÀN ĐƯỢC BẢO TOÀN (PROTECTED)")
-                                            .font(.system(size: 10, weight: .bold, design: .rounded))
-                                            .foregroundColor(Color(white: 0.55))
-                                        Spacer()
-                                        Text("12 / 12")
-                                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                            .foregroundColor(.green)
-                                    }
-                                    .padding(.bottom, 2)
-
-                                    Group {
-                                        antiBanItem(num: "01", name: "COW.UIModelOTP.GetCurrentAccountSecurityState", desc: "Giữ an toàn tài khoản OTP mặc định", isRemoved: false)
-                                        antiBanItem(num: "02", name: "COW.UIModelOTP.LoadAccountSecurity", desc: "Giữ nạp xác thực bảo mật bình thường", isRemoved: false)
-                                        antiBanItem(num: "03", name: "COW.GameConfig.get_GER_BypassAllFilters", desc: "Giữ vượt qua toàn bộ bộ lọc cấu hình", isRemoved: false)
-                                        antiBanItem(num: "04", name: "COW.MatchGame.TryInitPlayerOutlineRes", desc: "Giữ bật viền kẻ địch xuyên tường gốc", isRemoved: false)
-                                        antiBanItem(num: "05", name: "COW.GameConfig.m_LocalConfig.testCodePatch", desc: "Giữ quyền thực thi patch bộ nhớ", isRemoved: false)
-                                        antiBanItem(num: "06", name: "COW.GamePlay.Player.IsVisible", desc: "Giữ tính toán tầm nhìn nhân vật hợp lệ", isRemoved: false)
-                                    }
-                                    Group {
-                                        antiBanItem(num: "07", name: "COW.GamePlay.PlayerAttributes.DamageScale", desc: "Giữ scale sát thương Head/Body an toàn", isRemoved: false)
-                                        antiBanItem(num: "08", name: "COW.GamePlay.Player.LastAimingInfo", desc: "Giữ dữ liệu ngắm súng mượt mà", isRemoved: false)
-                                        antiBanItem(num: "09", name: "COW.GamePlay.Player.IsMovableEntity", desc: "Giữ logic thực thể di chuyển chuẩn xác", isRemoved: false)
-                                        antiBanItem(num: "10", name: "GarenaMSDK.GuestSession", desc: "Giữ phiên đăng nhập sạch bảo đảm an toàn", isRemoved: false)
-                                        antiBanItem(num: "11", name: "Matchmaking.NormalPool", desc: "Giữ ghép trận phòng người chơi thật", isRemoved: false)
-                                        antiBanItem(num: "12", name: "Income.NormalMatchResult", desc: "Giữ nguyên vẹn điểm số & thưởng sau trận", isRemoved: false)
-                                    }
-                                }
-                                .padding(10)
-                                .background(Color(white: 0.05))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                        }
                     }
                 }
 
@@ -1351,29 +1251,6 @@ struct ContentView: View {
         }
     }
 
-    private func antiBanItem(num: String, name: String, desc: String, isRemoved: Bool) -> some View {
-        HStack(alignment: .top, spacing: 6) {
-            Text(num)
-                .font(.system(size: 9, weight: .bold, design: .monospaced))
-                .foregroundColor(isRemoved ? Color.red.opacity(0.8) : Color.green.opacity(0.8))
-                .padding(.top, 1)
-            Image(systemName: isRemoved ? "xmark.circle.fill" : "checkmark.circle.fill")
-                .font(.system(size: 10))
-                .foregroundColor(isRemoved ? .red : .green)
-                .padding(.top, 2)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(name)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
-                Text(desc)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(Color(white: 0.65))
-            }
-            Spacer()
-        }
-        .padding(.vertical, 2)
-    }
 
     // MARK: - Logic
     private func log(_ msg: String) {
