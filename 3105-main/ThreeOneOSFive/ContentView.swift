@@ -1459,9 +1459,11 @@ struct ContentView: View {
             }
         }
 
-        config.reset_guest = true
-        config.resetGuest = true
-        config.resetGuestBeforeLogin = true
+        // If Auto Reset is not enabled, reset temporary flags so game doesn't loop wipe
+        if !config.reset_guest {
+            config.resetGuest = false
+            config.resetGuestBeforeLogin = false
+        }
         _ = saveConfigLocally()
         syncConfig()
     }
