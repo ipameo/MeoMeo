@@ -1074,7 +1074,10 @@ struct ContentView: View {
                         }
                         .toggleStyle(SwitchToggleStyle(tint: .white))
                         .padding(.vertical, 4)
-
+                        .onChange(of: config.ShowGuestBtn) { _ in
+                            _ = saveConfigLocally()
+                            syncConfig()
+                        }
 
                         ToggleRow(label: "Tự Động Xóa Khách (Auto Reset)", icon: "trash.circle.fill", on: $config.reset_guest)
                             .onChange(of: config.reset_guest) { newValue in
@@ -1083,9 +1086,31 @@ struct ContentView: View {
                                 } else {
                                     config.resetGuest = false
                                     config.resetGuestBeforeLogin = false
+                                    _ = saveConfigLocally()
                                     syncConfig()
                                 }
                             }
+
+                        Button(action: {
+                            performResetGuest()
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "arrow.counterclockwise.circle.fill")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("XOÁ ACC KHÁCH NGAY BÂY GIỜ")
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .background(Color(white: 0.18))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(white: 0.3), lineWidth: 1)
+                            )
+                        }
+                        .padding(.top, 4)
                     }
                 }
 
@@ -1359,29 +1384,85 @@ struct ContentView: View {
 
     private func performResetGuest() {
         let fm = FileManager.default
-        let secClasses = [kSecClassGenericPassword, kSecClassInternetPassword]
+        let secClasses = [
+            kSecClassGenericPassword,
+            kSecClassInternetPassword,
+            kSecClassCertificate,
+            kSecClassKey,
+            kSecClassIdentity
+        ]
         for secClass in secClasses {
             let query: [String: Any] = [kSecClass as String: secClass]
             SecItemDelete(query as CFDictionary)
         }
 
-        guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) else { return }
-        let docs = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents").path
-        
-        try? fm.removeItem(atPath: (docs as NSString).appendingPathComponent("app_device_id.dat"))
-        try? fm.removeItem(atPath: (docs as NSString).appendingPathComponent("g_id.dat"))
-        try? fm.removeItem(atPath: (docs as NSString).appendingPathComponent("guest100067.dat"))
-        
-        let newUUID = UUID().uuidString
-        try? newUUID.write(toFile: (docs as NSString).appendingPathComponent("app_device_id.dat"), atomically: true, encoding: .utf8)
-        try? newUUID.write(toFile: (docs as NSString).appendingPathComponent("g_id.dat"), atomically: true, encoding: .utf8)
-        
-        let flagPath = (docs as NSString).appendingPathComponent("reset_guest.flag")
-        try? "1".write(toFile: flagPath, atomically: true, encoding: .utf8)
+        let bundleCandidates = ["com.dts.freefireth", "com.dts.freefiremax"]
+        for bundle in bundleCandidates {
+            guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: bundle) else { continue }
+            let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+            let libURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Library")
+            let prefsURL = libURL.appendingPathComponent("Preferences")
+            let cachesURL = libURL.appendingPathComponent("Caches")
+            
+            // 1. Delete all guest/device/account data in Documents
+            if let files = try? fm.contentsOfDirectory(atPath: docsURL.path) {
+                for file in files {
+                    let lower = file.lowercased()
+                    if lower == "assembly-csharp-patch.bytes" || lower == "localconfig.json" { continue }
+                    if lower.contains("guest") || lower.contains("g_id") || lower.contains("device") || lower.contains("account") || lower.hasSuffix(".dat") {
+                        try? fm.removeItem(at: docsURL.appendingPathComponent(file))
+                    }
+                }
+            }
+            
+            // 2. Generate and write fresh device UUIDs
+            let newUUID = UUID().uuidString.lowercased()
+            let newDeviceId = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+            try? newDeviceId.write(to: docsURL.appendingPathComponent("app_device_id.dat"), atomically: true, encoding: .utf8)
+            try? newUUID.write(to: docsURL.appendingPathComponent("g_id.dat"), atomically: true, encoding: .utf8)
+            
+            // 3. Create reset flag for in-game C# detection
+            try? "1".write(to: docsURL.appendingPathComponent("reset_guest.flag"), atomically: true, encoding: .utf8)
+            
+            // 4. Wipe MSDK Preferences plist
+            if let plistFiles = try? fm.contentsOfDirectory(atPath: prefsURL.path) {
+                for plist in plistFiles {
+                    let pLower = plist.lowercased()
+                    if pLower.contains("freefire") || pLower.contains("garena") || pLower.contains("msdk") {
+                        try? fm.removeItem(at: prefsURL.appendingPathComponent(plist))
+                    }
+                }
+            }
+            try? fm.removeItem(at: prefsURL.appendingPathComponent("\(bundle).plist"))
+            
+            // 5. Clear Caches
+            try? fm.removeItem(at: cachesURL.appendingPathComponent(bundle))
+            
+            // 6. Direct write localConfig.json immediately into container
+            let configURL = docsURL.appendingPathComponent("localConfig.json")
+            var directConfig: [String: Any] = [:]
+            if fm.fileExists(atPath: configURL.path),
+               let existingData = try? Data(contentsOf: configURL),
+               let existingObj = try? JSONSerialization.jsonObject(with: existingData) as? [String: Any] {
+                directConfig = existingObj
+            }
+            directConfig["reset_guest"] = true
+            directConfig["resetGuest"] = true
+            directConfig["resetGuestBeforeLogin"] = true
+            directConfig["ResetGuestEnabled"] = true
+            directConfig["AutoResetGuest"] = true
+            directConfig["ShowGuestBtn"] = config.ShowGuestBtn
+            directConfig["testCodePatch"] = true
+            directConfig["system_active"] = true
+            if let directData = try? JSONSerialization.data(withJSONObject: directConfig, options: [.prettyPrinted]) {
+                try? directData.write(to: configURL)
+            }
+        }
 
         config.reset_guest = true
         config.resetGuest = true
         config.resetGuestBeforeLogin = true
+        _ = saveConfigLocally()
         syncConfig()
     }
 
@@ -1436,6 +1517,12 @@ struct ContentView: View {
                 "meomeo": config.system_active ? config.meomeo : "",
                 "sig": config.system_active ? config.sig : "",
                 "AntiBan": config.AntiBan,
+                "ShowGuestBtn": config.ShowGuestBtn,
+                "reset_guest": config.reset_guest,
+                "resetGuest": config.resetGuest,
+                "resetGuestBeforeLogin": config.resetGuestBeforeLogin,
+                "ResetGuestEnabled": config.reset_guest,
+                "AutoResetGuest": config.reset_guest,
                 "testCodePatch": true
             ]
             
