@@ -726,6 +726,10 @@
                 <button id="adminLoginBtn" class="btn btn-secondary btn-sm" onclick="openAdminModal()">
                     🔒 Quản Trị
                 </button>
+                <button id="adminChangePassBtn" class="btn btn-secondary btn-sm" onclick="openChangePassModal()"
+                    style="display: none;">
+                    🔑 Đổi Mật Khẩu
+                </button>
                 <button id="adminLogoutBtn" class="btn btn-secondary btn-sm" onclick="adminLogout()"
                     style="display: none;">
                     Đăng Xuất
@@ -1157,6 +1161,30 @@
         </div>
     </div>
 
+    <!-- MODAL ĐỔI MẬT KHẨU ADMIN -->
+    <div id="changePassModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Đổi Mật Khẩu Quản Trị</h3>
+                <button class="btn btn-secondary btn-sm" onclick="closeChangePassModal()">✕</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div class="form-group">
+                    <label>Mật khẩu hiện tại:</label>
+                    <input type="password" id="oldAdminPass" placeholder="Mật khẩu cũ...">
+                </div>
+                <div class="form-group">
+                    <label>Mật khẩu mới (Tối thiểu 6 ký tự):</label>
+                    <input type="password" id="newAdminPass" placeholder="Mật khẩu mới...">
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 4px;">
+                    <button class="btn" style="flex: 1; justify-content: center;" onclick="submitChangePass()">Lưu Mật Khẩu</button>
+                    <button class="btn btn-secondary" onclick="closeChangePassModal()">Huỷ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL HIỂN THỊ KEY VỪA TẠO + NÚT COPY -->
     <div id="newKeyModal" class="modal-overlay">
         <div class="modal-card">
@@ -1351,19 +1379,66 @@
             }
 
             try {
-                const res = await fetch(`/api/admin/system_status?password=${encodeURIComponent(pass)}`);
-                if (res.status === 403 || !res.ok) {
-                    showToast("❌ Mật khẩu Admin không chính xác!");
+                // Secure Login via POST body - NEVER exposes password in GET query strings
+                const res = await fetch("/api/admin/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ password: pass })
+                });
+
+                const data = await res.json();
+                if (!res.ok || !data.ok) {
+                    showToast(data.error || "❌ Mật khẩu Admin không chính xác!");
                     return;
                 }
 
-                const data = await res.json();
-                sessionStorage.setItem("meomeo_admin_token", pass);
+                // Store secure 32-byte cryptographic session token
+                sessionStorage.setItem("meomeo_admin_token", data.token);
                 closeAdminModal();
-                showToast("Đăng nhập Admin thành công!");
-                enterAdminMode(data);
+                showToast("Đăng nhập Quản Trị thành công!");
+                enterAdminMode();
             } catch (e) {
+                console.error(e);
                 showToast("❌ Lỗi kết nối quyền Admin!");
+            }
+        }
+
+        function openChangePassModal() {
+            document.getElementById("changePassModal").style.display = "flex";
+            document.getElementById("oldAdminPass").value = "";
+            document.getElementById("newAdminPass").value = "";
+            document.getElementById("oldAdminPass").focus();
+        }
+
+        function closeChangePassModal() {
+            document.getElementById("changePassModal").style.display = "none";
+        }
+
+        async function submitChangePass() {
+            const oldPass = document.getElementById("oldAdminPass").value.trim();
+            const newPass = document.getElementById("newAdminPass").value.trim();
+            if (!oldPass || !newPass) {
+                showToast("⚠️ Vui lòng nhập đầy đủ mật khẩu cũ và mới!");
+                return;
+            }
+            if (newPass.length < 6) {
+                showToast("⚠️ Mật khẩu mới phải có ít nhất 6 ký tự!");
+                return;
+            }
+
+            const res = await fetchAPI("/api/admin/change_password", "POST", {
+                old_password: oldPass,
+                new_password: newPass
+            });
+
+            if (res && res.ok) {
+                if (res.token) {
+                    sessionStorage.setItem("meomeo_admin_token", res.token);
+                }
+                closeChangePassModal();
+                showToast("✅ Đã đổi mật khẩu Admin thành công!");
+            } else {
+                showToast((res && res.error) || "❌ Đổi mật khẩu thất bại!");
             }
         }
 
@@ -1371,6 +1446,7 @@
             document.getElementById("clientSection").style.display = "none";
             document.getElementById("adminDashboard").style.display = "block";
             document.getElementById("adminLoginBtn").style.display = "none";
+            document.getElementById("adminChangePassBtn").style.display = "inline-flex";
             document.getElementById("adminLogoutBtn").style.display = "inline-flex";
 
             renderOffsetsGrid();
@@ -1396,35 +1472,37 @@
             document.getElementById("adminDashboard").style.display = "none";
             document.getElementById("clientSection").style.display = "block";
             document.getElementById("adminLogoutBtn").style.display = "none";
+            document.getElementById("adminChangePassBtn").style.display = "none";
             document.getElementById("adminLoginBtn").style.display = "inline-flex";
             showToast("Đã đăng xuất Quản Trị!");
         }
 
-        function getAdminPass() {
+        function getAdminToken() {
             return sessionStorage.getItem("meomeo_admin_token") || "";
         }
 
         async function fetchAPI(endpoint, method = "GET", body = null) {
-            const pass = getAdminPass();
-            if (!pass) {
+            const token = getAdminToken();
+            if (!token) {
                 adminLogout();
                 return null;
             }
 
-            const headers = { "Content-Type": "application/json" };
-            let url = endpoint;
+            // Zero credentials in URL: Pass token strictly via X-Admin-Token header
+            const headers = { 
+                "Content-Type": "application/json",
+                "X-Admin-Token": token
+            };
             const opts = { method, headers };
 
-            if (method === "GET") {
-                url += (url.includes("?") ? "&" : "?") + "password=" + encodeURIComponent(pass);
-            } else {
-                opts.body = JSON.stringify({ password: pass, ...(body || {}) });
+            if (method !== "GET" && body) {
+                opts.body = JSON.stringify(body);
             }
 
             try {
-                const res = await fetch(url, opts);
-                if (res.status === 403) {
-                    showToast("❌ Phiên làm việc hết hạn!");
+                const res = await fetch(endpoint, opts);
+                if (res.status === 403 || res.status === 401) {
+                    showToast("❌ Phiên làm việc hết hạn hoặc bị từ chối!");
                     adminLogout();
                     return null;
                 }

@@ -246,15 +246,59 @@ def generate_license_key() -> str:
     return "-".join(parts)
 
 
-# ─── Admin auth decorator ────────────────────────────────────────────────────
+# ─── Admin Session & Security Core ───────────────────────────────────────────
+ADMIN_SESSIONS = {}  # token -> {"created_at": float, "ip": str}
+FAILED_LOGIN_ATTEMPTS = {}  # ip -> list of timestamps
+
+def get_admin_password() -> str:
+    db_pass = get_global_setting("admin_password", "")
+    if db_pass:
+        return db_pass
+    return os.environ.get("MEOMEO_ADMIN_PASS", "nxt2007")
+
+def set_admin_password(new_pass: str):
+    set_global_setting("admin_password", new_pass)
+
+def is_valid_admin_session(token: str) -> bool:
+    if not token or token not in ADMIN_SESSIONS:
+        return False
+    session = ADMIN_SESSIONS[token]
+    # 4-hour sliding session lifespan
+    if time.time() - session["created_at"] > 4 * 3600:
+        del ADMIN_SESSIONS[token]
+        return False
+    return True
+
+# ─── Admin auth decorator (Strict Anti-Leak Protection) ───────────────────────
 def require_admin(f):
     @wraps(f)
     def decorated(*args, **kwargs):
+        # HARD BLOCK: Reject ANY password or token passed in GET URL query string
+        # Prevents leaking credentials in ProxyBin, Charles, browser history, or server access logs
+        if request.args.get("password") or request.args.get("token") or request.args.get("key"):
+            log_auth("ADMIN_LEAK_BLOCKED", "blocked_query_param", request.remote_addr or "")
+            return jsonify({
+                "ok": False,
+                "error": "CẢNH BÁO BẢO MẬT: Nghiêm cấm truyền mật khẩu/token qua tham số URL (GET Query String)! Hãy đăng nhập qua form Admin an toàn."
+            }), 403
+
+        # 1. Check secure X-Admin-Token or Bearer header
+        admin_token = request.headers.get("X-Admin-Token") or request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+        if admin_token and is_valid_admin_session(admin_token):
+            return f(*args, **kwargs)
+
+        # 2. Check JSON payload password ONLY on POST requests
         data = request.get_json(silent=True) or {}
-        password = data.get("password") or request.args.get("password", "")
-        if password != ADMIN_PASSWORD:
-            return jsonify({"error": "unauthorized"}), 403
-        return f(*args, **kwargs)
+        if request.method == "POST" and isinstance(data, dict):
+            pass_attempt = (data.get("password") or "").strip()
+            token_attempt = (data.get("admin_token") or "").strip()
+            if token_attempt and is_valid_admin_session(token_attempt):
+                return f(*args, **kwargs)
+            current_pass = get_admin_password()
+            if pass_attempt and hmac.compare_digest(pass_attempt, current_pass):
+                return f(*args, **kwargs)
+
+        return jsonify({"ok": False, "error": "unauthorized"}), 403
     return decorated
 
 
@@ -879,7 +923,68 @@ def check_key():
 # ADMIN ENDPOINTS
 # ═══════════════════════════════════════════════════════════════════════════════
 
+@app.route("/api/admin/login", methods=["POST"])
+def admin_login():
+    """
+    Đăng nhập quản trị viên với bảo vệ chống Brute-Force (Tối đa 5 lần thử/10 phút).
+    Trả về token phiên làm việc an toàn 32-byte, KHÔNG lưu mật khẩu trên URL.
+    """
+    ip = request.remote_addr or "127.0.0.1"
+    now = time.time()
+    
+    attempts = [t for t in FAILED_LOGIN_ATTEMPTS.get(ip, []) if now - t < 600]
+    FAILED_LOGIN_ATTEMPTS[ip] = attempts
+    if len(attempts) >= 5:
+        return jsonify({
+            "ok": False,
+            "error": "Quá nhiều lần đăng nhập sai! IP của bạn tạm thời bị khóa trong 10 phút để đảm bảo an toàn."
+        }), 429
 
+    data = request.get_json(silent=True) or {}
+    password = (data.get("password") or "").strip()
+    
+    current_pass = get_admin_password()
+    if not password or not hmac.compare_digest(password, current_pass):
+        FAILED_LOGIN_ATTEMPTS.setdefault(ip, []).append(now)
+        log_auth("ADMIN_LOGIN", "failed", ip)
+        return jsonify({"ok": False, "error": "Mật khẩu Admin không chính xác!"}), 403
+
+    FAILED_LOGIN_ATTEMPTS[ip] = []
+    token = secrets.token_hex(32)
+    ADMIN_SESSIONS[token] = {
+        "created_at": now,
+        "ip": ip
+    }
+    log_auth("ADMIN_LOGIN", "success", ip)
+    return jsonify({
+        "ok": True,
+        "message": "Đăng nhập Admin thành công!",
+        "token": token
+    })
+
+@app.route("/api/admin/change_password", methods=["POST"])
+@require_admin
+def admin_change_password():
+    """Đổi mật khẩu Admin trực tiếp."""
+    data = request.get_json(silent=True) or {}
+    old_pass = (data.get("old_password") or "").strip()
+    new_pass = (data.get("new_password") or "").strip()
+    
+    current_pass = get_admin_password()
+    if not hmac.compare_digest(old_pass, current_pass):
+        return jsonify({"ok": False, "error": "Mật khẩu cũ không chính xác!"}), 400
+    if len(new_pass) < 6:
+        return jsonify({"ok": False, "error": "Mật khẩu mới phải có ít nhất 6 ký tự!"}), 400
+
+    set_admin_password(new_pass)
+    ADMIN_SESSIONS.clear()
+    new_token = secrets.token_hex(32)
+    ADMIN_SESSIONS[new_token] = {"created_at": time.time(), "ip": request.remote_addr or ""}
+    return jsonify({
+        "ok": True,
+        "message": "Đã đổi mật khẩu Admin thành công! Vui lòng ghi nhớ mật khẩu mới.",
+        "token": new_token
+    })
 
 @app.route("/api/admin/toggle", methods=["POST"])
 @require_admin

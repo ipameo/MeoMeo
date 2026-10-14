@@ -152,6 +152,48 @@ struct SecurityShield {
         }
         return false
     }
+
+    // Anti-Proxy: Direct secure session that completely bypasses Wi-Fi / system HTTP proxies (ProxyBin, Charles, Proxyman)
+    static let secureSession: URLSession = {
+        let config = URLSessionConfiguration.ephemeral
+        config.connectionProxyDictionary = [:] // DIRECT CONNECTION: Forces iOS networking stack to bypass all proxies!
+        config.timeoutIntervalForRequest = 15
+        config.timeoutIntervalForResource = 30
+        config.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
+        return URLSession(configuration: config)
+    }()
+
+    // Anti-Proxy: Detect HTTP/HTTPS Proxy active in iOS system (ProxyBin, Charles, Reqable)
+    static var isProxyActive: Bool {
+        guard let proxySettings = CFNetworkCopySystemProxySettings()?.takeRetainedValue() as? [String: Any] else {
+            return false
+        }
+        if let httpEnable = proxySettings[kCFNetworkProxiesHTTPEnable as String] as? NSNumber, httpEnable.boolValue {
+            return true
+        }
+        if let httpsEnable = proxySettings[kCFNetworkProxiesHTTPSEnable as String] as? NSNumber, httpsEnable.boolValue {
+            return true
+        }
+        if let host = proxySettings[kCFProxyHostNameKey as String] as? String, !host.isEmpty {
+            return true
+        }
+        return false
+    }
+
+    // Anti-VPN: Detect VPN tunnel interfaces used by packet sniffing tools (Thor, Shadowrocket, ProxyBin)
+    static var isVPNActive: Bool {
+        guard let proxySettings = CFNetworkCopySystemProxySettings()?.takeRetainedValue() as? [String: Any],
+              let scoped = proxySettings["__SCOPED__"] as? [String: Any] else {
+            return false
+        }
+        for key in scoped.keys {
+            let lower = key.lowercased()
+            if lower.contains("tap") || lower.contains("tun") || lower.contains("ppp") || lower.contains("ipsec") {
+                return true
+            }
+        }
+        return false
+    }
 }
 
 // MARK: - API Config
@@ -415,7 +457,7 @@ class LicenseManager: ObservableObject {
         guard let url = URL(string: "\(APIConfig.baseURL)/api/gui_config") else { return }
         var request = URLRequest(url: url)
         request.timeoutInterval = 8
-        URLSession.shared.dataTask(with: request) { data, _, _ in
+        SecurityShield.secureSession.dataTask(with: request) { data, _, _ in
             guard let data = data,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let gCfg = json["gui_config"] as? [String: Any] else { return }
@@ -428,6 +470,14 @@ class LicenseManager: ObservableObject {
 
     // MARK: - Auth (HMAC-SHA256 Cryptographic Signature Verification)
     func authenticate(key: String, completion: @escaping (Bool, String?) -> Void) {
+        // Anti-Sniffer: Check for active ProxyBin, Charles, or VPN MITM tunnels
+        if SecurityShield.isProxyActive || SecurityShield.isVPNActive {
+            self.authError = "CẢNH BÁO: Phát hiện phần mềm Proxy / Bắt gói tin (ProxyBin/VPN)! Vui lòng tắt Proxy để mở menu."
+            self.isAuthed = false
+            completion(false, self.authError)
+            return
+        }
+
         let devId = self.deviceId
         let url = URL(string: "\(APIConfig.baseURL)/api/auth")!
         var request = URLRequest(url: url)
@@ -437,7 +487,7 @@ class LicenseManager: ObservableObject {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         request.timeoutInterval = 15
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        SecurityShield.secureSession.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 if let error = error {
                     self.authError = error.localizedDescription
@@ -517,7 +567,7 @@ class LicenseManager: ObservableObject {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         request.timeoutInterval = 10
 
-        URLSession.shared.dataTask(with: request) { data, response, error in
+        SecurityShield.secureSession.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
                 guard let data = data,
                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -550,6 +600,19 @@ class LicenseManager: ObservableObject {
 
     private func sendHeartbeat() {
         guard !sessionToken.isEmpty else { return }
+        if SecurityShield.isProxyActive || SecurityShield.isVPNActive {
+            DispatchQueue.main.async {
+                self.isAuthed = false
+                self.systemActive = false
+                self.currentMeomeo = ""
+                self.currentSig = ""
+                self.currentToken = ""
+                self.currentTs = 0
+                self.onLiveStateChanged?(false)
+            }
+            return
+        }
+
         let url = URL(string: "\(APIConfig.baseURL)/api/heartbeat")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -558,7 +621,7 @@ class LicenseManager: ObservableObject {
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         request.timeoutInterval = 8
 
-        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+        SecurityShield.secureSession.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
             guard error == nil, let data = data,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
@@ -640,7 +703,7 @@ class LicenseManager: ObservableObject {
         var request = URLRequest(url: url)
         request.timeoutInterval = 10
 
-        URLSession.shared.dataTask(with: request) { data, _, _ in
+        SecurityShield.secureSession.dataTask(with: request) { data, _, _ in
             guard let data = data,
                   let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
                   let ok = json["ok"] as? Bool else {
@@ -1808,7 +1871,7 @@ struct ContentView: View {
                     self.isInjecting = false
                 }
 
-                URLSession.shared.dataTask(with: request) { data, response, error in
+                SecurityShield.secureSession.dataTask(with: request) { data, response, error in
                     DispatchQueue.main.async {
                         if let data = data, let http = response as? HTTPURLResponse, http.statusCode == 200 {
                             writePatchData(data)
