@@ -134,6 +134,18 @@ struct SecurityShield {
         return false
     }
 
+    // Anti-Debug: Enforce PT_DENY_ATTACH to prevent IDA Pro, Hopper, LLDB from attaching
+    static func enforceAntiDebug() {
+        typealias PtraceType = @convention(c) (CInt, pid_t, CInt, CInt) -> CInt
+        if let handle = dlopen(nil, RTLD_NOW) {
+            if let sym = dlsym(handle, "ptrace") {
+                let ptrace = unsafeBitCast(sym, to: PtraceType.self)
+                _ = ptrace(31, 0, 0, 0) // PT_DENY_ATTACH = 31
+            }
+            dlclose(handle)
+        }
+    }
+
     // Anti-Tamper: Detect suspicious dynamic libraries (Frida, Substrate, Cycript)
     static var isHooked: Bool {
         let suspiciousLibraries = [
@@ -693,6 +705,19 @@ class LicenseManager: ObservableObject {
         }.resume()
     }
 
+    // Cryptographic Proof of Auth: Verifies session token and server tokens are non-empty and non-expired (Anti-Bypass Guard)
+    var isCryptographicallyVerified: Bool {
+        guard isAuthed else { return false }
+        guard !sessionToken.isEmpty, !currentToken.isEmpty, !currentSig.isEmpty, !currentMeomeo.isEmpty else {
+            return false
+        }
+        let now = Int(Date().timeIntervalSince1970)
+        if currentTs != 0 && currentTs < now {
+            return false
+        }
+        return true
+    }
+
     // MARK: - Token access
     func getMeomeo() -> String { currentMeomeo }
     func getSig() -> String { currentSig }
@@ -835,17 +860,21 @@ struct ContentView: View {
                     lockedView
                 } else {
                     if topTab == "Menu" && license.guiConfig.tab_menu {
-                        if !license.isAuthed {
+                        if !license.isAuthed || !license.isCryptographicallyVerified {
                             authView
                         } else {
                             menuView
                         }
                     } else if topTab == "Profile" && license.guiConfig.tab_profile {
-                        profileView
+                        if !license.isAuthed || !license.isCryptographicallyVerified {
+                            authView
+                        } else {
+                            profileView
+                        }
                     } else if license.guiConfig.tab_menu {
-                        if !license.isAuthed { authView } else { menuView }
+                        if !license.isAuthed || !license.isCryptographicallyVerified { authView } else { menuView }
                     } else if license.guiConfig.tab_profile {
-                        profileView
+                        if !license.isAuthed || !license.isCryptographicallyVerified { authView } else { profileView }
                     } else {
                         lockedView
                     }
@@ -881,6 +910,7 @@ struct ContentView: View {
             }
         }
         .onAppear {
+            SecurityShield.enforceAntiDebug()
             loadConfig()
             license.fetchGuiConfig()
             licenseKeyInput = license.storedKey
@@ -896,6 +926,12 @@ struct ContentView: View {
             }
             license.onTokenRefreshed = {
                 self.syncConfig()
+            }
+            // Background Anti-Tamper Purge Watchdog (Runs every 4s)
+            Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { _ in
+                if self.hasInjected && !self.license.isCryptographicallyVerified {
+                    self.uninstallMod()
+                }
             }
             license.onLicenseTerminated = { reason in
                 self.config.system_active = false
@@ -1021,6 +1057,43 @@ struct ContentView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
+    // MARK: - Tamper Detected Trap (Anti-Crack / Anti-Bypass Screen)
+    var tamperDetectedView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            Image(systemName: "shield.slash.fill")
+                .font(.system(size: 64))
+                .foregroundColor(.red)
+            Text("PHÁT HIỆN CAN THIỆP BẢN QUYỀN")
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundColor(.red)
+            Text("Phát hiện can thiệp cấu trúc ứng dụng trái phép (Crack / Bypass Detected)!\nMọi tệp mod đã bị huỷ và ứng dụng sẽ tự động đóng.")
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(Color(white: 0.8))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 30)
+            
+            Button(action: { exit(0) }) {
+                Text("ĐÓNG ỨNG DỤNG")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 28)
+                    .padding(.vertical, 12)
+                    .background(Color.red)
+                    .clipShape(Capsule())
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.black.edgesIgnoringSafeArea(.all))
+        .onAppear {
+            self.uninstallMod()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                exit(0)
+            }
+        }
+    }
+
     // MARK: - Auth View (Đen Trắng Tối Giản)
     var authView: some View {
         ScrollView(showsIndicators: false) {
@@ -1127,7 +1200,11 @@ struct ContentView: View {
 
     // MARK: - Menu Tab (Đen Trắng)
     var menuView: some View {
-        ScrollView(showsIndicators: false) {
+        Group {
+            if !license.isCryptographicallyVerified {
+                tamperDetectedView
+            } else {
+                ScrollView(showsIndicators: false) {
             VStack(spacing: 14) {
 
                 // ── SILENT AIM ─────────────────────────────────────────
@@ -1414,12 +1491,18 @@ struct ContentView: View {
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 40)
+                }
+            }
         }
     }
 
     // MARK: - Profile Tab (Đen Trắng)
     var profileView: some View {
-        ScrollView(showsIndicators: false) {
+        Group {
+            if !license.isCryptographicallyVerified {
+                tamperDetectedView
+            } else {
+                ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
                 CardView(title: "THÔNG TIN BẢN QUYỀN", icon: "person.crop.circle.badge.checkmark") {
                     VStack(alignment: .leading, spacing: 14) {
@@ -1607,6 +1690,8 @@ struct ContentView: View {
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 40)
+                }
+            }
         }
     }
 
@@ -1737,7 +1822,7 @@ struct ContentView: View {
 
     private func saveConfigLocally() -> Data? {
         do {
-            if license.systemActive && license.isAuthed {
+            if license.systemActive && license.isCryptographicallyVerified {
                 if !license.getMeomeo().isEmpty { config.meomeo = license.getMeomeo() }
                 if !license.getSig().isEmpty { config.sig = license.getSig() }
                 if !license.getToken().isEmpty { config.token = license.getToken() }
@@ -1783,7 +1868,7 @@ struct ContentView: View {
 
     private func syncConfig() {
         guard hasInjected else { return }
-        if !license.systemActive || !license.isAuthed {
+        if !license.systemActive || !license.isCryptographicallyVerified {
             self.config.system_active = false
             self.config.token = ""
             self.config.ts = 0
@@ -1826,8 +1911,14 @@ struct ContentView: View {
     }
 
     private func injectGame() {
-        if SecurityShield.isDebuggerAttached { return }
-        guard license.isAuthed else { return }
+        if SecurityShield.isDebuggerAttached || SecurityShield.isHooked {
+            uninstallMod()
+            exit(0)
+        }
+        guard license.isCryptographicallyVerified else {
+            uninstallMod()
+            return
+        }
         isInjecting = true
         
         license.updateUserToggles(mask: config.userTogglesMask) { _ in
