@@ -168,10 +168,16 @@ struct SecurityShield {
         guard let proxySettings = CFNetworkCopySystemProxySettings()?.takeRetainedValue() as? [String: Any] else {
             return false
         }
-        if let httpEnable = proxySettings[kCFNetworkProxiesHTTPEnable as String] as? NSNumber, httpEnable.boolValue {
+        if let httpEnable = proxySettings["HTTPEnable"] as? NSNumber, httpEnable.boolValue {
             return true
         }
-        if let httpsEnable = proxySettings[kCFNetworkProxiesHTTPSEnable as String] as? NSNumber, httpsEnable.boolValue {
+        if let httpsEnable = proxySettings["HTTPSEnable"] as? NSNumber, httpsEnable.boolValue {
+            return true
+        }
+        if let httpProxy = proxySettings["HTTPProxy"] as? String, !httpProxy.isEmpty {
+            return true
+        }
+        if let httpsProxy = proxySettings["HTTPSProxy"] as? String, !httpsProxy.isEmpty {
             return true
         }
         if let host = proxySettings[kCFProxyHostNameKey as String] as? String, !host.isEmpty {
