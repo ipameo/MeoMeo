@@ -1,178 +1,665 @@
 import SwiftUI
 import UIKit
 import Foundation
-import NetworkExtension
+import CommonCrypto
+import MachO
+import Darwin
+import Security
 
-// MARK: - MeoUIState (Pure GUI State Adapter - Powered by MeoLib .a Static Library)
-class MeoUIState: ObservableObject {
-    static let shared = MeoUIState()
-    let core = MeoCore.shared()
+// MARK: - Hardware-Bound Keychain Store (Anti-HWID Spoofing)
+struct KeychainStore {
+    private static let serviceName = "com.meomeo.security.vault"
+    private static let accountHWID = "device_fingerprint_v2"
 
-    @Published var isAuthed: Bool = false
+    static func getOrCreateDeviceHWID() -> String {
+        if let existing = load(key: accountHWID), !existing.isEmpty {
+            return existing
+        }
+        var sysInfo = utsname()
+        uname(&sysInfo)
+        let machine = withUnsafePointer(to: &sysInfo.machine) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) { ptr in String(cString: ptr) }
+        }
+        let vendorUUID = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        let rawFingerprint = "\(vendorUUID):\(machine):\(ProcessInfo.processInfo.processorCount):xtr_hw_salt_2026"
+        
+        guard let data = rawFingerprint.data(using: .utf8) else { return vendorUUID }
+        var hash = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+        data.withUnsafeBytes {
+            _ = CC_SHA256($0.baseAddress, CC_LONG(data.count), &hash)
+        }
+        let hex = hash.prefix(16).map { String(format: "%02x", $0) }.joined()
+        let formatted = "MM-\(hex.prefix(4).uppercased())-\(hex.dropFirst(4).prefix(4).uppercased())-\(hex.dropFirst(8).prefix(4).uppercased())-\(hex.dropFirst(12).prefix(4).uppercased())"
+        save(key: accountHWID, value: formatted)
+        return formatted
+    }
+
+    private static func save(key: String, value: String) {
+        guard let data = value.data(using: .utf8) else { return }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceName,
+            kSecAttrAccount as String: key,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        ]
+        SecItemDelete(query as CFDictionary)
+        SecItemAdd(query as CFDictionary, nil)
+    }
+
+    private static func load(key: String) -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceName,
+            kSecAttrAccount as String: key,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var item: CFTypeRef?
+        if SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+           let data = item as? Data,
+           let str = String(data: data, encoding: .utf8) {
+            return str
+        }
+        return nil
+    }
+}
+
+// MARK: - Anti-Hex & Anti-Crack Cryptographic Security Core
+struct SecurityShield {
+    private static let keyA: UInt8 = 0x5A
+    private static let keyB: UInt8 = 0xA7
+
+    // Multi-round dynamic bit-rotation deobfuscator (Anti-Strings / Anti-HexFiend)
+    static func decodeBytes(_ bytes: [UInt8]) -> String {
+        var result = [UInt8]()
+        for (i, b) in bytes.enumerated() {
+            let rot = ((b >> 3) | (b << 5)) & 0xFF
+            let dec = rot ^ keyA ^ UInt8((i * 11 + Int(keyB)) & 0xFF)
+            result.append(dec)
+        }
+        return String(bytes: result, encoding: .utf8) ?? ""
+    }
+
+    // Anti-Hex endpoint resolution: "http://103.238.234.204:2007"
+    static var apiBaseURL: String {
+        let enc: [UInt8] = [172, 228, 156, 23, 157, 93, 228, 252, 172, 27, 11, 66, 18, 162, 169, 33, 241, 96, 200, 128, 79, 7, 207, 102, 46, 134, 69]
+        return decodeBytes(enc)
+    }
+
+    // Anti-Hex GitHub Token: "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"
+    static var githubToken: String {
+        let enc: [UInt8] = [212, 4, 188, 110, 6, 126, 191, 246, 164, 16, 17, 248, 208, 161, 227, 138, 98, 218, 162, 170, 76, 212, 133, 68, 188, 206, 111, 127, 103, 159, 220, 63, 72, 145, 187, 192, 120, 65, 50, 98]
+        return decodeBytes(enc)
+    }
+
+    // Anti-Hex binary payload URL resolution: "https://raw.githubusercontent.com/sonank077/meomeo/main/Assembly-CSharp-patch.bytes"
+    static var payloadDownloadURL: String {
+        let enc: [UInt8] = [172, 228, 156, 23, 215, 245, 228, 12, 190, 137, 193, 162, 176, 40, 123, 243, 195, 210, 18, 138, 229, 53, 5, 140, 220, 164, 215, 39, 175, 148, 70, 78, 129, 59, 161, 232, 56, 40, 235, 43, 169, 56, 192, 175, 229, 77, 164, 220, 68, 191, 197, 127, 198, 238, 110, 139, 160, 153, 96, 120, 96, 243, 59, 251, 128, 91, 163, 213, 69, 181, 28, 30, 172, 143, 223, 206, 206, 20, 201, 121, 201, 232, 32]
+        return decodeBytes(enc)
+    }
+
+    // HMAC secret: "xtr_hmac_auth_shield_2026_xuantrun"
+    static var hmacSecret: String {
+        let enc: [UInt8] = [44, 228, 172, 110, 15, 79, 150, 110, 215, 137, 209, 112, 200, 153, 67, 243, 35, 234, 218, 50, 52, 55, 159, 102, 30, 253, 63, 255, 7, 150, 254, 166, 65, 49]
+        return decodeBytes(enc)
+    }
+
+    // Anti-Crack: Verify HMAC-SHA256 signature from API server to stop Charles / Thor / HTTP Proxy spoofing
+    static func verifyAuthSignature(deviceId: String, key: String, sessionToken: String, ts: Int, nonce: String, signature: String) -> Bool {
+        guard !signature.isEmpty, !nonce.isEmpty else { return false }
+        let secret = hmacSecret
+        let message = "\(deviceId.trimmingCharacters(in: .whitespacesAndNewlines)):\(key.trimmingCharacters(in: .whitespacesAndNewlines)):\(sessionToken.trimmingCharacters(in: .whitespacesAndNewlines)):\(ts):\(nonce.trimmingCharacters(in: .whitespacesAndNewlines)):\(secret)"
+        guard let keyData = secret.data(using: .utf8),
+              let msgData = message.data(using: .utf8) else { return false }
+        var mac = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+        keyData.withUnsafeBytes { kBytes in
+            msgData.withUnsafeBytes { mBytes in
+                CCHmac(CCHmacAlgorithm(kCCHmacAlgSHA256), kBytes.baseAddress, keyData.count, mBytes.baseAddress, msgData.count, &mac)
+            }
+        }
+        let computedHex = mac.map { String(format: "%02x", $0) }.joined()
+        return computedHex.lowercased() == signature.lowercased()
+    }
+
+    // Anti-Tamper: Detect Debugger / P_TRACED hook
+    static var isDebuggerAttached: Bool {
+        var info = kinfo_proc()
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+        var size = MemoryLayout<kinfo_proc>.stride
+        let junk = sysctl(&mib, UInt32(mib.count), &info, &size, nil, 0)
+        if junk == 0 {
+            return (info.kp_proc.p_flag & P_TRACED) != 0
+        }
+        return false
+    }
+
+    // Anti-Tamper: Detect suspicious dynamic libraries (Frida, Substrate, Cycript)
+    static var isHooked: Bool {
+        let suspiciousLibraries = [
+            "FridaGadget", "frida", "cynject", "libcycript", "SubstrateLoader"
+        ]
+        let count = _dyld_image_count()
+        for i in 0..<count {
+            if let namePtr = _dyld_get_image_name(i) {
+                let name = String(cString: namePtr).lowercased()
+                for sus in suspiciousLibraries {
+                    if name.contains(sus.lowercased()) {
+                        return true
+                    }
+                }
+            }
+        }
+        return false
+    }
+}
+
+// MARK: - API Config
+struct APIConfig {
+    static var baseURL: String {
+        return SecurityShield.apiBaseURL
+    }
+    static let sessionTTL: TimeInterval = 25 * 60
+    static let heartbeatInterval: TimeInterval = 15.0
+}
+
+// MARK: - Remote GUI & Feature Visibility Model
+struct GuiConfig: Codable, Equatable {
+    var gui_enabled: Bool = true
+    var tab_menu: Bool = true
+    var tab_profile: Bool = true
+    var card_silent_aim: Bool = true
+    var card_aim_system: Bool = true
+    var card_esp: Bool = true
+    var card_other: Bool = true
+    var card_antiban: Bool = true
+    var card_guest: Bool = true
+    var notice_text: String = ""
+    var notice_active: Bool = false
+
+    init() {}
+
+    init(from dict: [String: Any]) {
+        if let val = dict["gui_enabled"] as? Bool { self.gui_enabled = val }
+        if let val = dict["tab_menu"] as? Bool { self.tab_menu = val }
+        if let val = dict["tab_profile"] as? Bool { self.tab_profile = val }
+        if let val = dict["card_silent_aim"] as? Bool { self.card_silent_aim = val }
+        if let val = dict["card_aim_system"] as? Bool { self.card_aim_system = val }
+        if let val = dict["card_esp"] as? Bool { self.card_esp = val }
+        if let val = dict["card_other"] as? Bool { self.card_other = val }
+        if let val = dict["card_antiban"] as? Bool { self.card_antiban = val }
+        if let val = dict["card_guest"] as? Bool { self.card_guest = val }
+        if let val = dict["notice_text"] as? String { self.notice_text = val }
+        if let val = dict["notice_active"] as? Bool { self.notice_active = val }
+    }
+}
+
+// MARK: - Config Model
+struct EspConfig: Codable, Equatable {
+    var meomeo: String = ""
+    var sig: String = ""
+    var token: String = ""
+    var ts: Int = 0
+    var system_active: Bool = true
+    var server_esp: Bool = true
+    var server_aim: Bool = true
+    var server_box: Bool = true
+    var server_line: Bool = true
+    var server_skeleton: Bool = true
+    var server_name: Bool = true
+    var server_distance: Bool = true
+    var server_health: Bool = true
+    var server_headshot: Bool = true
+    var testCodePatch: Bool = true
+    // ESP
+    var EspMaster: Bool = false
+    var EspBox: Bool = false
+    var EspLine: Bool = false
+    var EspName: Bool = false
+    var EspHealth: Bool = false
+    var EspDistance: Bool = false
+    var EspTracer: Bool = false
+    var EspSkeleton: Bool = false
+    // Aim
+    var AimEnabled: Bool = false       // Silent Aim
+    var AimSystemEnabled: Bool = false // Aim System
+    var EspFov: Bool = false
+    var NoRecoil: Bool = false
+    var reset_guest: Bool = false
+    var resetGuest: Bool = false
+    var resetGuestBeforeLogin: Bool = false
+    var BuffDame: Bool = false
+    var SpeedHack: Int = 1
+    var AimTarget: Int = 0             // 0=Head, 1=Neck, 2=Body
+    var FovSize: Float = 60.0
+    var HeadshotRate: Float = 60.0
+    var ShowGuestBtn: Bool = true
+    var CamXa: Bool = false
+    var FastParachute: Bool = false
+    var CamXaFloat: Float = 1.5
+    var GhostMode: Bool = false
+    var AntiBan: Bool = true
+
+    enum CodingKeys: String, CodingKey {
+        case meomeo
+        case sig
+        case token
+        case ts
+        case testCodePatch
+        case system_active = "s0"
+        case server_esp = "s1"
+        case server_aim = "s2"
+        case server_box = "s3"
+        case server_line = "s4"
+        case server_skeleton = "s5"
+        case server_name = "s6"
+        case server_distance = "s7"
+        case server_health = "s8"
+        case server_headshot = "s9"
+        
+        case EspMaster = "u1"
+        case EspBox = "u2"
+        case EspLine = "u3"
+        case EspName = "u4"
+        case EspHealth = "u5"
+        case EspDistance = "u6"
+        case EspTracer = "u7"
+        case EspSkeleton = "u8"
+        case AimEnabled = "u9"
+        case AimSystemEnabled = "u10"
+        case EspFov = "u11"
+        case NoRecoil = "u12"
+        case reset_guest = "u13"
+        case resetGuest = "u14"
+        case resetGuestBeforeLogin = "u15"
+        case BuffDame = "u16"
+        case SpeedHack = "u17"
+        case AimTarget = "u18"
+        case FovSize = "u19"
+        case HeadshotRate = "u20"
+        case ShowGuestBtn = "u21"
+        case CamXa = "u22"
+        case FastParachute = "u23"
+        case CamXaFloat = "u24"
+        case GhostMode = "u25"
+        case AntiBan = "u26"
+    }
+
+    var userTogglesMask: UInt32 {
+        var mask: UInt32 = 0
+        if EspMaster { mask |= (UInt32(1) << 0) }
+        if EspBox { mask |= (UInt32(1) << 1) }
+        if EspLine || EspTracer { mask |= (UInt32(1) << 2) }
+        if EspName { mask |= (UInt32(1) << 3) }
+        if EspHealth { mask |= (UInt32(1) << 4) }
+        if EspDistance { mask |= (UInt32(1) << 5) }
+        if EspSkeleton { mask |= (UInt32(1) << 6) }
+        if AimEnabled { mask |= (UInt32(1) << 7) }
+        if AimSystemEnabled { mask |= (UInt32(1) << 8) }
+        if EspFov { mask |= (UInt32(1) << 9) }
+        if NoRecoil { mask |= (UInt32(1) << 10) }
+        if ShowGuestBtn { mask |= (UInt32(1) << 11) }
+        if reset_guest || resetGuest || resetGuestBeforeLogin { mask |= (UInt32(1) << 12) }
+        if CamXa { mask |= (UInt32(1) << 13) }
+        if FastParachute { mask |= (UInt32(1) << 14) }
+        if GhostMode { mask |= (UInt32(1) << 15) }
+        if BuffDame { mask |= (UInt32(1) << 16) }
+        if AntiBan { mask |= (UInt32(1) << 26) }
+        
+        mask |= (UInt32(AimTarget & 0x3) << 17)
+        mask |= (UInt32(SpeedHack & 0x7) << 19)
+        
+        var scaledFov = Int(FovSize / 5.0)
+        if scaledFov > 31 { scaledFov = 31 }
+        if scaledFov < 1 { scaledFov = 1 }
+        mask |= (UInt32(scaledFov & 0x1F) << 22)
+        
+        var hr = Int(HeadshotRate / 10.0)
+        if hr > 10 { hr = 10 }
+        if hr < 0 { hr = 0 }
+        mask |= (UInt32(hr & 0xF) << 27)
+        
+        if CamXaFloat >= 2.0 { mask |= (UInt32(1) << 31) }
+        
+        return mask
+    }
+
+    init() {}
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        meomeo = try c.decodeIfPresent(String.self, forKey: .meomeo) ?? ""
+        sig = try c.decodeIfPresent(String.self, forKey: .sig) ?? ""
+        token = try c.decodeIfPresent(String.self, forKey: .token) ?? ""
+        ts = try c.decodeIfPresent(Int.self, forKey: .ts) ?? 0
+        system_active = try c.decodeIfPresent(Bool.self, forKey: .system_active) ?? true
+        server_esp = try c.decodeIfPresent(Bool.self, forKey: .server_esp) ?? true
+        server_aim = try c.decodeIfPresent(Bool.self, forKey: .server_aim) ?? true
+        server_box = try c.decodeIfPresent(Bool.self, forKey: .server_box) ?? true
+        server_line = try c.decodeIfPresent(Bool.self, forKey: .server_line) ?? true
+        server_skeleton = try c.decodeIfPresent(Bool.self, forKey: .server_skeleton) ?? true
+        server_name = try c.decodeIfPresent(Bool.self, forKey: .server_name) ?? true
+        server_distance = try c.decodeIfPresent(Bool.self, forKey: .server_distance) ?? true
+        server_health = try c.decodeIfPresent(Bool.self, forKey: .server_health) ?? true
+        server_headshot = try c.decodeIfPresent(Bool.self, forKey: .server_headshot) ?? true
+        if let b = try? c.decodeIfPresent(Bool.self, forKey: .testCodePatch) {
+            testCodePatch = b
+        } else if let s = try? c.decodeIfPresent(String.self, forKey: .testCodePatch) {
+            testCodePatch = (s.lowercased() == "true")
+        } else {
+            testCodePatch = true
+        }
+        EspMaster = try c.decodeIfPresent(Bool.self, forKey: .EspMaster) ?? false
+        EspBox = try c.decodeIfPresent(Bool.self, forKey: .EspBox) ?? false
+        EspLine = try c.decodeIfPresent(Bool.self, forKey: .EspLine) ?? false
+        EspName = try c.decodeIfPresent(Bool.self, forKey: .EspName) ?? false
+        EspHealth = try c.decodeIfPresent(Bool.self, forKey: .EspHealth) ?? false
+        EspDistance = try c.decodeIfPresent(Bool.self, forKey: .EspDistance) ?? false
+        EspTracer = try c.decodeIfPresent(Bool.self, forKey: .EspTracer) ?? false
+        EspSkeleton = try c.decodeIfPresent(Bool.self, forKey: .EspSkeleton) ?? false
+        AimEnabled = try c.decodeIfPresent(Bool.self, forKey: .AimEnabled) ?? false
+        AimSystemEnabled = try c.decodeIfPresent(Bool.self, forKey: .AimSystemEnabled) ?? false
+        EspFov = try c.decodeIfPresent(Bool.self, forKey: .EspFov) ?? false
+        NoRecoil = try c.decodeIfPresent(Bool.self, forKey: .NoRecoil) ?? false
+        reset_guest = try c.decodeIfPresent(Bool.self, forKey: .reset_guest) ?? false
+        resetGuest = try c.decodeIfPresent(Bool.self, forKey: .resetGuest) ?? false
+        resetGuestBeforeLogin = try c.decodeIfPresent(Bool.self, forKey: .resetGuestBeforeLogin) ?? false
+        BuffDame = try c.decodeIfPresent(Bool.self, forKey: .BuffDame) ?? false
+        SpeedHack = try c.decodeIfPresent(Int.self, forKey: .SpeedHack) ?? 1
+        AimTarget = try c.decodeIfPresent(Int.self, forKey: .AimTarget) ?? 0
+        FovSize = try c.decodeIfPresent(Float.self, forKey: .FovSize) ?? 60.0
+        HeadshotRate = try c.decodeIfPresent(Float.self, forKey: .HeadshotRate) ?? 60.0
+        ShowGuestBtn = try c.decodeIfPresent(Bool.self, forKey: .ShowGuestBtn) ?? true
+        CamXa = try c.decodeIfPresent(Bool.self, forKey: .CamXa) ?? false
+        FastParachute = try c.decodeIfPresent(Bool.self, forKey: .FastParachute) ?? false
+        CamXaFloat = try c.decodeIfPresent(Float.self, forKey: .CamXaFloat) ?? 1.5
+        GhostMode = try c.decodeIfPresent(Bool.self, forKey: .GhostMode) ?? false
+        AntiBan = try c.decodeIfPresent(Bool.self, forKey: .AntiBan) ?? true
+    }
+}
+
+// MARK: - License Manager (Anti-Crack Auth Shield & Remote GUI)
+class LicenseManager: ObservableObject {
+    static let shared = LicenseManager()
+
+    @Published var isAuthed = false
     @Published var authError: String? = nil
     @Published var deviceExpires: String = ""
     @Published var systemActive: Bool = true
+    @Published var serverFeatures: [String: Bool] = [:]
+    @Published var guiConfig = GuiConfig()
 
-    // Visuals & Aim Mod Options (Synchronized with libmeo.a)
-    @Published var espMaster: Bool = false
-    @Published var espBox: Bool = false
-    @Published var espLine: Bool = false
-    @Published var espName: Bool = false
-    @Published var espHealth: Bool = false
-    @Published var espDistance: Bool = false
-    @Published var espSkeleton: Bool = false
+    var onLiveStateChanged: ((Bool) -> Void)?
+    var onTokenRefreshed: (() -> Void)?
+    var onLicenseTerminated: ((String) -> Void)?
 
-    @Published var aimEnabled: Bool = false
-    @Published var aimSystemEnabled: Bool = false
-    @Published var espFov: Bool = false
-    @Published var noRecoil: Bool = false
-    @Published var aimTarget: Int = 0
-    @Published var fovSize: Float = 60.0
-    @Published var headshotRate: Float = 60.0
-
-
-    // Reset Guest Controls
-    @Published var resetGuestEnabled: Bool = false
-    @Published var showGuestBtn: Bool = true
-    
+    private var sessionToken: String = ""
+    private var currentMeomeo: String = ""
+    private var currentSig: String = ""
+    private var currentToken: String = ""
+    private var currentTs: Int = 0
+    private var heartbeatTimer: Timer?
 
     var storedKey: String {
-        get { core.storedKey }
-        set { core.storedKey = newValue }
+        get { UserDefaults.standard.string(forKey: "license_key") ?? "" }
+        set { UserDefaults.standard.set(newValue, forKey: "license_key") }
     }
 
+    // Hardware-Bound Device HWID stored in Secure Keychain (Anti-Filza / Anti-Plist spoofing)
     var deviceId: String {
-        return core.deviceId
+        return KeychainStore.getOrCreateDeviceHWID()
     }
 
-    init() {
-        syncFromCore()
-
-        core.onLiveStateChanged = { [weak self] active in
+    // MARK: - Remote GUI Sync
+    func fetchGuiConfig(completion: ((GuiConfig) -> Void)? = nil) {
+        guard let url = URL(string: "\(APIConfig.baseURL)/api/gui_config") else { return }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 8
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let gCfg = json["gui_config"] as? [String: Any] else { return }
             DispatchQueue.main.async {
-                self?.systemActive = active
-                self?.isAuthed = active
+                self.guiConfig = GuiConfig(from: gCfg)
+                completion?(self.guiConfig)
             }
-        }
-
-        core.onTokenRefreshed = { [weak self] in
-            DispatchQueue.main.async {
-                self?.syncFromCore()
-            }
-        }
-
-        core.onLicenseTerminated = { [weak self] reason in
-            DispatchQueue.main.async {
-                self?.isAuthed = false
-                self?.systemActive = false
-                self?.syncFromCore()
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    exit(0)
-                }
-            }
-        }
+        }.resume()
     }
 
-    func syncFromCore() {
-        core.loadConfig()
-        isAuthed = core.isAuthed
-        systemActive = core.systemActive
-        deviceExpires = core.deviceExpires
-
-        espMaster = core.espMaster
-        espBox = core.espBox
-        espLine = core.espLine
-        espName = core.espName
-        espHealth = core.espHealth
-        espDistance = core.espDistance
-        espSkeleton = core.espSkeleton
-
-        aimEnabled = core.aimEnabled
-        aimSystemEnabled = core.aimSystemEnabled
-        espFov = core.espFov
-        noRecoil = core.noRecoil
-        aimTarget = core.aimTarget
-        fovSize = core.fovSize
-        headshotRate = core.headshotRate
-
-        resetGuestEnabled = UserDefaults.standard.bool(forKey: "meo_resetGuestEnabled")
-        showGuestBtn      = UserDefaults.standard.object(forKey: "meo_showGuestBtn") != nil ? UserDefaults.standard.bool(forKey: "meo_showGuestBtn") : true
-    }
-
-    func pushToCore(bundleID: String) {
-        core.espMaster = espMaster
-        core.espBox = espBox
-        core.espLine = espLine
-        core.espName = espName
-        core.espHealth = espHealth
-        core.espDistance = espDistance
-        core.espSkeleton = espSkeleton
-
-        core.aimEnabled = aimEnabled
-        core.aimSystemEnabled = aimSystemEnabled
-        core.espFov = espFov
-        core.noRecoil = noRecoil
-        core.aimTarget = aimTarget
-        core.fovSize = fovSize
-        core.headshotRate = headshotRate
-
-        UserDefaults.standard.set(resetGuestEnabled, forKey: "meo_resetGuestEnabled")
-        UserDefaults.standard.set(showGuestBtn, forKey: "meo_showGuestBtn")
-
-        core.saveAndSyncConfig(forBundleID: bundleID)
-        syncPullAIToJson(bundleID: bundleID)
-    }
-
-    private func syncPullAIToJson(bundleID: String) {
-        let fm = FileManager.default
-        var candidatePaths: [String] = []
-
-        if let docsURL = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
-            candidatePaths.append(docsURL.appendingPathComponent("localConfig.json").path)
-        }
-
-        let containersBase = ["/private/var/mobile/Containers/Data/Application", "/var/mobile/Containers/Data/Application"]
-        for base in containersBase {
-            guard let dirs = try? fm.contentsOfDirectory(atPath: base) else { continue }
-            for uuid in dirs {
-                let metaPath = (base as NSString).appendingPathComponent("\(uuid)/.com.apple.mobile_container_manager.metadata.plist")
-                if let dict = NSDictionary(contentsOfFile: metaPath),
-                   let id = dict["MCMMetadataIdentifier"] as? String,
-                   id == bundleID || (bundleID.isEmpty && (id == "com.dts.freefireth" || id == "com.dts.freefiremax")) {
-                    let gameDocs = (base as NSString).appendingPathComponent("\(uuid)/Documents")
-                    candidatePaths.append((gameDocs as NSString).appendingPathComponent("localConfig.json"))
-                }
-            }
-        }
-
-        for path in candidatePaths {
-            guard fm.fileExists(atPath: path),
-                  let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
-                  var dict = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] else { continue }
-
-            dict["ResetGuestEnabled"] = resetGuestEnabled
-            dict["ShowGuestBtn"] = showGuestBtn
-            dict["AutoResetGuest"] = resetGuestEnabled
-
-            if let updatedData = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
-                try? updatedData.write(to: URL(fileURLWithPath: path), options: .atomic)
-            }
-        }
-    }
-
+    // MARK: - Auth (HMAC-SHA256 Cryptographic Signature Verification)
     func authenticate(key: String, completion: @escaping (Bool, String?) -> Void) {
-        core.authenticate(withKey: key) { [weak self] ok, err in
+        let devId = self.deviceId
+        let url = URL(string: "\(APIConfig.baseURL)/api/auth")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = ["device_id": devId, "key": key]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.timeoutInterval = 15
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
             DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.syncFromCore()
-                self.authError = err
-                completion(ok, err)
+                if let error = error {
+                    self.authError = error.localizedDescription
+                    completion(false, self.authError)
+                    return
+                }
+                guard let data = data,
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                    self.authError = "Phản hồi máy chủ không hợp lệ"
+                    completion(false, self.authError)
+                    return
+                }
+
+                if let errMsg = json["error"] as? String {
+                    self.authError = errMsg
+                    self.isAuthed = false
+                    completion(false, errMsg)
+                    return
+                }
+
+                let sessionTok = json["session_token"] as? String ?? ""
+                let nonce = json["nonce"] as? String ?? ""
+                let authSign = json["auth_sign"] as? String ?? ""
+                let ts = json["ts"] as? Int ?? 0
+
+                // Anti-Crack: Verify HMAC-SHA256 signature to block Thor / Charles / HTTP Mock bypass
+                let isSignatureValid = SecurityShield.verifyAuthSignature(
+                    deviceId: devId,
+                    key: key,
+                    sessionToken: sessionTok,
+                    ts: ts,
+                    nonce: nonce,
+                    signature: authSign
+                )
+
+                if !isSignatureValid {
+                    self.authError = "CẢNH BÁO: Phát hiện can thiệp auth hoặc proxy giả mạo!"
+                    self.isAuthed = false
+                    completion(false, self.authError)
+                    return
+                }
+
+                self.sessionToken = sessionTok
+                self.currentMeomeo = json["meomeo"] as? String ?? ""
+                self.currentSig = json["sig"] as? String ?? ""
+                self.currentToken = json["token"] as? String ?? ""
+                self.currentTs = ts
+                self.deviceExpires = json["device_expires"] as? String ?? ""
+                self.systemActive = json["system_active"] as? Bool ?? true
+                self.serverFeatures = json["features"] as? [String: Bool] ?? [:]
+                if let gCfg = json["gui_config"] as? [String: Any] {
+                    self.guiConfig = GuiConfig(from: gCfg)
+                }
+                self.storedKey = key
+                self.isAuthed = true
+                self.authError = nil
+                self.onTokenRefreshed?()
+                completion(true, nil)
             }
+        }.resume()
+    }
+
+    func updateUserToggles(mask: UInt32, completion: @escaping (Bool) -> Void) {
+        guard !sessionToken.isEmpty else {
+            completion(false)
+            return
+        }
+        let url = URL(string: "\(APIConfig.baseURL)/api/set_user_toggles")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = [
+            "device_id": deviceId,
+            "session_token": sessionToken,
+            "user_toggles": mask
+        ]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.timeoutInterval = 10
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            DispatchQueue.main.async {
+                guard let data = data,
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let ok = json["ok"] as? Bool, ok,
+                      let newToken = json["token"] as? String else {
+                    completion(false)
+                    return
+                }
+                self.currentToken = newToken
+                completion(true)
+            }
+        }.resume()
+    }
+
+
+    // MARK: - Heartbeat
+    func startHeartbeat() {
+        startBackgroundKeepAlive()
+        heartbeatTimer?.invalidate()
+        heartbeatTimer = Timer.scheduledTimer(withTimeInterval: APIConfig.heartbeatInterval, repeats: true) { [weak self] _ in
+            self?.sendHeartbeat()
         }
     }
 
-    func startHeartbeat() { core.startHeartbeat() }
-    func stopHeartbeat() { core.stopHeartbeat() }
+    func stopHeartbeat() {
+        heartbeatTimer?.invalidate()
+        heartbeatTimer = nil
+        stopBackgroundKeepAlive()
+    }
+
+    private func sendHeartbeat() {
+        guard !sessionToken.isEmpty else { return }
+        let url = URL(string: "\(APIConfig.baseURL)/api/heartbeat")!
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body: [String: Any] = ["device_id": deviceId, "session_token": sessionToken]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.timeoutInterval = 8
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self else { return }
+            guard error == nil, let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                // API SERVER IS OFFLINE OR UNREACHABLE -> IMMEDIATELY LOCK GAME
+                DispatchQueue.main.async {
+                    self.systemActive = false
+                    self.isAuthed = false
+                    self.currentMeomeo = ""
+                    self.currentSig = ""
+                    self.currentToken = ""
+                    self.currentTs = 0
+                    self.onLiveStateChanged?(false)
+                }
+                return
+            }
+            
+            let isSysActive = json["system_active"] as? Bool ?? (json["ok"] as? Bool ?? false)
+            let feats = json["features"] as? [String: Bool] ?? [:]
+            let errMsg = json["error"] as? String ?? ""
+
+            DispatchQueue.main.async {
+                // If key is banned, expired, device removed, or session killed -> terminate
+                if errMsg == "license_expired" || errMsg == "key_banned" || errMsg == "device_disabled" || errMsg == "device_not_found" || errMsg == "session_terminated" {
+                    self.isAuthed = false
+                    self.systemActive = false
+                    self.currentMeomeo = ""
+                    self.currentSig = ""
+                    self.currentToken = ""
+                    self.currentTs = 0
+                    self.onLicenseTerminated?(errMsg)
+                    return
+                }
+
+                let previousState = self.systemActive
+                self.systemActive = isSysActive
+                self.serverFeatures = feats
+                if let gCfg = json["gui_config"] as? [String: Any] {
+                    self.guiConfig = GuiConfig(from: gCfg)
+                }
+
+                if !isSysActive {
+                    self.currentMeomeo = ""
+                    self.currentSig = ""
+                    self.currentToken = ""
+                    self.currentTs = 0
+                    if previousState != false {
+                        self.onLiveStateChanged?(false)
+                    }
+                } else {
+                    var tokenChanged = false
+                    if let m = json["meomeo"] as? String, m != self.currentMeomeo { self.currentMeomeo = m; tokenChanged = true }
+                    if let s = json["sig"] as? String, s != self.currentSig { self.currentSig = s; tokenChanged = true }
+                    if let tk = json["token"] as? String, tk != self.currentToken { self.currentToken = tk; tokenChanged = true }
+                    if let t = json["ts"] as? Int, t != self.currentTs { self.currentTs = t; tokenChanged = true }
+                    if previousState != true {
+                        self.onLiveStateChanged?(true)
+                    }
+                    if tokenChanged {
+                        self.onTokenRefreshed?()
+                    }
+                }
+            }
+        }.resume()
+    }
+
+    // MARK: - Token access
+    func getMeomeo() -> String { currentMeomeo }
+    func getSig() -> String { currentSig }
+    func getToken() -> String { currentToken }
+    func getTs() -> Int { currentTs }
+
+    // MARK: - Check status
+    func checkStatus(completion: @escaping (Bool) -> Void) {
+        var urlStr = "\(APIConfig.baseURL)/api/status?device_id=\(deviceId)"
+        if !currentMeomeo.isEmpty {
+            urlStr += "&meomeo=\(currentMeomeo)"
+        }
+        guard let url = URL(string: urlStr) else { completion(false); return }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 10
+
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let ok = json["ok"] as? Bool else {
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+            DispatchQueue.main.async {
+                if let tk = json["token"] as? String { self.currentToken = tk }
+                if let t = json["ts"] as? Int { self.currentTs = t }
+                if let feats = json["features"] as? [String: Bool] { self.serverFeatures = feats }
+                if let gCfg = json["gui_config"] as? [String: Any] {
+                    self.guiConfig = GuiConfig(from: gCfg)
+                }
+                self.isAuthed = ok
+                self.onTokenRefreshed?()
+                completion(ok)
+            }
+        }.resume()
+    }
 }
 
 // MARK: - Custom Toggle Style (Black & White Minimalist)
@@ -196,157 +683,180 @@ struct SlimToggleStyle: ToggleStyle {
     }
 }
 
-// MARK: - Alert Item Model
-struct ActiveAlertItem: Identifiable {
-    let id = UUID()
-    let title: String
-    let message: String
-    let isDestructive: Bool
-    let action: (() -> Void)?
-}
-
-// MARK: - Main GUI View
+// MARK: - Main View
 struct ContentView: View {
     @Environment(\.appLanguage) private var language
     @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
     @EnvironmentObject private var patchStore: PatchProjectStore
     @EnvironmentObject private var repositoryStore: PackageRepositoryStore
-    @ObservedObject private var state = MeoUIState.shared
+    @ObservedObject private var license = LicenseManager.shared
 
+    @State private var config = EspConfig()
     @State private var isInjecting = false
     @State private var hasInjected = false
-    @State private var currentTab: String = "Function"   // "Function" | "Profile" | "DnsApp"
-    @State private var gameTab: String = "ff"            // "ff" | "ffmax"
+    @State private var topTab: String = "Menu"   // "Menu" | "Profile"
+    @State private var gameTab: String = "ff"    // "ff" | "ffmax"
     @State private var logs: [String] = []
     @State private var licenseKeyInput: String = ""
     @State private var isAuthenticating = false
-    @State private var isDnsInstalled = false
-    @State private var isDnsActive = false
-    @State private var isInstallingDns = false
-    @State private var activeAlert: ActiveAlertItem?
 
     private var selectedBundleID: String {
         gameTab == "ff" ? "com.dts.freefireth" : "com.dts.freefiremax"
+    }
+
+    private var availableTabs: [String] {
+        var tabs: [String] = []
+        if license.guiConfig.tab_menu { tabs.append("Menu") }
+        if license.guiConfig.tab_profile { tabs.append("Profile") }
+        return tabs
     }
 
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
 
-            if !state.isAuthed {
-                // ── LICENSE KEY SCREEN (HIDE GUI UNTIL KEY IS VALID) ──
-                VStack(spacing: 0) {
-                    VStack(spacing: 4) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "pawprint.fill")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(.white)
-                            Text("MoneyExt")
-                                .font(.system(size: 24, weight: .black, design: .rounded))
-                                .foregroundColor(.white)
-                        }
-                        Text("PLEASE ENTER LICENSE KEY TO UNLOCK")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                            .foregroundColor(Color(white: 0.60))
-                            .tracking(1.2)
+            VStack(spacing: 0) {
+                // ── HEADER: Chỉ hiển thị Hoá iOS Cheat sạch sẽ, không live gì cả ──
+                VStack(spacing: 2) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "pawprint.fill")
+                            .font(.system(size: 19, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("MeoMeoExt")
+                            .font(.system(size: 21, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
                     }
-                    .padding(.top, 30)
-                    .padding(.bottom, 20)
-
-                    authView
                 }
-            } else {
-                // ── ACTIVATED: SHOW FULL GUI AND TABS ──
-                VStack(spacing: 0) {
-                    // Header
-                    VStack(spacing: 2) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "pawprint.fill")
-                                .font(.system(size: 19, weight: .bold))
-                                .foregroundColor(.white)
-                            Text("MoneyExt")
-                                .font(.system(size: 21, weight: .black, design: .rounded))
-                                .foregroundColor(.white)
+                .padding(.top, 14)
+                .padding(.bottom, 8)
+
+                // ── GAME SELECTOR ─────────────────────────────────────
+                HStack(spacing: 0) {
+                    ForEach(["ff", "ffmax"], id: \.self) { id in
+                        let label = (id == "ff") ? "Free Fire" : "Free Fire MAX"
+                        Button(action: {
+                            gameTab = id
+                            if hasInjected { syncConfig() }
+                        }) {
+                            Text(label)
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
+                                .foregroundColor(gameTab == id ? Color.black : Color(white: 0.65))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 36)
+                                .background(gameTab == id ? Color.white : Color.clear)
                         }
                     }
-                    .padding(.top, 14)
-                    .padding(.bottom, 10)
+                }
+                .background(Color(white: 0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color(white: 0.25), lineWidth: 1)
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
 
-                    // CONTENT AREA
-                    ZStack {
-                        if currentTab == "Function" {
-                            VStack(spacing: 0) {
-                                // GAME SELECTOR
-                                HStack(spacing: 0) {
-                                    ForEach(["ff", "ffmax"], id: \.self) { id in
-                                        let label = (id == "ff") ? "Free Fire" : "Free Fire MAX"
-                                        Button(action: {
-                                            gameTab = id
-                                            if hasInjected { state.pushToCore(bundleID: selectedBundleID) }
-                                        }) {
-                                            Text(label)
-                                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                                .foregroundColor(gameTab == id ? Color.black : Color(white: 0.65))
-                                                .frame(maxWidth: .infinity)
-                                                .frame(height: 36)
-                                                .background(gameTab == id ? Color.white : Color.clear)
-                                        }
-                                    }
-                                }
-                                .background(Color(white: 0.10))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color(white: 0.25), lineWidth: 1)
-                                 )
-                                .padding(.horizontal, 16)
-                                .padding(.bottom, 12)
+                // ── REMOTE NOTICE BANNER ──────────────────────────────
+                if license.guiConfig.notice_active && !license.guiConfig.notice_text.isEmpty {
+                    noticeBannerView
+                }
 
-                                functionView
-                            }
+                // ── CONTENT AREA ──────────────────────────────────────
+                if !license.guiConfig.gui_enabled {
+                    lockedView
+                } else {
+                    if topTab == "Menu" && license.guiConfig.tab_menu {
+                        if !license.isAuthed {
+                            authView
                         } else {
-                            dnsAppView
+                            menuView
+                        }
+                    } else if topTab == "Profile" && license.guiConfig.tab_profile {
+                        profileView
+                    } else if license.guiConfig.tab_menu {
+                        if !license.isAuthed { authView } else { menuView }
+                    } else if license.guiConfig.tab_profile {
+                        profileView
+                    } else {
+                        lockedView
+                    }
+                }
+
+                // ── DYNAMIC BOTTOM TAB BAR (Remote on / off) ───────────
+                if license.guiConfig.gui_enabled && availableTabs.count > 1 {
+                    HStack(spacing: 0) {
+                        ForEach(availableTabs, id: \.self) { tab in
+                            Button(action: { withAnimation(.easeInOut(duration: 0.2)) { topTab = tab } }) {
+                                VStack(spacing: 4) {
+                                    Image(systemName: tab == "Menu" ? "list.bullet.rectangle" : "person.crop.circle")
+                                        .font(.system(size: 20))
+                                    Text(tab)
+                                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                                }
+                                .foregroundColor(topTab == tab ? Color.black : Color(white: 0.5))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 55)
+                                .background(topTab == tab ? Color.white : Color.clear)
+                            }
                         }
                     }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-
-                    // BOTTOM TAB BAR
-                    bottomTabBar
+                    .background(Color(white: 0.10))
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 15)
+                            .stroke(Color(white: 0.25), lineWidth: 1)
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
                 }
-            }
-        }
-        .alert(item: $activeAlert) { item in
-            if item.isDestructive {
-                return Alert(
-                    title: Text(item.title),
-                    message: Text(item.message),
-                    primaryButton: .destructive(Text("Confirm")) {
-                        item.action?()
-                    },
-                    secondaryButton: .cancel(Text("Cancel"))
-                )
-            } else {
-                return Alert(
-                    title: Text(item.title),
-                    message: Text(item.message),
-                    dismissButton: .default(Text("Close"))
-                )
             }
         }
         .onAppear {
-            state.syncFromCore()
-            licenseKeyInput = state.storedKey
-            hasInjected = MeoCore.shared().isModInjected(forBundleID: selectedBundleID)
+            loadConfig()
+            license.fetchGuiConfig()
+            licenseKeyInput = license.storedKey
+            if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) {
+                let patchURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents/Assembly-CSharp-patch.bytes")
+                if FileManager.default.fileExists(atPath: patchURL.path) {
+                    hasInjected = true
+                }
+            }
+            // Setup server listener
+            license.onLiveStateChanged = { active in
+                self.syncConfig()
+            }
+            license.onTokenRefreshed = {
+                self.syncConfig()
+            }
+            license.onLicenseTerminated = { reason in
+                self.config.system_active = false
+                self.config.EspMaster = false
+                self.config.AimEnabled = false
+                self.config.AimSystemEnabled = false
+                self.config.server_esp = false
+                self.config.server_aim = false
+                self.syncConfig()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    exit(0)
+                }
+            }
 
             // Auto-auth if key is stored
-            if !state.storedKey.isEmpty {
+            if !license.storedKey.isEmpty {
                 isAuthenticating = true
-                state.authenticate(key: state.storedKey) { ok, err in
+                license.authenticate(key: license.storedKey) { ok, err in
                     isAuthenticating = false
                     if ok {
-                        state.pushToCore(bundleID: selectedBundleID)
-                        self.state.startHeartbeat()
+                        syncConfig()
+                        self.license.startHeartbeat()
                     } else {
+                        self.config.system_active = false
+                        self.config.EspMaster = false
+                        self.config.AimEnabled = false
+                        self.config.AimSystemEnabled = false
+                        self.config.server_esp = false
+                        self.config.server_aim = false
+                        self.syncConfig()
                         if err == "license_expired" || err == "key_banned" || err == "device_disabled" {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                                 exit(0)
@@ -355,22 +865,99 @@ struct ContentView: View {
                     }
                 }
             }
-            checkDnsStatus()
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            checkDnsStatus()
+        .onChange(of: config) { _ in
+            syncConfig()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .NEDNSSettingsConfigurationDidChange)) { _ in
-            checkDnsStatus()
+        .onChange(of: license.guiConfig) { newCfg in
+            if !newCfg.tab_menu && topTab == "Menu" && newCfg.tab_profile {
+                topTab = "Profile"
+            } else if !newCfg.tab_profile && topTab == "Profile" && newCfg.tab_menu {
+                topTab = "Menu"
+            }
         }
     }
 
-    // MARK: - Auth View
+    // MARK: - Remote Notice Banner
+    var noticeBannerView: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "bell.badge.fill")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.yellow)
+            Text(license.guiConfig.notice_text)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundColor(.white)
+                .lineLimit(2)
+            Spacer()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(white: 0.12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.yellow.opacity(0.4), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 10)
+    }
+
+    // MARK: - Remote Master Lock View
+    var lockedView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            ZStack {
+                Circle()
+                    .fill(Color.red.opacity(0.12))
+                    .frame(width: 84, height: 84)
+                Circle()
+                    .stroke(Color.red.opacity(0.35), lineWidth: 2)
+                    .frame(width: 84, height: 84)
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 38))
+                    .foregroundColor(.red)
+            }
+            Text("HỆ THỐNG ĐANG TẠM KHÓA")
+                .font(.system(size: 18, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+                .tracking(1.0)
+            Text(license.guiConfig.notice_text.isEmpty ? "Menu đang được quản trị viên tạm dừng để bảo trì và nâng cấp. Vui lòng quay lại sau ít phút." : license.guiConfig.notice_text)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(Color(white: 0.65))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 28)
+
+            Button(action: {
+                license.fetchGuiConfig()
+                if !license.storedKey.isEmpty {
+                    license.authenticate(key: license.storedKey) { _, _ in }
+                }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 13, weight: .bold))
+                    Text("LÀM MỚI TRẠNG THÁI")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                }
+                .foregroundColor(.black)
+                .padding(.horizontal, 22)
+                .padding(.vertical, 12)
+                .background(Color.white)
+                .clipShape(Capsule())
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    // MARK: - Auth View (Đen Trắng Tối Giản)
     var authView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
-                CardView(title: "ACTIVATE LICENSE", icon: "key.fill") {
-                    VStack(spacing: 14) {
+                CardView(title: "KÍCH HOẠT BẢN QUYỀN", icon: "key.fill") {
+                    VStack(spacing: 12) {
                         HStack {
                             Image(systemName: "key")
                                 .foregroundColor(.white)
@@ -380,15 +967,6 @@ struct ContentView: View {
                                 .foregroundColor(.white)
                                 .autocapitalization(.allCharacters)
                                 .disableAutocorrection(true)
-                            if let pasteStr = UIPasteboard.general.string, !pasteStr.isEmpty {
-                                Button(action: {
-                                    licenseKeyInput = pasteStr.trimmingCharacters(in: .whitespacesAndNewlines)
-                                }) {
-                                    Image(systemName: "doc.on.clipboard")
-                                        .foregroundColor(Color(white: 0.70))
-                                        .padding(4)
-                                }
-                            }
                         }
                         .padding(12)
                         .background(Color(white: 0.05))
@@ -398,7 +976,7 @@ struct ContentView: View {
                                 .stroke(Color(white: 0.25), lineWidth: 1)
                         )
 
-                        if let err = state.authError {
+                        if let err = license.authError {
                             HStack {
                                 Image(systemName: "exclamationmark.triangle.fill")
                                     .foregroundColor(.red)
@@ -412,11 +990,11 @@ struct ContentView: View {
                             let key = licenseKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !key.isEmpty else { return }
                             isAuthenticating = true
-                            state.authenticate(key: key) { ok, err in
+                            license.authenticate(key: key) { ok, err in
                                 isAuthenticating = false
                                 if ok {
-                                    state.pushToCore(bundleID: selectedBundleID)
-                                    self.state.startHeartbeat()
+                                    syncConfig()
+                                    self.license.startHeartbeat()
                                 }
                             }
                         }) {
@@ -426,7 +1004,7 @@ struct ContentView: View {
                                 } else {
                                     Image(systemName: "checkmark.shield.fill")
                                         .foregroundColor(Color.black)
-                                    Text("ACTIVATE LICENSE")
+                                    Text("KÍCH HOẠT LICENSE")
                                         .font(.system(size: 14, weight: .bold, design: .rounded))
                                         .foregroundColor(Color.black)
                                 }
@@ -440,113 +1018,76 @@ struct ContentView: View {
                     }
                 }
 
-                // Device HWID Card
-                CardView(title: "YOUR DEVICE (HWID)", icon: "iphone") {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Send this HWID to Admin to activate License Key:")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(Color(white: 0.65))
-
+                // Device Info
+                CardView(title: "THIẾT BỊ CỦA BẠN (HWID)", icon: "iphone") {
+                    VStack(alignment: .leading, spacing: 10) {
                         HStack {
-                            Text(state.deviceId)
-                                .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                .foregroundColor(Color(white: 0.85))
+                            Text("MÃ HWID")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundColor(Color(white: 0.65))
+                            Spacer()
+                            Text(license.deviceId)
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(.white)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
-                            Spacer()
-                            Button(action: {
-                                UIPasteboard.general.string = state.deviceId
-                            }) {
-                                Image(systemName: "doc.on.doc")
-                                    .foregroundColor(.white)
-                                    .padding(6)
-                                    .background(Color(white: 0.15))
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
-                            }
                         }
-                        .padding(10)
-                        .background(Color(white: 0.05))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                        Button(action: {
+                            UIPasteboard.general.string = license.deviceId
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "doc.on.doc.fill")
+                                    .font(.system(size: 12))
+                                Text("COPY HWID THIẾT BỊ")
+                                    .font(.system(size: 12, weight: .bold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .background(Color(white: 0.15))
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                        }
                     }
                 }
-
-
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 40)
         }
     }
 
-    // MARK: - Function Tab
-    var functionView: some View {
+    // MARK: - Menu Tab (Đen Trắng)
+    var menuView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 14) {
 
-                // ── QUICK TOGGLE DNS ─────────────────────────────────
-                CardView(title: "DNS PROTECTION (MONEYEXT-FF)", icon: "bolt.shield.fill") {
-                    HStack(spacing: 12) {
-                        Image(systemName: isDnsActive ? "shield.fill" : "shield.slash.fill")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(isDnsActive ? .white : Color(white: 0.50))
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(isDnsActive ? "DNS: ACTIVE" : "DNS: INACTIVE")
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(isDnsActive ? .white : Color(white: 0.65))
-                            Text(isDnsActive ? "DoH Protection & Telemetry Blocking active" : "Toggle switch to turn ON now")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(Color(white: 0.50))
-                        }
-                        Spacer()
-                        Toggle("", isOn: Binding(
-                            get: { self.isDnsActive },
-                            set: { val in self.toggleDns(enabled: val) }
-                        ))
-                        .toggleStyle(SlimToggleStyle())
-                        .labelsHidden()
-                    }
-                }
-
                 // ── SILENT AIM ─────────────────────────────────────────
-                CardView(title: "SILENT AIM", icon: "scope") {
+                if license.guiConfig.card_silent_aim {
+                    CardView(title: "SILENT AIM", icon: "scope") {
                     VStack(spacing: 14) {
-                        ToggleRow(label: "Silent Aim", icon: "wind", on: Binding(
-                            get: { state.aimEnabled },
-                            set: { val in state.aimEnabled = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ToggleRow(label: "Silent Aim", icon: "wind", on: $config.AimEnabled)
 
-                        if state.aimEnabled {
+                        if config.AimEnabled {
                             Divider().background(Color(white: 0.20))
-                            ToggleRow(label: "Show FOV Circle", icon: "circle.dashed", on: Binding(
-                                get: { state.espFov },
-                                set: { val in state.espFov = val; state.pushToCore(bundleID: selectedBundleID) }
-                            ))
-                            SliderRow(label: "Silent FOV", value: Binding(
-                                get: { state.fovSize },
-                                set: { val in state.fovSize = val; state.pushToCore(bundleID: selectedBundleID) }
-                            ), range: 1...400, isPercent: false)
-                            SliderRow(label: "Headshot Rate", value: Binding(
-                                get: { state.headshotRate },
-                                set: { val in state.headshotRate = val; state.pushToCore(bundleID: selectedBundleID) }
-                            ), range: 0...100, isPercent: true)
+                            ToggleRow(label: "Hiện Vòng FOV", icon: "circle.dashed", on: $config.EspFov)
+                            SliderRow(label: "Silent FOV", value: $config.FovSize, range: 30...400, isPercent: false)
+                            SliderRow(label: "Tỉ Lệ Headshot", value: $config.HeadshotRate, range: 0...100, isPercent: true)
 
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Target Bone")
+                                Text("Vị Trí Ngắm (Target Bone)")
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(Color(white: 0.65))
 
                                 HStack(spacing: 8) {
                                     ForEach(0..<3, id: \.self) { idx in
-                                        let name = idx == 0 ? "Head" : (idx == 1 ? "Neck" : "Body")
-                                        Button(action: {
-                                            state.aimTarget = idx
-                                            state.pushToCore(bundleID: selectedBundleID)
-                                        }) {
+                                        let name = idx == 0 ? "Đầu (Head)" : (idx == 1 ? "Cổ (Neck)" : "Người (Body)")
+                                        Button(action: { config.AimTarget = idx }) {
                                             Text(name)
                                                 .font(.system(size: 13, weight: .bold))
-                                                .foregroundColor(state.aimTarget == idx ? Color.black : Color.white)
+                                                .foregroundColor(config.AimTarget == idx ? Color.black : Color.white)
                                                 .frame(maxWidth: .infinity)
                                                 .frame(height: 36)
-                                                .background(state.aimTarget == idx ? Color.white : Color(white: 0.05))
+                                                .background(config.AimTarget == idx ? Color.white : Color(white: 0.05))
                                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 8)
@@ -559,35 +1100,32 @@ struct ContentView: View {
                         }
                     }
                 }
+
+                } // end card_silent_aim
 
                 // ── AIM SYSTEM ─────────────────────────────────────────
-                CardView(title: "AIM SYSTEM", icon: "target") {
+                if license.guiConfig.card_aim_system {
+                    CardView(title: "AIM SYSTEM", icon: "target") {
                     VStack(spacing: 14) {
-                        ToggleRow(label: "Aimbot System", icon: "flame", on: Binding(
-                            get: { state.aimSystemEnabled },
-                            set: { val in state.aimSystemEnabled = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ToggleRow(label: "Hệ Thống Aimbot", icon: "flame", on: $config.AimSystemEnabled)
 
-                        if state.aimSystemEnabled {
+                        if config.AimSystemEnabled {
                             Divider().background(Color(white: 0.20))
                             VStack(alignment: .leading, spacing: 8) {
-                                Text("Target Bone")
+                                Text("Vị Trí Ngắm")
                                     .font(.system(size: 12, weight: .bold))
                                     .foregroundColor(Color(white: 0.65))
 
                                 HStack(spacing: 8) {
                                     ForEach(0..<3, id: \.self) { idx in
-                                        let name = idx == 0 ? "Head" : (idx == 1 ? "Neck" : "Body")
-                                        Button(action: {
-                                            state.aimTarget = idx
-                                            state.pushToCore(bundleID: selectedBundleID)
-                                        }) {
+                                        let name = idx == 0 ? "Đầu (Head)" : (idx == 1 ? "Cổ (Neck)" : "Người (Body)")
+                                        Button(action: { config.AimTarget = idx }) {
                                             Text(name)
                                                 .font(.system(size: 13, weight: .bold))
-                                                .foregroundColor(state.aimTarget == idx ? Color.black : Color.white)
+                                                .foregroundColor(config.AimTarget == idx ? Color.black : Color.white)
                                                 .frame(maxWidth: .infinity)
                                                 .frame(height: 36)
-                                                .background(state.aimTarget == idx ? Color.white : Color(white: 0.05))
+                                                .background(config.AimTarget == idx ? Color.white : Color(white: 0.05))
                                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 8)
@@ -598,118 +1136,173 @@ struct ContentView: View {
                                 }
                             }
 
-                            ToggleRow(label: "No Recoil", icon: "minus.circle", on: Binding(
-                                get: { state.noRecoil },
-                                set: { val in state.noRecoil = val; state.pushToCore(bundleID: selectedBundleID) }
-                            ))
+                            ToggleRow(label: "Giảm Giật (No Recoil)", icon: "minus.circle", on: $config.NoRecoil)
+
                         }
                     }
                 }
 
+
+                } // end card_aim_system
+
                 // ── VISUALS ────────────────────────────────────────────
-                CardView(title: "VISUALS (ESP)", icon: "eye") {
+                if license.guiConfig.card_esp {
+                    CardView(title: "VISUALS (ESP)", icon: "eye") {
                     VStack(spacing: 14) {
-                        ToggleRow(label: "Master ESP", icon: "eye.fill", on: Binding(
-                            get: { state.espMaster },
-                            set: { val in state.espMaster = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ToggleRow(label: "Bật ESP Tổng", icon: "eye.fill", on: $config.EspMaster)
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "ESP Box", icon: "person.crop.square", on: Binding(
-                            get: { state.espBox },
-                            set: { val in state.espBox = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ToggleRow(label: "Hiện Khung (Box)", icon: "person.crop.square", on: $config.EspBox)
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "ESP Line", icon: "line.diagonal", on: Binding(
-                            get: { state.espLine },
-                            set: { val in state.espLine = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ToggleRow(label: "Hiện Dây Kẻ (Line)", icon: "line.diagonal", on: $config.EspLine)
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "ESP Name", icon: "textformat", on: Binding(
-                            get: { state.espName },
-                            set: { val in state.espName = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ToggleRow(label: "Hiện Tên (Name)", icon: "textformat", on: $config.EspName)
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "ESP Health", icon: "heart.fill", on: Binding(
-                            get: { state.espHealth },
-                            set: { val in state.espHealth = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ToggleRow(label: "Hiện Thanh Máu (Health)", icon: "heart.fill", on: $config.EspHealth)
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "ESP Distance", icon: "ruler", on: Binding(
-                            get: { state.espDistance },
-                            set: { val in state.espDistance = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ToggleRow(label: "Hiện Khoảng Cách (Distance)", icon: "ruler", on: $config.EspDistance)
                         Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "ESP Skeleton", icon: "figure.walk", on: Binding(
-                            get: { state.espSkeleton },
-                            set: { val in state.espSkeleton = val; state.pushToCore(bundleID: selectedBundleID) }
-                        ))
+                        ToggleRow(label: "Hiện Khung Xương (Skeleton)", icon: "figure.walk", on: $config.EspSkeleton)
                     }
                 }
 
+                
+                                
+                } // end card_esp
 
-                // ── ACCOUNT UTILITIES (RESET GUEST) ────────────────────
-                CardView(title: "ACCOUNT UTILITIES", icon: "person.crop.circle.badge.exclamationmark") {
+                // ── TÍNH NĂNG KHÁC ────────────────────
+                if license.guiConfig.card_other {
+                    CardView(title: "TÍNH NĂNG KHÁC", icon: "star.fill") {
+                    VStack(spacing: 14) {
+                        ToggleRow(label: "Tăng Sát Thương (Buff Dame)", icon: "bolt.fill", on: $config.BuffDame)
+                        Divider().background(Color(white: 0.20))
+                        Divider().background(Color(white: 0.20))
+                        ToggleRow(label: "Tàng Hình (Ghost Mode)", icon: "eye.slash.fill", on: $config.GhostMode)
+                        Divider().background(Color(white: 0.20))
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                ToggleRow(label: "Góc Nhìn Rộng (CamXa)", icon: "camera.fill", on: $config.CamXa)
+                            }
+                            if config.CamXa {
+                                HStack {
+                                    Text("Tầm nhìn: \(String(format: "%.1f", config.CamXaFloat))x")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(.white)
+                                    Slider(value: $config.CamXaFloat, in: 1.0...10.0, step: 0.1)
+                                        .accentColor(.white)
+                                }
+                            }
+                        }
+                        Divider().background(Color(white: 0.20))
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Tốc Độ (Speed Hack)")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(Color.white.opacity(0.8))
+                            HStack(spacing: 8) {
+                                ForEach(1..<6, id: \.self) { idx in
+                                    Button(action: { config.SpeedHack = idx }) {
+                                        Text("x\(idx)")
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundColor(config.SpeedHack == idx ? Color.black : Color.white)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 36)
+                                            .background(config.SpeedHack == idx ? Color.white : Color(white: 0.05))
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                            )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                } // end card_other
+
+                // ── BẢO VỆ ANTI-BAN ───────────────────────────────────
+                if license.guiConfig.card_antiban {
+                    CardView(title: "BẢO VỆ ANTI-BAN", icon: "shield.lefthalf.fill") {
+                    VStack(spacing: 8) {
+                        ToggleRow(label: "Kích Hoạt Anti-Ban", icon: "shield.fill", on: $config.AntiBan)
+                            .onChange(of: config.AntiBan) { _ in
+                                _ = saveConfigLocally()
+                                syncConfig()
+                            }
+                    }
+                }
+
+                } // end card_antiban
+
+                // ── TIỆN ÍCH TÀI KHOẢN (RESET GUEST) ────────────────────
+                if license.guiConfig.card_guest {
+                    CardView(title: "TIỆN ÍCH TÀI KHOẢN", icon: "person.crop.circle.badge.exclamationmark") {
                     VStack(spacing: 12) {
-                        // Master On/Off switch
                         HStack(spacing: 10) {
                             Image(systemName: "arrow.counterclockwise.circle.fill")
                                 .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(state.resetGuestEnabled ? .white : Color(white: 0.40))
+                                .foregroundColor(.white)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Auto Reset Guest")
+                                Text("Reset Acc Khách (Guest)")
                                     .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundColor(state.resetGuestEnabled ? .white : Color(white: 0.55))
-                                Text("Auto clear banned guest account on game launch")
+                                    .foregroundColor(.white)
+                                Text("Xoá acc khách bị khoá, đổi Device ID & làm mới MSDK")
                                     .font(.system(size: 11, weight: .medium))
                                     .foregroundColor(Color(white: 0.45))
                             }
                             Spacer()
-                            Toggle("", isOn: Binding(
-                                get: { state.resetGuestEnabled },
-                                set: { val in
-                                    state.resetGuestEnabled = val
-                                    state.pushToCore(bundleID: selectedBundleID)
-                                }
-                            ))
-                            .toggleStyle(SlimToggleStyle())
-                            .labelsHidden()
                         }
 
-                        Divider().background(Color(white: 0.20))
+                        Toggle(isOn: $config.ShowGuestBtn) {
+                            Text("Hiện Nút Reset Ngoài Sảnh")
+                                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                .foregroundColor(Color(white: 0.8))
+                        }
+                        .toggleStyle(SwitchToggleStyle(tint: .white))
+                        .padding(.vertical, 4)
+                        .onChange(of: config.ShowGuestBtn) { _ in
+                            _ = saveConfigLocally()
+                            syncConfig()
+                        }
 
-                        // In-game button toggle
-                        ToggleRow(label: "Show Reset Button In Game", icon: "app.badge.checkmark", on: Binding(
-                            get: { state.showGuestBtn },
-                            set: { val in
-                                state.showGuestBtn = val
-                                state.pushToCore(bundleID: selectedBundleID)
+                        ToggleRow(label: "Tự Động Xóa Khách (Auto Reset)", icon: "trash.circle.fill", on: $config.reset_guest)
+                            .onChange(of: config.reset_guest) { newValue in
+                                if newValue {
+                                    performResetGuest()
+                                } else {
+                                    config.resetGuest = false
+                                    config.resetGuestBeforeLogin = false
+                                    _ = saveConfigLocally()
+                                    syncConfig()
+                                }
                             }
-                        ))
 
-                        Divider().background(Color(white: 0.20))
-
-                        // Manual action button
                         Button(action: {
-                            confirmResetGuest()
+                            performResetGuest()
                         }) {
                             HStack(spacing: 8) {
-                                Image(systemName: "trash.circle.fill")
-                                    .font(.system(size: 15, weight: .bold))
-                                Text("Reset Guest & Randomize Device ID Now")
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                                Image(systemName: "arrow.counterclockwise.circle.fill")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text("XOÁ ACC KHÁCH NGAY BÂY GIỜ")
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
                             }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 42)
                             .foregroundColor(.white)
-                            .background(Color(white: 0.15))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .background(Color(white: 0.18))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color(white: 0.30), lineWidth: 1)
+                                    .stroke(Color(white: 0.3), lineWidth: 1)
                             )
                         }
+                        .padding(.top, 4)
                     }
                 }
+
+                } // end card_guest
 
                 // ── INJECT / UNINSTALL ─────────────────────────────────
                 if !hasInjected {
@@ -720,7 +1313,7 @@ struct ContentView: View {
                             } else {
                                 Image(systemName: "bolt.fill")
                                     .foregroundColor(Color.black)
-                                Text("INSTALL MOD TO GAME")
+                                Text("CÀI ĐẶT MOD VÀO GAME")
                                     .font(.system(size: 14, weight: .bold, design: .rounded))
                                     .foregroundColor(Color.black)
                             }
@@ -735,7 +1328,7 @@ struct ContentView: View {
                     Button(action: { uninstallMod() }) {
                         HStack {
                             Image(systemName: "trash.fill").foregroundColor(.white)
-                            Text("UNINSTALL MOD FROM GAME")
+                            Text("GỠ BỎ MOD KHỎI GAME")
                                 .font(.system(size: 14, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                         }
@@ -755,11 +1348,11 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Profile Tab
+    // MARK: - Profile Tab (Đen Trắng)
     var profileView: some View {
         ScrollView(showsIndicators: false) {
             VStack(spacing: 16) {
-                CardView(title: "LICENSE INFORMATION", icon: "person.crop.circle.badge.checkmark") {
+                CardView(title: "THÔNG TIN BẢN QUYỀN", icon: "person.crop.circle.badge.checkmark") {
                     VStack(alignment: .leading, spacing: 14) {
                         // Key Row
                         VStack(alignment: .leading, spacing: 6) {
@@ -767,14 +1360,14 @@ struct ContentView: View {
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(Color(white: 0.65))
                             HStack {
-                                Text(state.storedKey.isEmpty ? "Not activated" : state.storedKey)
+                                Text(license.storedKey.isEmpty ? "Chưa kích hoạt" : license.storedKey)
                                     .font(.system(size: 13, weight: .bold, design: .monospaced))
                                     .foregroundColor(.white)
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.8)
                                 Spacer()
                                 Button(action: {
-                                    UIPasteboard.general.string = state.storedKey
+                                    UIPasteboard.general.string = license.storedKey
                                 }) {
                                     Image(systemName: "doc.on.doc")
                                         .foregroundColor(.white)
@@ -790,18 +1383,18 @@ struct ContentView: View {
 
                         // HWID Row
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("DEVICE ID (HWID)")
+                            Text("MÃ THIẾT BỊ (HWID)")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(Color(white: 0.65))
                             HStack {
-                                Text(state.deviceId)
+                                Text(license.deviceId)
                                     .font(.system(size: 12, weight: .medium, design: .monospaced))
                                     .foregroundColor(Color(white: 0.85))
                                     .lineLimit(1)
                                     .truncationMode(.middle)
                                 Spacer()
                                 Button(action: {
-                                    UIPasteboard.general.string = state.deviceId
+                                    UIPasteboard.general.string = license.deviceId
                                 }) {
                                     Image(systemName: "doc.on.doc")
                                         .foregroundColor(.white)
@@ -817,13 +1410,13 @@ struct ContentView: View {
 
                         // Expiry Row
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("EXPIRATION DATE")
+                            Text("HẠN SỬ DỤNG")
                                 .font(.system(size: 11, weight: .bold))
                                 .foregroundColor(Color(white: 0.65))
                             HStack {
                                 Image(systemName: "calendar.badge.clock")
                                     .foregroundColor(.white)
-                                Text(state.deviceExpires.isEmpty ? "Lifetime / By Key" : state.deviceExpires)
+                                Text(license.deviceExpires.isEmpty ? "Vĩnh viễn / Theo key" : license.deviceExpires)
                                     .font(.system(size: 13, weight: .semibold, design: .monospaced))
                                     .foregroundColor(.white)
                                 Spacer()
@@ -836,29 +1429,100 @@ struct ContentView: View {
                         // Status Row
                         HStack {
                             Circle()
-                                .fill(state.isAuthed ? Color.white : Color.red)
+                                .fill(license.isAuthed ? Color.white : Color.red)
                                 .frame(width: 8, height: 8)
-                            Text(state.isAuthed ? "STATUS: ACTIVE" : "STATUS: EXPIRED")
+                            Text(license.isAuthed ? "TRẠNG THÁI: HOẠT ĐỘNG" : "TRẠNG THÁI: HẾT HẠN")
                                 .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundColor(state.isAuthed ? .white : .red)
+                                .foregroundColor(license.isAuthed ? .white : .red)
                             Spacer()
                         }
                         .padding(.top, 4)
                     }
                 }
 
+                // Telegram Support Channels Card
+                CardView(title: "KÊNH LIÊN HỆ & HỖ TRỢ", icon: "paperplane.fill") {
+                    VStack(spacing: 12) {
+                        Button(action: {
+                            if let url = URL(string: "https://t.me/cheatmeo") {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "megaphone.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.black)
+                                    .frame(width: 32, height: 32)
+                                    .background(Color.white)
+                                    .clipShape(Circle())
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Channel Telegram")
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .foregroundColor(.white)
+                                    Text("@cheatmeo")
+                                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                        .foregroundColor(Color(white: 0.70))
+                                }
+                                Spacer()
+                                Image(systemName: "arrow.up.right.square")
+                                    .foregroundColor(.white)
+                            }
+                            .padding(12)
+                            .background(Color(white: 0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(white: 0.20), lineWidth: 1)
+                            )
+                        }
 
+                        Button(action: {
+                            if let url = URL(string: "https://t.me/truongdeptrai7") {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "person.crop.circle.badge.checkmark")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.black)
+                                    .frame(width: 32, height: 32)
+                                    .background(Color.white)
+                                    .clipShape(Circle())
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Admin Hỗ Trợ")
+                                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                                        .foregroundColor(.white)
+                                    Text("@truongdeptrai7")
+                                        .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                        .foregroundColor(Color(white: 0.70))
+                                }
+                                Spacer()
+                                Image(systemName: "arrow.up.right.square")
+                                    .foregroundColor(.white)
+                            }
+                            .padding(12)
+                            .background(Color(white: 0.05))
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color(white: 0.20), lineWidth: 1)
+                            )
+                        }
+                    }
+                }
 
                 // Change Key Button
                 Button(action: {
-                    state.storedKey = ""
-                    state.isAuthed = false
-                    state.stopHeartbeat()
-                    currentTab = "Function"
+                    license.storedKey = ""
+                    license.isAuthed = false
+                    license.stopHeartbeat()
+                    config.system_active = false
+                    syncConfig()
+                    topTab = "Menu"
                 }) {
                     HStack {
                         Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text("CHANGE LICENSE KEY")
+                        Text("ĐỔI LICENSE KEY KHÁC")
                             .font(.system(size: 13, weight: .bold, design: .rounded))
                     }
                     .frame(maxWidth: .infinity)
@@ -877,499 +1541,291 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - DNS App Tab (iOS Configuration Profile Style)
-    var dnsAppView: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 16) {
-                // QUICK TOGGLE DNS CARD
-                CardView(title: "QUICK TOGGLE DNS", icon: "bolt.shield.fill") {
-                    VStack(spacing: 14) {
-                        HStack(spacing: 12) {
-                            Image(systemName: isDnsActive ? "shield.fill" : "shield.slash.fill")
-                                .font(.system(size: 24, weight: .bold))
-                                .foregroundColor(isDnsActive ? .white : Color(white: 0.50))
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(isDnsActive ? "DNS: ACTIVE" : "DNS: INACTIVE")
-                                    .font(.system(size: 16, weight: .black, design: .rounded))
-                                    .foregroundColor(isDnsActive ? .white : Color(white: 0.65))
-                                Text(isDnsActive ? "Auto block report / anti-ban Garena servers" : "Tap button or toggle to turn ON now")
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(Color(white: 0.55))
-                            }
-                            Spacer()
-                            Toggle("", isOn: Binding(
-                                get: { self.isDnsActive },
-                                set: { val in self.toggleDns(enabled: val) }
-                            ))
-                            .toggleStyle(SlimToggleStyle())
-                            .labelsHidden()
-                        }
 
-                        // Quick 1-tap Action Buttons
-                        HStack(spacing: 10) {
-                            Button(action: {
-                                toggleDns(enabled: true)
-                            }) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                    Text("TURN ON DNS")
-                                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 42)
-                                .foregroundColor(isDnsActive ? Color.black : Color.white)
-                                .background(isDnsActive ? Color.white : Color(white: 0.18))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.white.opacity(isDnsActive ? 0.8 : 0.2), lineWidth: 1)
-                                )
-                            }
-
-                            Button(action: {
-                                toggleDns(enabled: false)
-                            }) {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "xmark.circle.fill")
-                                    Text("TURN OFF DNS")
-                                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                                }
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 42)
-                                .foregroundColor(!isDnsActive ? Color.black : Color(white: 0.85))
-                                .background(!isDnsActive ? Color.white : Color(white: 0.18))
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.white.opacity(!isDnsActive ? 0.8 : 0.2), lineWidth: 1)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Header Card with Cat Icon & Status
-                CardView(title: "DNS CONFIGURATION", icon: "pawprint.fill") {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack(spacing: 16) {
-                            ZStack {
-                                Circle()
-                                    .fill(Color(white: 0.14))
-                                    .frame(width: 58, height: 58)
-                                    .overlay(
-                                        Circle().stroke(Color.white.opacity(0.35), lineWidth: 1.5)
-                                    )
-                                Image(systemName: "cat.fill")
-                                    .font(.system(size: 30, weight: .bold))
-                                    .foregroundColor(.white)
-                            }
-
-                            VStack(alignment: .leading, spacing: 5) {
-                                Text("MoneyExt-FF DNS")
-                                    .font(.system(size: 18, weight: .black, design: .rounded))
-                                    .foregroundColor(.white)
-
-                                HStack(spacing: 8) {
-                                    Text(isDnsActive ? "Active" : (isDnsInstalled ? "Installed" : "Not installed"))
-                                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                                        .foregroundColor((isDnsActive || isDnsInstalled) ? Color.black : Color(white: 0.85))
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 3)
-                                        .background((isDnsActive || isDnsInstalled) ? Color.white : Color(white: 0.22))
-                                        .clipShape(Capsule())
-
-                                    HStack(spacing: 4) {
-                                        Circle()
-                                            .fill(isDnsActive ? Color.green : (isDnsInstalled ? Color.yellow : Color.green))
-                                            .frame(width: 6, height: 6)
-                                        Text(isDnsActive ? "Active" : (isDnsInstalled ? "Select in Settings" : "Ready"))
-                                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                                            .foregroundColor(Color(white: 0.85))
-                                    }
-                                }
-                            }
-                            Spacer()
-                        }
-
-                        Divider().background(Color(white: 0.20))
-
-                        Text("Selected reflects the iOS DNS preference; it does not confirm routing for every connection.")
-                            .font(.system(size: 13, weight: .regular))
-                            .foregroundColor(Color(white: 0.70))
-                            .lineSpacing(3)
-
-                        // Install DNS Button
-                        Button(action: {
-                            installDnsProfile()
-                        }) {
-                            HStack(spacing: 8) {
-                                if isInstallingDns {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .black))
-                                    Text("Installing...")
-                                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                                } else {
-                                    Image(systemName: isDnsActive ? "checkmark.shield.fill" : (isDnsInstalled ? "arrow.clockwise.circle.fill" : "arrow.down.circle.fill"))
-                                        .font(.system(size: 17, weight: .bold))
-                                    Text(isDnsActive ? "MoneyExt-FF DNS Active" : (isDnsInstalled ? "Reinstall MoneyExt-FF DNS" : "Install DNS"))
-                                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .foregroundColor(.black)
-                            .background(Color.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
-                        .disabled(isInstallingDns)
-                    }
-                }
-
-                // Installation Instructions Card
-                CardView(title: "ACTIVATION INSTRUCTIONS", icon: "gearshape.fill") {
-                    VStack(alignment: .leading, spacing: 14) {
-                        HStack(alignment: .top, spacing: 10) {
-                            Text("1.")
-                                .font(.system(size: 13, weight: .black))
-                                .foregroundColor(.white)
-                            Text("Tap **Install DNS** above and select **Allow** on the iOS system prompt (no download needed).")
-                                .font(.system(size: 13, weight: .regular))
-                                .foregroundColor(Color(white: 0.85))
-                        }
-
-                        HStack(alignment: .top, spacing: 10) {
-                            Text("2.")
-                                .font(.system(size: 13, weight: .black))
-                                .foregroundColor(.white)
-                            Text("After installation, open iOS Settings > General > VPN & Device Management > DNS and select MoneyExt-FF DNS")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.white)
-                        }
-
-                        Divider().background(Color(white: 0.20))
-
-                        Button(action: {
-                            openIosSettings()
-                        }) {
-                            HStack {
-                                Image(systemName: "gear")
-                                Text("Open iOS Settings")
-                                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                                Spacer()
-                                Image(systemName: "arrow.up.right.square")
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 42)
-                            .padding(.horizontal, 14)
-                            .foregroundColor(.white)
-                            .background(Color(white: 0.16))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color(white: 0.28), lineWidth: 1)
-                            )
-                        }
-                    }
-                }
-
-                // Protection Status Card
-                CardView(title: "SECURITY & ANTI-BAN FEATURES", icon: "shield.lefthalf.filled") {
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("Block Telemetry Packets (Anti-Telemetry)")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(.white)
-                                Text("Automatically filter log checks and reports sent to Garena servers.")
-                                    .font(.system(size: 11))
-                                    .foregroundColor(Color(white: 0.60))
-                            }
-                            Spacer()
-                            Image(systemName: "checkmark.shield.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(.white)
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 30)
-        }
+    // MARK: - Logic
+    private func log(_ msg: String) {
+        let ts = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
+        logs.append("[\(ts)] \(msg)")
     }
 
-    // MARK: - Bottom Tab Bar
-    private var bottomTabBar: some View {
-        HStack(spacing: 0) {
-            bottomTabItem(title: "Function", icon: "slider.horizontal.3", tab: "Function")
-            bottomTabItem(title: "DnsApp", icon: "pawprint.fill", tab: "DnsApp")
-        }
-        .padding(.top, 10)
-        .padding(.bottom, 18)
-        .background(Color(white: 0.08).ignoresSafeArea(edges: .bottom))
-        .overlay(
-            Rectangle()
-                .frame(height: 1)
-                .foregroundColor(Color(white: 0.20)),
-            alignment: .top
-        )
-    }
 
-    private func bottomTabItem(title: String, icon: String, tab: String) -> some View {
-        Button(action: {
-            withAnimation(.easeInOut(duration: 0.18)) {
-                currentTab = tab
-            }
-        }) {
-            VStack(spacing: 4) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: currentTab == tab ? .bold : .regular))
-                    .foregroundColor(currentTab == tab ? .white : Color(white: 0.45))
-                Text(title)
-                    .font(.system(size: 11, weight: currentTab == tab ? .bold : .medium, design: .rounded))
-                    .foregroundColor(currentTab == tab ? .white : Color(white: 0.45))
-            }
-            .frame(maxWidth: .infinity)
-        }
-    }
-
-    // MARK: - GUI Actions (Calling MeoCore in libmeo.a)
-    private func confirmResetGuest() {
-        activeAlert = ActiveAlertItem(
-            title: "Confirm Reset Guest",
-            message: "System will delete banned guest token, refresh Device UUID and set reset flag. Do you want to continue?",
-            isDestructive: true,
-            action: {
-                performResetGuest(bundleID: selectedBundleID)
-            }
-        )
-    }
-
-    private func performResetGuest(bundleID: String) {
+    private func performResetGuest() {
         let fm = FileManager.default
-
-        // 1. Clear iOS Keychain items for Garena / Guest
         let secClasses = [
             kSecClassGenericPassword,
-            kSecClassInternetPassword
+            kSecClassInternetPassword,
+            kSecClassCertificate,
+            kSecClassKey,
+            kSecClassIdentity
         ]
         for secClass in secClasses {
             let query: [String: Any] = [kSecClass as String: secClass]
             SecItemDelete(query as CFDictionary)
         }
 
-        // 2. Locate Free Fire container directories
-        var gameDocDirs: [String] = []
-        let containersBase = ["/private/var/mobile/Containers/Data/Application", "/var/mobile/Containers/Data/Application"]
-        for base in containersBase {
-            guard let dirs = try? fm.contentsOfDirectory(atPath: base) else { continue }
-            for uuid in dirs {
-                let metaPath = (base as NSString).appendingPathComponent("\(uuid)/.com.apple.mobile_container_manager.metadata.plist")
-                if let dict = NSDictionary(contentsOfFile: metaPath),
-                   let id = dict["MCMMetadataIdentifier"] as? String,
-                   id == bundleID || (bundleID.isEmpty && (id == "com.dts.freefireth" || id == "com.dts.freefiremax")) {
-                    let docs = (base as NSString).appendingPathComponent("\(uuid)/Documents")
-                    let libPref = (base as NSString).appendingPathComponent("\(uuid)/Library/Preferences")
-                    gameDocDirs.append(docs)
-                    gameDocDirs.append(libPref)
-                }
-            }
-        }
-
-        if let localDocs = fm.urls(for: .documentDirectory, in: .userDomainMask).first {
-            gameDocDirs.append(localDocs.path)
-        }
-
-        let newUUID = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
-
-        for dir in gameDocDirs {
-            guard fm.fileExists(atPath: dir) else { continue }
-
-            let targetFiles = [
-                "app_device_id.dat", "g_id.dat", "app_appdata.dat", "ff_guest_uuid",
-                "com.garena.msdk", "msdk_identity", "guest_account.dat"
-            ]
-            for tf in targetFiles {
-                let p = (dir as NSString).appendingPathComponent(tf)
-                if fm.fileExists(atPath: p) {
-                    try? fm.removeItem(atPath: p)
-                }
-            }
-
-            if let files = try? fm.contentsOfDirectory(atPath: dir) {
+        let bundleCandidates = ["com.dts.freefireth", "com.dts.freefiremax"]
+        for bundle in bundleCandidates {
+            guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: bundle) else { continue }
+            let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+            let libURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Library")
+            let prefsURL = libURL.appendingPathComponent("Preferences")
+            let cachesURL = libURL.appendingPathComponent("Caches")
+            
+            // 1. Delete all guest/device/account data in Documents
+            if let files = try? fm.contentsOfDirectory(atPath: docsURL.path) {
                 for file in files {
-                    let fn = file.lowercased()
-                    if fn.contains("guest") || fn.contains("account") || fn.contains("g_id") || fn.contains("garena") || fn.contains("device_id") {
-                        if fn != "assembly-csharp-patch.bytes" && fn != "localconfig.json" {
-                            let p = (dir as NSString).appendingPathComponent(file)
-                            try? fm.removeItem(atPath: p)
-                        }
+                    let lower = file.lowercased()
+                    if lower == "assembly-csharp-patch.bytes" || lower == "localconfig.json" { continue }
+                    if lower.contains("guest") || lower.contains("g_id") || lower.contains("device") || lower.contains("account") || lower.hasSuffix(".dat") {
+                        try? fm.removeItem(at: docsURL.appendingPathComponent(file))
                     }
                 }
             }
-
-            let idPath = (dir as NSString).appendingPathComponent("app_device_id.dat")
-            let gidPath = (dir as NSString).appendingPathComponent("g_id.dat")
-            try? newUUID.write(toFile: idPath, atomically: true, encoding: .utf8)
-            try? newUUID.write(toFile: gidPath, atomically: true, encoding: .utf8)
-
-            let flagPath = (dir as NSString).appendingPathComponent("reset_guest.flag")
-            try? "1".write(toFile: flagPath, atomically: true, encoding: .utf8)
-
-            let cfgPath = (dir as NSString).appendingPathComponent("localConfig.json")
-            if fm.fileExists(atPath: cfgPath),
-               let data = try? Data(contentsOf: URL(fileURLWithPath: cfgPath)),
-               var dict = (try? JSONSerialization.jsonObject(with: data, options: [])) as? [String: Any] {
-                dict["reset_guest"] = true
-                dict["resetGuest"] = true
-                dict["resetGuestBeforeLogin"] = true
-                if let updated = try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted]) {
-                    try? updated.write(to: URL(fileURLWithPath: cfgPath), options: .atomic)
-                }
-            }
-        }
-
-        activeAlert = ActiveAlertItem(
-            title: "Reset Guest Complete",
-            message: "Deleted old guest data, randomized Device ID and set reset flag. Open Free Fire and tap 'Guest' to create a new account!",
-            isDestructive: false,
-            action: nil
-        )
-    }
-
-    private func uninstallMod() {
-        MeoCore.shared().uninstallModFromGame(withBundleID: selectedBundleID)
-        hasInjected = false
-        state.stopHeartbeat()
-    }
-
-    private func injectGame() {
-        if MeoCore.isDebuggerAttached() { return }
-        guard state.isAuthed else { return }
-        state.pushToCore(bundleID: selectedBundleID)
-        isInjecting = true
-        MeoCore.shared().injectToGame(withBundleID: selectedBundleID) { success, error in
-            DispatchQueue.main.async {
-                self.isInjecting = false
-                if success {
-                    self.hasInjected = true
-                    self.currentTab = "Function"
-                }
-            }
-        }
-    }
-
-    private func checkDnsStatus() {
-        NEDNSSettingsManager.shared().loadFromPreferences { error in
-            DispatchQueue.main.async {
-                if error == nil {
-                    let manager = NEDNSSettingsManager.shared()
-                    let hasSettings = (manager.dnsSettings != nil)
-                    let name = manager.localizedDescription ?? ""
-                    if hasSettings || name.contains("MoneyExt") {
-                        self.isDnsInstalled = true
-                        self.isDnsActive = manager.isEnabled
-                    } else {
-                        self.isDnsInstalled = false
-                        self.isDnsActive = false
+            
+            // 2. Generate and write fresh device UUIDs
+            let newUUID = UUID().uuidString.lowercased()
+            let newDeviceId = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
+            try? newDeviceId.write(to: docsURL.appendingPathComponent("app_device_id.dat"), atomically: true, encoding: .utf8)
+            try? newUUID.write(to: docsURL.appendingPathComponent("g_id.dat"), atomically: true, encoding: .utf8)
+            
+            // 3. Create reset flag for in-game C# detection
+            try? "1".write(to: docsURL.appendingPathComponent("reset_guest.flag"), atomically: true, encoding: .utf8)
+            
+            // 4. Wipe MSDK Preferences plist
+            if let plistFiles = try? fm.contentsOfDirectory(atPath: prefsURL.path) {
+                for plist in plistFiles {
+                    let pLower = plist.lowercased()
+                    if pLower.contains("freefire") || pLower.contains("garena") || pLower.contains("msdk") {
+                        try? fm.removeItem(at: prefsURL.appendingPathComponent(plist))
                     }
                 }
             }
+            try? fm.removeItem(at: prefsURL.appendingPathComponent("\(bundle).plist"))
+            
+            // 5. Clear Caches
+            try? fm.removeItem(at: cachesURL.appendingPathComponent(bundle))
+            
+            // 6. Direct write localConfig.json immediately into container
+            let configURL = docsURL.appendingPathComponent("localConfig.json")
+            var directConfig: [String: Any] = [:]
+            if fm.fileExists(atPath: configURL.path),
+               let existingData = try? Data(contentsOf: configURL),
+               let existingObj = try? JSONSerialization.jsonObject(with: existingData) as? [String: Any] {
+                directConfig = existingObj
+            }
+            directConfig["reset_guest"] = true
+            directConfig["resetGuest"] = true
+            directConfig["resetGuestBeforeLogin"] = true
+            directConfig["ResetGuestEnabled"] = true
+            directConfig["AutoResetGuest"] = true
+            directConfig["ShowGuestBtn"] = config.ShowGuestBtn
+            directConfig["testCodePatch"] = true
+            directConfig["system_active"] = true
+            if let directData = try? JSONSerialization.data(withJSONObject: directConfig, options: [.prettyPrinted]) {
+                try? directData.write(to: configURL)
+            }
         }
-    }
 
-    func toggleDns(enabled: Bool) {
-        let manager = NEDNSSettingsManager.shared()
-        if enabled {
-            installDnsProfile()
-        } else {
-            isInstallingDns = true
-            manager.loadFromPreferences { _ in
-                manager.removeFromPreferences { err in
-                    DispatchQueue.main.async {
-                        self.isInstallingDns = false
-                        if err == nil {
-                            self.isDnsActive = false
-                            self.isDnsInstalled = false
-                        }
-                    }
-                }
+        // Temporarily force reset flags true so saveConfigLocally exports them correctly
+        // (Direct write above already set them, but saveConfigLocally would overwrite with struct values)
+        let wasResetGuest = config.reset_guest
+        config.reset_guest = true
+        config.resetGuest = true
+        config.resetGuestBeforeLogin = true
+        _ = saveConfigLocally()
+        syncConfig()
+        // Restore original toggle state in struct (C# will self-clear after executing)
+        if !wasResetGuest {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.config.reset_guest = false
+                self.config.resetGuest = false
+                self.config.resetGuestBeforeLogin = false
             }
         }
     }
 
-    private func installDnsProfile() {
-        isInstallingDns = true
-        let manager = NEDNSSettingsManager.shared()
-        manager.loadFromPreferences { loadError in
-            manager.localizedDescription = MeoCore.dnsDisplayName()
-
-            let dohSettings = NEDNSOverHTTPSSettings(servers: MeoCore.dnsBootstrapServers())
-            if let serverURL = URL(string: MeoCore.dohServerURL()) {
-                dohSettings.serverURL = serverURL
-            }
-            manager.dnsSettings = dohSettings
-
-            manager.saveToPreferences { saveError in
-                DispatchQueue.main.async {
-                    self.isInstallingDns = false
-                    if let saveError = saveError {
-                        let nsErr = saveError as NSError
-                        if nsErr.domain == "NEConfigurationErrorDomain" || nsErr.code == 10 || nsErr.code == 1 {
-                            self.activeAlert = ActiveAlertItem(
-                                title: "Install MoneyExt-FF DNS",
-                                message: "System needs to verify MoneyExt-FF DNS configuration profile. Do you want to open Settings to complete installation?",
-                                isDestructive: false,
-                                action: {
-                                    if let url = URL(string: MeoCore.dnsPayloadURL()) {
-                                        UIApplication.shared.open(url, options: [:], completionHandler: nil)
-                                    }
-                                }
-                            )
-                        } else {
-                            self.activeAlert = ActiveAlertItem(
-                                title: "DNS Installation Notice",
-                                message: saveError.localizedDescription,
-                                isDestructive: false,
-                                action: nil
-                            )
-                        }
-                    } else {
-                        self.isDnsInstalled = true
-                        self.isDnsActive = manager.isEnabled
-                        self.activeAlert = ActiveAlertItem(
-                            title: "Install MoneyExt-FF DNS Successful",
-                            message: "MoneyExt-FF DNS profile added to Settings. Please go to Settings to select MoneyExt-FF DNS!",
-                            isDestructive: false,
-                            action: {
-                                self.openIosSettings()
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    private func openIosSettings() {
-        let settingsCandidates = [
-            "App-prefs:General&path=ManagedConfigurationList",
-            "App-prefs:root=General&path=ManagedConfigurationList",
-            "App-prefs:root=General&path=VPN",
-            UIApplication.openSettingsURLString
-        ]
-        for candidate in settingsCandidates {
-            if let url = URL(string: candidate), UIApplication.shared.canOpenURL(url) {
-                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+    private func loadConfig() {
+        if let data = UserDefaults.standard.data(forKey: "saved_esp_config") {
+            if let decoded = try? JSONDecoder().decode(EspConfig.self, from: data) {
+                config = decoded
                 return
             }
         }
-        if let openSettings = URL(string: UIApplication.openSettingsURLString) {
-            UIApplication.shared.open(openSettings, options: [:], completionHandler: nil)
+        
+        // Migration from old version
+        do {
+            let fm = FileManager.default
+            let docsURL = try fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+            let configURL = docsURL.appendingPathComponent("localConfig.json")
+            if fm.fileExists(atPath: configURL.path) {
+                let data = try Data(contentsOf: configURL)
+                if let decoded = try? JSONDecoder().decode(EspConfig.self, from: data) {
+                    config = decoded
+                }
+            }
+        } catch { }
+    }
+
+    private func saveConfigLocally() -> Data? {
+        do {
+            if license.systemActive && license.isAuthed {
+                if !license.getMeomeo().isEmpty { config.meomeo = license.getMeomeo() }
+                if !license.getSig().isEmpty { config.sig = license.getSig() }
+                if !license.getToken().isEmpty { config.token = license.getToken() }
+                if license.getTs() != 0 { config.ts = license.getTs() }
+                config.system_active = true
+            } else {
+                config.meomeo = ""
+                config.sig = ""
+                config.token = ""
+                config.ts = 0
+                config.system_active = false
+            }
+
+            // Save full config to UserDefaults for UI persistence
+            if let fullData = try? JSONEncoder().encode(config) {
+                UserDefaults.standard.set(fullData, forKey: "saved_esp_config")
+            }
+
+            // Export security state and token to target game localConfig.json
+            let minimalConfig: [String: Any] = [
+                "token": config.system_active ? config.token : "",
+                "system_active": config.system_active,
+                "ts": config.system_active ? config.ts : 0,
+                "meomeo": config.system_active ? config.meomeo : "",
+                "sig": config.system_active ? config.sig : "",
+                "AntiBan": config.AntiBan,
+                "ShowGuestBtn": config.ShowGuestBtn,
+                "reset_guest": config.reset_guest,
+                "resetGuest": config.resetGuest,
+                "resetGuestBeforeLogin": config.resetGuestBeforeLogin,
+                "ResetGuestEnabled": config.reset_guest,
+                "AutoResetGuest": config.reset_guest,
+                "testCodePatch": true
+            ]
+            
+            let data = try JSONSerialization.data(withJSONObject: minimalConfig, options: [.prettyPrinted])
+            let fm = FileManager.default
+            let docsURL = try fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
+            try data.write(to: docsURL.appendingPathComponent("localConfig.json"))
+            return data
+        } catch { return nil }
+    }
+
+    private func syncConfig() {
+        guard hasInjected else { return }
+        if !license.systemActive || !license.isAuthed {
+            self.config.system_active = false
+            self.config.token = ""
+            self.config.ts = 0
+            if let jsonData = self.saveConfigLocally(),
+               let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) {
+                let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+                let configURL = docsURL.appendingPathComponent("localConfig.json")
+                try? jsonData.write(to: configURL)
+            }
+            return
+        }
+        license.updateUserToggles(mask: config.userTogglesMask) { ok in
+            if ok {
+                self.config.token = self.license.getToken()
+                guard let jsonData = self.saveConfigLocally() else { return }
+                if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) {
+                    let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+                    let configURL = docsURL.appendingPathComponent("localConfig.json")
+                    try? jsonData.write(to: configURL)
+                }
+            }
+        }
+    }
+
+    private func uninstallMod() {
+        guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) else {
+            hasInjected = false
+            return
+        }
+        let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+        let fm = FileManager.default
+        let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
+        let configURL = docsURL.appendingPathComponent("localConfig.json")
+        do {
+            if fm.fileExists(atPath: bytesURL.path) { try fm.removeItem(at: bytesURL) }
+            if fm.fileExists(atPath: configURL.path) { try fm.removeItem(at: configURL) }
+            hasInjected = false
+            license.stopHeartbeat()
+        } catch { }
+    }
+
+    private func injectGame() {
+        if SecurityShield.isDebuggerAttached { return }
+        guard license.isAuthed else { return }
+        isInjecting = true
+        
+        license.updateUserToggles(mask: config.userTogglesMask) { _ in
+            self.config.token = self.license.getToken()
+            guard let jsonData = self.saveConfigLocally() else {
+                self.isInjecting = false
+                return
+            }
+
+            self.license.checkStatus { ok in
+                guard ok else {
+                    self.isInjecting = false
+                    return
+                }
+
+                let token = SecurityShield.githubToken
+                let urlStr = SecurityShield.payloadDownloadURL
+                guard let url = URL(string: urlStr) else {
+                    self.isInjecting = false; return
+                }
+                var request = URLRequest(url: url)
+                request.setValue("token \(token)", forHTTPHeaderField: "Authorization")
+
+                let writePatchData: (Data) -> Void = { patchData in
+                    guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) else {
+                        self.isInjecting = false
+                        return
+                    }
+                    let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+                    let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
+                    let configURL = docsURL.appendingPathComponent("localConfig.json")
+                    do {
+                        let fm = FileManager.default
+                        if !fm.fileExists(atPath: docsURL.path) {
+                            try fm.createDirectory(at: docsURL, withIntermediateDirectories: true)
+                        }
+                        try patchData.write(to: bytesURL)
+                        if let freshConfig = self.saveConfigLocally() {
+                            try freshConfig.write(to: configURL)
+                        } else {
+                            try jsonData.write(to: configURL)
+                        }
+                        self.hasInjected = true
+                        self.topTab = "Menu"
+                        self.license.startHeartbeat()
+                    } catch { }
+                    self.isInjecting = false
+                }
+
+                URLSession.shared.dataTask(with: request) { data, response, error in
+                    DispatchQueue.main.async {
+                        if let data = data, let http = response as? HTTPURLResponse, http.statusCode == 200 {
+                            writePatchData(data)
+                        } else if let bundledURL = Bundle.main.url(forResource: "Assembly-CSharp-patch", withExtension: "bytes"),
+                                  let bundledData = try? Data(contentsOf: bundledURL) {
+                            writePatchData(bundledData)
+                        } else {
+                            self.isInjecting = false
+                        }
+                    }
+                }.resume()
+            }
         }
     }
 }
 
-// MARK: - Reusable UI Components
+// MARK: - Reusable Components (Đen Trắng)
 struct CardView<Content: View>: View {
     var title: String
     var icon: String

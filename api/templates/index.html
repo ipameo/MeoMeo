@@ -845,6 +845,51 @@
                 </div>
             </div>
 
+            <!-- REMOTE GUI & TAB CONTROL (QUẢN LÝ GIAO DIỆN IPA) -->
+            <div class="card" style="border-left: 3px solid #00f0ff;">
+                <div class="card-header">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <h2>🎮 Quản Lý Giao Diện IPA Từ Xa (Remote GUI & Tab Control)</h2>
+                        <span class="badge-status badge-active" style="font-size: 10px; padding: 2px 6px;">Thời Gian Thực</span>
+                    </div>
+                    <span style="font-size: 11px; color: var(--text-secondary);">Bật/tắt menu, ẩn/hiện tab & khối tính năng, gửi thông báo trực tiếp tới app người dùng</span>
+                </div>
+                
+                <div style="margin-bottom: 14px; background: #070707; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <div style="font-size: 13px; font-weight: 700; color: #ffffff;">⚡ Bật / Tắt Toàn Bộ Menu IPA (Master GUI Switch)</div>
+                        <div style="font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;">Khi TẮT: Menu IPA sẽ hiện màn hình khoá bảo trì và vô hiệu hoá toàn bộ tương tác.</div>
+                    </div>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="guiMasterToggle" onchange="toggleGuiMaster(this.checked)" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div style="font-size: 11.5px; font-weight: 700; color: #aaa; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">📑 Ẩn / Hiện Tab & Khối Chức Năng Trên App</div>
+                <div class="features-grid" id="guiControlsGrid">
+                    <!-- Injected via JS -->
+                </div>
+
+                <!-- Broadcast Notice Banner -->
+                <div style="margin-top: 14px; background: #070707; border: 1px solid var(--border-color); border-radius: 6px; padding: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px;">
+                        <span style="font-size: 12px; font-weight: 700; color: #ffffff;">📢 Thông Báo Chạy Chữ Trên Menu IPA (Broadcast Notice)</span>
+                        <div style="display: flex; align-items: center; gap: 6px;">
+                            <span style="font-size: 11px; color: var(--text-secondary);">Bật Banner:</span>
+                            <label class="toggle-switch" style="width: 40px; height: 20px;">
+                                <input type="checkbox" id="guiNoticeActiveToggle" onchange="toggleNoticeActive(this.checked)">
+                                <span class="slider" style="border-radius: 20px;"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <input type="text" id="guiNoticeInput" placeholder="VD: Server đang bảo trì cập nhật Anti-Ban, vui lòng chờ..." style="flex: 1; background: #000; border: 1px solid var(--border-color); color: #fff; padding: 8px 10px; border-radius: 6px; font-size: 12px;">
+                        <button class="btn btn-sm" onclick="saveBroadcastNotice()">💾 Lưu & Phát</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- FORMS GRID: CREATE KEY & QUICK ACTIONS -->
             <div
                 style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; margin-bottom: 16px;">
@@ -1147,6 +1192,17 @@
             server_shuriken: "Shuriken 1 Hit"
         };
 
+        const GUI_LABELS = {
+            "tab_menu": "📑 Tab Menu Tính Năng",
+            "tab_profile": "👤 Tab Profile Thông Tin",
+            "card_silent_aim": "🎯 Khối Silent Aim",
+            "card_aim_system": "🔫 Khối Aim System",
+            "card_esp": "👁️ Khối Visuals (ESP)",
+            "card_other": "⭐ Khối Tính Năng Khác",
+            "card_antiban": "🛡️ Khối Anti-Ban",
+            "card_guest": "🗑️ Khối Xoá Acc Khách"
+        };
+
         let cachedKeys = [];
         let cachedDevices = [];
         let adminPollingInterval = null;
@@ -1390,6 +1446,7 @@
             document.getElementById("masterToggle").checked = isSysOn;
 
             renderFeatures(data.features || {});
+            renderGuiControls(data.gui_config || {});
             cachedKeys = data.keys || [];
             
             // Always run filterKeys to apply tab logic and update stats
@@ -1527,6 +1584,82 @@
                     </label>
                 `;
                 grid.appendChild(div);
+            }
+        }
+
+        let cachedGuiConfig = {};
+
+        function renderGuiControls(guiConfig) {
+            if (!guiConfig) return;
+            cachedGuiConfig = guiConfig;
+
+            const masterToggle = document.getElementById("guiMasterToggle");
+            if (masterToggle) masterToggle.checked = guiConfig.gui_enabled !== false;
+
+            const noticeToggle = document.getElementById("guiNoticeActiveToggle");
+            if (noticeToggle) noticeToggle.checked = guiConfig.notice_active === true;
+
+            const noticeInput = document.getElementById("guiNoticeInput");
+            if (noticeInput && !noticeInput.matches(":focus")) {
+                noticeInput.value = guiConfig.notice_text || "";
+            }
+
+            const grid = document.getElementById("guiControlsGrid");
+            if (!grid) return;
+            grid.innerHTML = "";
+
+            for (const [key, label] of Object.entries(GUI_LABELS)) {
+                const val = guiConfig[key] !== false;
+                const div = document.createElement("div");
+                div.className = "feature-item";
+                div.style.background = "#090909";
+                div.innerHTML = `
+                    <span class="feature-title" style="font-size: 11.5px;">${label}</span>
+                    <label class="toggle-switch" style="width: 42px; height: 20px;">
+                        <input type="checkbox" ${val ? "checked" : ""} onchange="toggleGuiItem('${key}', this.checked)">
+                        <span class="slider" style="border-radius: 20px;"></span>
+                    </label>
+                `;
+                grid.appendChild(div);
+            }
+        }
+
+        async function toggleGuiMaster(active) {
+            const res = await fetchAPI("/api/admin/gui_config", "POST", { gui_enabled: active });
+            if (res && res.ok) {
+                showToast(active ? "✅ Đã BẬT Menu GUI IPA!" : "🔒 Đã KHOÁ Menu GUI IPA!");
+                cachedGuiConfig.gui_enabled = active;
+            }
+        }
+
+        async function toggleGuiItem(key, val) {
+            const update = {};
+            update[key] = val;
+            const res = await fetchAPI("/api/admin/gui_config", "POST", update);
+            if (res && res.ok) {
+                showToast(`Đã ${val ? "HIỆN" : "ẨN"}: ${GUI_LABELS[key] || key}`);
+                cachedGuiConfig[key] = val;
+            }
+        }
+
+        async function toggleNoticeActive(val) {
+            const res = await fetchAPI("/api/admin/gui_config", "POST", { notice_active: val });
+            if (res && res.ok) {
+                showToast(val ? "📢 Đã BẬT phát thông báo lên Menu IPA!" : "Đã TẮT thông báo!");
+                cachedGuiConfig.notice_active = val;
+            }
+        }
+
+        async function saveBroadcastNotice() {
+            const input = document.getElementById("guiNoticeInput");
+            const text = input ? input.value.trim() : "";
+            const res = await fetchAPI("/api/admin/gui_config", "POST", { notice_text: text, notice_active: true });
+            if (res && res.ok) {
+                const noticeToggle = document.getElementById("guiNoticeActiveToggle");
+                if (noticeToggle) noticeToggle.checked = true;
+                showToast("📢 Đã lưu & phát thông báo tới tất cả người dùng!");
+                cachedGuiConfig.notice_text = text;
+                cachedGuiConfig.notice_active = true;
             }
         }
 

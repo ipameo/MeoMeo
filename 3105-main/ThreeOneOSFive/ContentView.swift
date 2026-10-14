@@ -4,33 +4,122 @@ import Foundation
 import CommonCrypto
 import MachO
 import Darwin
+import Security
 
-// MARK: - Anti-Hex & Anti-Tamper Security Core
+// MARK: - Hardware-Bound Keychain Store (Anti-HWID Spoofing)
+struct KeychainStore {
+    private static let serviceName = "com.meomeo.security.vault"
+    private static let accountHWID = "device_fingerprint_v2"
+
+    static func getOrCreateDeviceHWID() -> String {
+        if let existing = load(key: accountHWID), !existing.isEmpty {
+            return existing
+        }
+        var sysInfo = utsname()
+        uname(&sysInfo)
+        let machine = withUnsafePointer(to: &sysInfo.machine) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) { ptr in String(cString: ptr) }
+        }
+        let vendorUUID = UIDevice.current.identifierForVendor?.uuidString ?? UUID().uuidString
+        let rawFingerprint = "\(vendorUUID):\(machine):\(ProcessInfo.processInfo.processorCount):xtr_hw_salt_2026"
+        
+        guard let data = rawFingerprint.data(using: .utf8) else { return vendorUUID }
+        var hash = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+        data.withUnsafeBytes {
+            _ = CC_SHA256($0.baseAddress, CC_LONG(data.count), &hash)
+        }
+        let hex = hash.prefix(16).map { String(format: "%02x", $0) }.joined()
+        let formatted = "MM-\(hex.prefix(4).uppercased())-\(hex.dropFirst(4).prefix(4).uppercased())-\(hex.dropFirst(8).prefix(4).uppercased())-\(hex.dropFirst(12).prefix(4).uppercased())"
+        save(key: accountHWID, value: formatted)
+        return formatted
+    }
+
+    private static func save(key: String, value: String) {
+        guard let data = value.data(using: .utf8) else { return }
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceName,
+            kSecAttrAccount as String: key,
+            kSecValueData as String: data,
+            kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+        ]
+        SecItemDelete(query as CFDictionary)
+        SecItemAdd(query as CFDictionary, nil)
+    }
+
+    private static func load(key: String) -> String? {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: serviceName,
+            kSecAttrAccount as String: key,
+            kSecReturnData as String: true,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        var item: CFTypeRef?
+        if SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess,
+           let data = item as? Data,
+           let str = String(data: data, encoding: .utf8) {
+            return str
+        }
+        return nil
+    }
+}
+
+// MARK: - Anti-Hex & Anti-Crack Cryptographic Security Core
 struct SecurityShield {
-    // De-obfuscate XOR byte arrays at runtime so plain strings are NEVER visible in binary Hex/Strings
-    private static let xorKey: UInt8 = 0x5A
+    private static let keyA: UInt8 = 0x5A
+    private static let keyB: UInt8 = 0xA7
 
+    // Multi-round dynamic bit-rotation deobfuscator (Anti-Strings / Anti-HexFiend)
     static func decodeBytes(_ bytes: [UInt8]) -> String {
-        let decoded = bytes.map { $0 ^ xorKey }
-        return String(bytes: decoded, encoding: .utf8) ?? ""
+        var result = [UInt8]()
+        for (i, b) in bytes.enumerated() {
+            let rot = ((b >> 3) | (b << 5)) & 0xFF
+            let dec = rot ^ keyA ^ UInt8((i * 11 + Int(keyB)) & 0xFF)
+            result.append(dec)
+        }
+        return String(bytes: result, encoding: .utf8) ?? ""
     }
 
-    // Anti-Hex endpoint resolution
+    // Anti-Hex endpoint resolution: "http://103.238.234.204:2007"
     static var apiBaseURL: String {
-        let enc: [UInt8] = [50, 46, 46, 42, 96, 117, 117, 107, 106, 105, 116, 104, 105, 98, 116, 104, 105, 110, 116, 104, 106, 110, 96, 104, 106, 106, 109]
+        let enc: [UInt8] = [172, 228, 156, 23, 157, 93, 228, 252, 172, 27, 11, 66, 18, 162, 169, 33, 241, 96, 200, 128, 79, 7, 207, 102, 46, 134, 69]
         return decodeBytes(enc)
     }
 
-    // Anti-Hex auth token resolution
+    // Anti-Hex GitHub Token: "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"
     static var githubToken: String {
-        let enc: [UInt8] = [61, 50, 42, 5, 55, 32, 44, 99, 110, 11, 28, 14, 99, 20, 56, 22, 35, 51, 27, 21, 16, 35, 46, 28, 23, 22, 109, 24, 109, 54, 18, 59, 98, 55, 104, 23, 59, 29, 20, 108]
+        let enc: [UInt8] = [212, 4, 188, 110, 6, 126, 191, 246, 164, 16, 17, 248, 208, 161, 227, 138, 98, 218, 162, 170, 76, 212, 133, 68, 188, 206, 111, 127, 103, 159, 220, 63, 72, 145, 187, 192, 120, 65, 50, 98]
         return decodeBytes(enc)
     }
 
-    // Anti-Hex binary payload URL resolution
+    // Anti-Hex binary payload URL resolution: "https://raw.githubusercontent.com/sonank077/meomeo/main/Assembly-CSharp-patch.bytes"
     static var payloadDownloadURL: String {
-        let enc: [UInt8] = [50, 46, 46, 42, 41, 96, 117, 117, 40, 59, 45, 116, 61, 51, 46, 50, 47, 56, 47, 41, 63, 40, 57, 53, 52, 46, 63, 52, 46, 116, 57, 53, 55, 117, 34, 47, 59, 52, 46, 40, 47, 52, 117, 44, 51, 42, 55, 53, 60, 117, 55, 59, 51, 52, 117, 27, 41, 41, 63, 55, 56, 54, 35, 119, 25, 9, 50, 59, 40, 42, 119, 42, 59, 46, 57, 50, 116, 56, 35, 46, 63, 41]
+        let enc: [UInt8] = [172, 228, 156, 23, 215, 245, 228, 12, 190, 137, 193, 162, 176, 40, 123, 243, 195, 210, 18, 138, 229, 53, 5, 140, 220, 164, 215, 39, 175, 148, 70, 78, 129, 59, 161, 232, 56, 40, 235, 43, 169, 56, 192, 175, 229, 77, 164, 220, 68, 191, 197, 127, 198, 238, 110, 139, 160, 153, 96, 120, 96, 243, 59, 251, 128, 91, 163, 213, 69, 181, 28, 30, 172, 143, 223, 206, 206, 20, 201, 121, 201, 232, 32]
         return decodeBytes(enc)
+    }
+
+    // HMAC secret: "xtr_hmac_auth_shield_2026_xuantrun"
+    static var hmacSecret: String {
+        let enc: [UInt8] = [44, 228, 172, 110, 15, 79, 150, 110, 215, 137, 209, 112, 200, 153, 67, 243, 35, 234, 218, 50, 52, 55, 159, 102, 30, 253, 63, 255, 7, 150, 254, 166, 65, 49]
+        return decodeBytes(enc)
+    }
+
+    // Anti-Crack: Verify HMAC-SHA256 signature from API server to stop Charles / Thor / HTTP Proxy spoofing
+    static func verifyAuthSignature(deviceId: String, key: String, sessionToken: String, ts: Int, nonce: String, signature: String) -> Bool {
+        guard !signature.isEmpty, !nonce.isEmpty else { return false }
+        let secret = hmacSecret
+        let message = "\(deviceId.trimmingCharacters(in: .whitespacesAndNewlines)):\(key.trimmingCharacters(in: .whitespacesAndNewlines)):\(sessionToken.trimmingCharacters(in: .whitespacesAndNewlines)):\(ts):\(nonce.trimmingCharacters(in: .whitespacesAndNewlines)):\(secret)"
+        guard let keyData = secret.data(using: .utf8),
+              let msgData = message.data(using: .utf8) else { return false }
+        var mac = [UInt8](repeating: 0, count: Int(CC_SHA256_DIGEST_LENGTH))
+        keyData.withUnsafeBytes { kBytes in
+            msgData.withUnsafeBytes { mBytes in
+                CCHmac(CCHmacAlgorithm(kCCHmacAlgSHA256), kBytes.baseAddress, keyData.count, mBytes.baseAddress, msgData.count, &mac)
+            }
+        }
+        let computedHex = mac.map { String(format: "%02x", $0) }.joined()
+        return computedHex.lowercased() == signature.lowercased()
     }
 
     // Anti-Tamper: Detect Debugger / P_TRACED hook
@@ -72,6 +161,37 @@ struct APIConfig {
     }
     static let sessionTTL: TimeInterval = 25 * 60
     static let heartbeatInterval: TimeInterval = 15.0
+}
+
+// MARK: - Remote GUI & Feature Visibility Model
+struct GuiConfig: Codable, Equatable {
+    var gui_enabled: Bool = true
+    var tab_menu: Bool = true
+    var tab_profile: Bool = true
+    var card_silent_aim: Bool = true
+    var card_aim_system: Bool = true
+    var card_esp: Bool = true
+    var card_other: Bool = true
+    var card_antiban: Bool = true
+    var card_guest: Bool = true
+    var notice_text: String = ""
+    var notice_active: Bool = false
+
+    init() {}
+
+    init(from dict: [String: Any]) {
+        if let val = dict["gui_enabled"] as? Bool { self.gui_enabled = val }
+        if let val = dict["tab_menu"] as? Bool { self.tab_menu = val }
+        if let val = dict["tab_profile"] as? Bool { self.tab_profile = val }
+        if let val = dict["card_silent_aim"] as? Bool { self.card_silent_aim = val }
+        if let val = dict["card_aim_system"] as? Bool { self.card_aim_system = val }
+        if let val = dict["card_esp"] as? Bool { self.card_esp = val }
+        if let val = dict["card_other"] as? Bool { self.card_other = val }
+        if let val = dict["card_antiban"] as? Bool { self.card_antiban = val }
+        if let val = dict["card_guest"] as? Bool { self.card_guest = val }
+        if let val = dict["notice_text"] as? String { self.notice_text = val }
+        if let val = dict["notice_active"] as? Bool { self.notice_active = val }
+    }
 }
 
 // MARK: - Config Model
@@ -258,7 +378,7 @@ struct EspConfig: Codable, Equatable {
     }
 }
 
-// MARK: - License Manager
+// MARK: - License Manager (Anti-Crack Auth Shield & Remote GUI)
 class LicenseManager: ObservableObject {
     static let shared = LicenseManager()
 
@@ -267,6 +387,7 @@ class LicenseManager: ObservableObject {
     @Published var deviceExpires: String = ""
     @Published var systemActive: Bool = true
     @Published var serverFeatures: [String: Bool] = [:]
+    @Published var guiConfig = GuiConfig()
 
     var onLiveStateChanged: ((Bool) -> Void)?
     var onTokenRefreshed: (() -> Void)?
@@ -284,22 +405,35 @@ class LicenseManager: ObservableObject {
         set { UserDefaults.standard.set(newValue, forKey: "license_key") }
     }
 
+    // Hardware-Bound Device HWID stored in Secure Keychain (Anti-Filza / Anti-Plist spoofing)
     var deviceId: String {
-        if let stored = UserDefaults.standard.string(forKey: "device_uuid"), !stored.isEmpty {
-            return stored
-        }
-        let uuid = (UIDevice.current.identifierForVendor ?? UUID()).uuidString
-        UserDefaults.standard.set(uuid, forKey: "device_uuid")
-        return uuid
+        return KeychainStore.getOrCreateDeviceHWID()
     }
 
-    // MARK: - Auth
+    // MARK: - Remote GUI Sync
+    func fetchGuiConfig(completion: ((GuiConfig) -> Void)? = nil) {
+        guard let url = URL(string: "\(APIConfig.baseURL)/api/gui_config") else { return }
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 8
+        URLSession.shared.dataTask(with: request) { data, _, _ in
+            guard let data = data,
+                  let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let gCfg = json["gui_config"] as? [String: Any] else { return }
+            DispatchQueue.main.async {
+                self.guiConfig = GuiConfig(from: gCfg)
+                completion?(self.guiConfig)
+            }
+        }.resume()
+    }
+
+    // MARK: - Auth (HMAC-SHA256 Cryptographic Signature Verification)
     func authenticate(key: String, completion: @escaping (Bool, String?) -> Void) {
+        let devId = self.deviceId
         let url = URL(string: "\(APIConfig.baseURL)/api/auth")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        let body: [String: Any] = ["device_id": deviceId, "key": key]
+        let body: [String: Any] = ["device_id": devId, "key": key]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         request.timeoutInterval = 15
 
@@ -312,7 +446,7 @@ class LicenseManager: ObservableObject {
                 }
                 guard let data = data,
                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    self.authError = "Invalid response"
+                    self.authError = "Phản hồi máy chủ không hợp lệ"
                     completion(false, self.authError)
                     return
                 }
@@ -324,14 +458,39 @@ class LicenseManager: ObservableObject {
                     return
                 }
 
-                self.sessionToken = json["session_token"] as? String ?? ""
+                let sessionTok = json["session_token"] as? String ?? ""
+                let nonce = json["nonce"] as? String ?? ""
+                let authSign = json["auth_sign"] as? String ?? ""
+                let ts = json["ts"] as? Int ?? 0
+
+                // Anti-Crack: Verify HMAC-SHA256 signature to block Thor / Charles / HTTP Mock bypass
+                let isSignatureValid = SecurityShield.verifyAuthSignature(
+                    deviceId: devId,
+                    key: key,
+                    sessionToken: sessionTok,
+                    ts: ts,
+                    nonce: nonce,
+                    signature: authSign
+                )
+
+                if !isSignatureValid {
+                    self.authError = "CẢNH BÁO: Phát hiện can thiệp auth hoặc proxy giả mạo!"
+                    self.isAuthed = false
+                    completion(false, self.authError)
+                    return
+                }
+
+                self.sessionToken = sessionTok
                 self.currentMeomeo = json["meomeo"] as? String ?? ""
                 self.currentSig = json["sig"] as? String ?? ""
                 self.currentToken = json["token"] as? String ?? ""
-                self.currentTs = json["ts"] as? Int ?? 0
+                self.currentTs = ts
                 self.deviceExpires = json["device_expires"] as? String ?? ""
                 self.systemActive = json["system_active"] as? Bool ?? true
                 self.serverFeatures = json["features"] as? [String: Bool] ?? [:]
+                if let gCfg = json["gui_config"] as? [String: Any] {
+                    self.guiConfig = GuiConfig(from: gCfg)
+                }
                 self.storedKey = key
                 self.isAuthed = true
                 self.authError = nil
@@ -436,6 +595,9 @@ class LicenseManager: ObservableObject {
                 let previousState = self.systemActive
                 self.systemActive = isSysActive
                 self.serverFeatures = feats
+                if let gCfg = json["gui_config"] as? [String: Any] {
+                    self.guiConfig = GuiConfig(from: gCfg)
+                }
 
                 if !isSysActive {
                     self.currentMeomeo = ""
@@ -489,6 +651,9 @@ class LicenseManager: ObservableObject {
                 if let tk = json["token"] as? String { self.currentToken = tk }
                 if let t = json["ts"] as? Int { self.currentTs = t }
                 if let feats = json["features"] as? [String: Bool] { self.serverFeatures = feats }
+                if let gCfg = json["gui_config"] as? [String: Any] {
+                    self.guiConfig = GuiConfig(from: gCfg)
+                }
                 self.isAuthed = ok
                 self.onTokenRefreshed?()
                 completion(ok)
@@ -539,6 +704,13 @@ struct ContentView: View {
         gameTab == "ff" ? "com.dts.freefireth" : "com.dts.freefiremax"
     }
 
+    private var availableTabs: [String] {
+        var tabs: [String] = []
+        if license.guiConfig.tab_menu { tabs.append("Menu") }
+        if license.guiConfig.tab_profile { tabs.append("Profile") }
+        return tabs
+    }
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -584,45 +756,64 @@ struct ContentView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 12)
 
-                // ── CONTENT AREA ──────────────────────────────────────
-                if topTab == "Menu" {
-                    if !license.isAuthed {
-                        authView
-                    } else {
-                        menuView
-                    }
-                } else {
-                    profileView
+                // ── REMOTE NOTICE BANNER ──────────────────────────────
+                if license.guiConfig.notice_active && !license.guiConfig.notice_text.isEmpty {
+                    noticeBannerView
                 }
-                // ── BOTTOM TAB BAR ──────────────────────
-                HStack(spacing: 0) {
-                    ForEach(["Menu", "Profile"], id: \.self) { tab in
-                        Button(action: { withAnimation { topTab = tab } }) {
-                            VStack(spacing: 4) {
-                                Image(systemName: tab == "Menu" ? "list.bullet.rectangle" : "person.crop.circle")
-                                    .font(.system(size: 20))
-                                Text(tab)
-                                    .font(.system(size: 11, weight: .bold, design: .rounded))
+
+                // ── CONTENT AREA ──────────────────────────────────────
+                if !license.guiConfig.gui_enabled {
+                    lockedView
+                } else {
+                    if topTab == "Menu" && license.guiConfig.tab_menu {
+                        if !license.isAuthed {
+                            authView
+                        } else {
+                            menuView
+                        }
+                    } else if topTab == "Profile" && license.guiConfig.tab_profile {
+                        profileView
+                    } else if license.guiConfig.tab_menu {
+                        if !license.isAuthed { authView } else { menuView }
+                    } else if license.guiConfig.tab_profile {
+                        profileView
+                    } else {
+                        lockedView
+                    }
+                }
+
+                // ── DYNAMIC BOTTOM TAB BAR (Remote on / off) ───────────
+                if license.guiConfig.gui_enabled && availableTabs.count > 1 {
+                    HStack(spacing: 0) {
+                        ForEach(availableTabs, id: \.self) { tab in
+                            Button(action: { withAnimation(.easeInOut(duration: 0.2)) { topTab = tab } }) {
+                                VStack(spacing: 4) {
+                                    Image(systemName: tab == "Menu" ? "list.bullet.rectangle" : "person.crop.circle")
+                                        .font(.system(size: 20))
+                                    Text(tab)
+                                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                                }
+                                .foregroundColor(topTab == tab ? Color.black : Color(white: 0.5))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 55)
+                                .background(topTab == tab ? Color.white : Color.clear)
                             }
-                            .foregroundColor(topTab == tab ? Color.black : Color(white: 0.5))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 55)
-                            .background(topTab == tab ? Color.white : Color.clear)
                         }
                     }
+                    .background(Color(white: 0.10))
+                    .clipShape(RoundedRectangle(cornerRadius: 15))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 15)
+                            .stroke(Color(white: 0.25), lineWidth: 1)
+                    )
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
                 }
-                .background(Color(white: 0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 15))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 15)
-                        .stroke(Color(white: 0.25), lineWidth: 1)
-                )
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
             }
         }
         .onAppear {
             loadConfig()
+            license.fetchGuiConfig()
             licenseKeyInput = license.storedKey
             if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) {
                 let patchURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents/Assembly-CSharp-patch.bytes")
@@ -678,6 +869,87 @@ struct ContentView: View {
         .onChange(of: config) { _ in
             syncConfig()
         }
+        .onChange(of: license.guiConfig) { newCfg in
+            if !newCfg.tab_menu && topTab == "Menu" && newCfg.tab_profile {
+                topTab = "Profile"
+            } else if !newCfg.tab_profile && topTab == "Profile" && newCfg.tab_menu {
+                topTab = "Menu"
+            }
+        }
+    }
+
+    // MARK: - Remote Notice Banner
+    var noticeBannerView: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "bell.badge.fill")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.yellow)
+            Text(license.guiConfig.notice_text)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundColor(.white)
+                .lineLimit(2)
+            Spacer()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(
+            RoundedRectangle(cornerRadius: 10)
+                .fill(Color(white: 0.12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.yellow.opacity(0.4), lineWidth: 1)
+                )
+        )
+        .padding(.horizontal, 16)
+        .padding(.bottom, 10)
+    }
+
+    // MARK: - Remote Master Lock View
+    var lockedView: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            ZStack {
+                Circle()
+                    .fill(Color.red.opacity(0.12))
+                    .frame(width: 84, height: 84)
+                Circle()
+                    .stroke(Color.red.opacity(0.35), lineWidth: 2)
+                    .frame(width: 84, height: 84)
+                Image(systemName: "lock.shield.fill")
+                    .font(.system(size: 38))
+                    .foregroundColor(.red)
+            }
+            Text("HỆ THỐNG ĐANG TẠM KHÓA")
+                .font(.system(size: 18, weight: .black, design: .rounded))
+                .foregroundColor(.white)
+                .tracking(1.0)
+            Text(license.guiConfig.notice_text.isEmpty ? "Menu đang được quản trị viên tạm dừng để bảo trì và nâng cấp. Vui lòng quay lại sau ít phút." : license.guiConfig.notice_text)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundColor(Color(white: 0.65))
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 28)
+
+            Button(action: {
+                license.fetchGuiConfig()
+                if !license.storedKey.isEmpty {
+                    license.authenticate(key: license.storedKey) { _, _ in }
+                }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 13, weight: .bold))
+                    Text("LÀM MỚI TRẠNG THÁI")
+                        .font(.system(size: 13, weight: .bold, design: .rounded))
+                }
+                .foregroundColor(.black)
+                .padding(.horizontal, 22)
+                .padding(.vertical, 12)
+                .background(Color.white)
+                .clipShape(Capsule())
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     // MARK: - Auth View (Đen Trắng Tối Giản)
@@ -790,7 +1062,8 @@ struct ContentView: View {
             VStack(spacing: 14) {
 
                 // ── SILENT AIM ─────────────────────────────────────────
-                CardView(title: "SILENT AIM", icon: "scope") {
+                if license.guiConfig.card_silent_aim {
+                    CardView(title: "SILENT AIM", icon: "scope") {
                     VStack(spacing: 14) {
                         ToggleRow(label: "Silent Aim", icon: "wind", on: $config.AimEnabled)
 
@@ -828,8 +1101,11 @@ struct ContentView: View {
                     }
                 }
 
+                } // end card_silent_aim
+
                 // ── AIM SYSTEM ─────────────────────────────────────────
-                CardView(title: "AIM SYSTEM", icon: "target") {
+                if license.guiConfig.card_aim_system {
+                    CardView(title: "AIM SYSTEM", icon: "target") {
                     VStack(spacing: 14) {
                         ToggleRow(label: "Hệ Thống Aimbot", icon: "flame", on: $config.AimSystemEnabled)
 
@@ -867,8 +1143,11 @@ struct ContentView: View {
                 }
 
 
+                } // end card_aim_system
+
                 // ── VISUALS ────────────────────────────────────────────
-                CardView(title: "VISUALS (ESP)", icon: "eye") {
+                if license.guiConfig.card_esp {
+                    CardView(title: "VISUALS (ESP)", icon: "eye") {
                     VStack(spacing: 14) {
                         ToggleRow(label: "Bật ESP Tổng", icon: "eye.fill", on: $config.EspMaster)
                         Divider().background(Color(white: 0.20))
@@ -888,8 +1167,11 @@ struct ContentView: View {
 
                 
                                 
+                } // end card_esp
+
                 // ── TÍNH NĂNG KHÁC ────────────────────
-                CardView(title: "TÍNH NĂNG KHÁC", icon: "star.fill") {
+                if license.guiConfig.card_other {
+                    CardView(title: "TÍNH NĂNG KHÁC", icon: "star.fill") {
                     VStack(spacing: 14) {
                         ToggleRow(label: "Tăng Sát Thương (Buff Dame)", icon: "bolt.fill", on: $config.BuffDame)
                         Divider().background(Color(white: 0.20))
@@ -938,8 +1220,11 @@ struct ContentView: View {
                     }
                 }
 
+                } // end card_other
+
                 // ── BẢO VỆ ANTI-BAN ───────────────────────────────────
-                CardView(title: "BẢO VỆ ANTI-BAN", icon: "shield.lefthalf.fill") {
+                if license.guiConfig.card_antiban {
+                    CardView(title: "BẢO VỆ ANTI-BAN", icon: "shield.lefthalf.fill") {
                     VStack(spacing: 8) {
                         ToggleRow(label: "Kích Hoạt Anti-Ban", icon: "shield.fill", on: $config.AntiBan)
                             .onChange(of: config.AntiBan) { _ in
@@ -949,8 +1234,11 @@ struct ContentView: View {
                     }
                 }
 
+                } // end card_antiban
+
                 // ── TIỆN ÍCH TÀI KHOẢN (RESET GUEST) ────────────────────
-                CardView(title: "TIỆN ÍCH TÀI KHOẢN", icon: "person.crop.circle.badge.exclamationmark") {
+                if license.guiConfig.card_guest {
+                    CardView(title: "TIỆN ÍCH TÀI KHOẢN", icon: "person.crop.circle.badge.exclamationmark") {
                     VStack(spacing: 12) {
                         HStack(spacing: 10) {
                             Image(systemName: "arrow.counterclockwise.circle.fill")
@@ -1013,6 +1301,8 @@ struct ContentView: View {
                         .padding(.top, 4)
                     }
                 }
+
+                } // end card_guest
 
                 // ── INJECT / UNINSTALL ─────────────────────────────────
                 if !hasInjected {

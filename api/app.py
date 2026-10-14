@@ -141,6 +141,49 @@ def get_server_features() -> dict:
         return default_features
 
 
+# ─── Remote GUI & Tab Control Configuration ──────────────────────────────────
+DEFAULT_GUI_CONFIG = {
+    "gui_enabled": True,       # Bật / Tắt toàn bộ GUI IPA
+    "tab_menu": True,          # Ẩn / Hiện tab Menu tính năng
+    "tab_profile": True,       # Ẩn / Hiện tab Profile thông tin
+    "card_silent_aim": True,   # Ẩn / Hiện card Silent Aim
+    "card_aim_system": True,   # Ẩn / Hiện card Aim System
+    "card_esp": True,          # Ẩn / Hiện card ESP Visuals
+    "card_other": True,        # Ẩn / Hiện card Tính năng khác
+    "card_antiban": True,      # Ẩn / Hiện card Anti-Ban
+    "card_guest": True,        # Ẩn / Hiện card Xoá Guest
+    "notice_text": "",         # Thông báo chạy chữ/banner trên menu
+    "notice_active": False     # Bật / Tắt thông báo
+}
+
+def get_gui_config() -> dict:
+    raw = get_global_setting("gui_config", "")
+    cfg = DEFAULT_GUI_CONFIG.copy()
+    if raw:
+        try:
+            loaded = json.loads(raw)
+            cfg.update(loaded)
+        except Exception:
+            pass
+    return cfg
+
+def set_gui_config(new_config: dict):
+    current = get_gui_config()
+    current.update(new_config)
+    set_global_setting("gui_config", json.dumps(current))
+    return current
+
+
+# ─── Cryptographic Anti-Crack HMAC Signature ─────────────────────────────────
+HMAC_SECRET = os.environ.get("MEOMEO_HMAC_SECRET", "xtr_hmac_auth_shield_2026_xuantrun")
+
+def sign_auth_payload(device_id: str, key: str, session_token: str, ts: int, nonce: str) -> str:
+    """Cryptographic signature for Anti-Crack / Anti-Proxy.
+    Verifies that the auth response is 100% genuine and not spoofed by local proxies or mock tools."""
+    msg = f"{device_id.strip()}:{key.strip()}:{session_token.strip()}:{ts}:{nonce.strip()}:{HMAC_SECRET}"
+    return hmac.new(HMAC_SECRET.encode(), msg.encode(), hashlib.sha256).hexdigest()
+
+
 # ─── Crypto helpers ───────────────────────────────────────────────────────────
 import struct
 
@@ -386,6 +429,9 @@ def auth():
     feat_mask = features_dict_to_mask(get_server_features())
     token = generate_encrypted_token(ts, 1 if is_system_active() else 0, feat_mask)
 
+    nonce = secrets.token_hex(8)
+    auth_sign = sign_auth_payload(device_id, key, session_token, ts, nonce)
+
     return jsonify({
         "ok": True,
         "status": "active",
@@ -399,7 +445,10 @@ def auth():
         "system_active": True,
         "testCodePatch": True,
         "features": get_server_features(),
+        "gui_config": get_gui_config(),
         "offsets": get_current_offsets_dict(),
+        "nonce": nonce,
+        "auth_sign": auth_sign,
     })
 
 
@@ -659,12 +708,37 @@ def heartbeat():
         "system_active": True,
         "testCodePatch": True,
         "features": features,
+        "gui_config": get_gui_config(),
         "meomeo": new_meomeo,
         "sig": new_sig,
         "ts": ts,
         "token": token,
         "offsets": get_current_offsets_dict(),
     })
+
+
+@app.route("/api/gui_config", methods=["GET"])
+def public_gui_config():
+    """Lấy cấu hình Remote GUI cho ứng dụng IPA (bật/tắt menu, ẩn/hiện tab, notice)."""
+    return jsonify({
+        "ok": True,
+        "gui_config": get_gui_config(),
+        "system_active": is_system_active()
+    })
+
+
+@app.route("/api/admin/gui_config", methods=["GET", "POST"])
+@require_admin
+def admin_gui_config():
+    """Admin xem hoặc cập nhật cấu hình Remote GUI IPA."""
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        config_update = data.get("gui_config", data)
+        # Loại bỏ trường password nếu gửi kèm
+        clean_update = {k: v for k, v in config_update.items() if k != "password"}
+        updated = set_gui_config(clean_update)
+        return jsonify({"ok": True, "message": "Đã cập nhật cấu hình GUI thành công!", "gui_config": updated})
+    return jsonify({"ok": True, "gui_config": get_gui_config()})
 
 
 @app.route("/api/status", methods=["GET"])
@@ -679,7 +753,8 @@ def status():
 
     system_on = is_system_active()
     features = get_server_features()
-    result = {"system_active": system_on, "features": features, "testCodePatch": True, "offsets": get_current_offsets_dict()}
+    gui_cfg = get_gui_config()
+    result = {"system_active": system_on, "features": features, "gui_config": gui_cfg, "testCodePatch": True, "offsets": get_current_offsets_dict()}
 
     if not system_on:
         result["ok"] = False
@@ -1127,6 +1202,7 @@ def admin_system_status():
     return jsonify({
         "system_active": system_on,
         "features": features,
+        "gui_config": get_gui_config(),
         "keys": [dict(k) for k in keys],
         "sellers": [dict(s) for s in sellers],
         "devices": [dict(d) for d in devices],
