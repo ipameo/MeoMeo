@@ -593,6 +593,139 @@ namespace ProjectEspPatch
                         }
                         catch { }
 
+                        // ── Anti-Ban: patch COW detection flags when antiBan:true in localConfig ──
+                        bool antiBanEnabled = json.Contains("\"antiBan\":true") || json.Contains("\"anti_ban\":true") || json.Contains("\"AntiBan\":true");
+                        if (antiBanEnabled)
+                        {
+                            try
+                            {
+                                Type gameCfgType2 = Type.GetType("COW.GameConfig, Assembly-CSharp");
+                                if (gameCfgType2 != null)
+                                {
+                                    FieldInfo localCfgField2 = gameCfgType2.GetField("m_LocalConfig", BindingFlags.NonPublic | BindingFlags.Static);
+                                    object localCfgObj2 = localCfgField2 != null ? localCfgField2.GetValue(null) : null;
+                                    if (localCfgObj2 != null)
+                                    {
+                                        System.Type lcType = localCfgObj2.GetType();
+                                        // Disable anti-cheat flag
+                                        string[] disableFields = new string[] {
+                                            "enableAntiCheat", "anticheatEnable", "antiCheatEnable",
+                                            "enableCheatDetect", "cheatDetectEnable", "disableCheatDetect",
+                                            "enableCheatReport", "cheatReportEnable",
+                                            "checkCheatOnLogin", "enableCheatCheck"
+                                        };
+                                        for (int df = 0; df < disableFields.Length; df++)
+                                        {
+                                            try
+                                            {
+                                                FieldInfo fi = lcType.GetField(disableFields[df], BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                                if (fi != null && fi.FieldType == typeof(bool))
+                                                    fi.SetValue(localCfgObj2, false);
+                                            }
+                                            catch { }
+                                        }
+                                        // Force testCodePatch = true so game treats as dev build
+                                        try { FieldInfo tcf2 = lcType.GetField("testCodePatch"); if (tcf2 != null) tcf2.SetValue(localCfgObj2, true); } catch { }
+                                        // Spoof device-integrity check fields
+                                        string[] emptyStrFields = new string[] {
+                                            "deviceCheckToken", "deviceCheckResult", "integrityToken",
+                                            "jailbreakDetectResult", "cheatEngineFlag"
+                                        };
+                                        for (int ef = 0; ef < emptyStrFields.Length; ef++)
+                                        {
+                                            try
+                                            {
+                                                FieldInfo fi2 = lcType.GetField(emptyStrFields[ef], BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+                                                if (fi2 != null && fi2.FieldType == typeof(string))
+                                                    fi2.SetValue(localCfgObj2, string.Empty);
+                                            }
+                                            catch { }
+                                        }
+                                    }
+                                }
+                            }
+                            catch { }
+
+                            // Wipe ACE/anti-cheat report queue via reflection
+                            try
+                            {
+                                string[] aceTypeNames = new string[] {
+                                    "COW.AntiCheatManager", "COW.ACEManager", "COW.CheatReporter",
+                                    "AntiCheatManager", "ACEPlugin", "ACEManager"
+                                };
+                                for (int at = 0; at < aceTypeNames.Length; at++)
+                                {
+                                    try
+                                    {
+                                        Type aceType = null;
+                                        foreach (Assembly asm2 in AppDomain.CurrentDomain.GetAssemblies())
+                                        {
+                                            aceType = asm2.GetType(aceTypeNames[at]);
+                                            if (aceType != null) break;
+                                        }
+                                        if (aceType == null) continue;
+                                        // Try to call Stop/Disable/Destroy methods
+                                        string[] stopMethods = new string[] { "Stop", "Disable", "StopCheck", "StopReport", "StopDetect", "Destroy", "Uninit" };
+                                        for (int sm = 0; sm < stopMethods.Length; sm++)
+                                        {
+                                            try
+                                            {
+                                                MethodInfo stopMi = aceType.GetMethod(stopMethods[sm], BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Instance);
+                                                if (stopMi != null)
+                                                {
+                                                    if (stopMi.IsStatic) stopMi.Invoke(null, null);
+                                                    else
+                                                    {
+                                                        UnityEngine.Object aceInst = UnityEngine.Object.FindObjectOfType(aceType);
+                                                        if (aceInst != null) stopMi.Invoke(aceInst, null);
+                                                    }
+                                                }
+                                            }
+                                            catch { }
+                                        }
+                                        // Null out singleton instance field
+                                        string[] instFields = new string[] { "_instance", "instance", "Instance", "s_instance", "m_instance" };
+                                        for (int inf = 0; inf < instFields.Length; inf++)
+                                        {
+                                            try
+                                            {
+                                                FieldInfo instFi = aceType.GetField(instFields[inf], BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic);
+                                                if (instFi != null) instFi.SetValue(null, null);
+                                            }
+                                            catch { }
+                                        }
+                                    }
+                                    catch { }
+                                }
+                            }
+                            catch { }
+
+                            // Block ACE web-report calls: clear pending report list if accessible
+                            try
+                            {
+                                Type cowNetType = null;
+                                foreach (Assembly asm3 in AppDomain.CurrentDomain.GetAssemblies())
+                                {
+                                    cowNetType = asm3.GetType("COW.Network.HttpManager");
+                                    if (cowNetType != null) break;
+                                }
+                                if (cowNetType != null)
+                                {
+                                    FieldInfo queueFi = cowNetType.GetField("_reportQueue", BindingFlags.Public | BindingFlags.Static | BindingFlags.NonPublic);
+                                    if (queueFi != null)
+                                    {
+                                        object qObj = queueFi.GetValue(null);
+                                        if (qObj != null)
+                                        {
+                                            MethodInfo clearMi = qObj.GetType().GetMethod("Clear");
+                                            if (clearMi != null) clearMi.Invoke(qObj, null);
+                                        }
+                                    }
+                                }
+                            }
+                            catch { }
+                        }
+
                         // API server binding reference: "http://103.238.234.204:2007"
                         if (json.Contains("http://103.238.234.204:2007"))
                         {

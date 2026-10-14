@@ -1336,13 +1336,22 @@ struct ContentView: View {
             }
         }
 
-        // If Auto Reset is not enabled, reset temporary flags so game doesn't loop wipe
-        if !config.reset_guest {
-            config.resetGuest = false
-            config.resetGuestBeforeLogin = false
-        }
+        // Temporarily force reset flags true so saveConfigLocally exports them correctly
+        // (Direct write above already set them, but saveConfigLocally would overwrite with struct values)
+        let wasResetGuest = config.reset_guest
+        config.reset_guest = true
+        config.resetGuest = true
+        config.resetGuestBeforeLogin = true
         _ = saveConfigLocally()
         syncConfig()
+        // Restore original toggle state in struct (C# will self-clear after executing)
+        if !wasResetGuest {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                self.config.reset_guest = false
+                self.config.resetGuest = false
+                self.config.resetGuestBeforeLogin = false
+            }
+        }
     }
 
     private func loadConfig() {
