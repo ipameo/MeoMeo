@@ -1848,6 +1848,8 @@ struct ContentView: View {
                 "ts": config.system_active ? config.ts : 0,
                 "meomeo": config.system_active ? config.meomeo : "",
                 "sig": config.system_active ? config.sig : "",
+                "device_id": license.deviceId,
+                "license_key": license.storedKey,
                 "AntiBan": config.AntiBan,
                 "ShowGuestBtn": config.ShowGuestBtn,
                 "reset_guest": config.reset_guest,

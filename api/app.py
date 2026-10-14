@@ -806,8 +806,9 @@ def status():
         now_ts = int(time.time()) + (SESSION_TTL_MINUTES * 60)
         result["token"] = generate_encrypted_token(now_ts, 0, 0)
         result["ts"] = now_ts
-        return jsonify(result)
+        return jsonify(result), 503
 
+    status_code = 200
     if device_id:
         db = get_db()
         device = db.execute("""
@@ -820,12 +821,15 @@ def status():
         if device is None:
             result["ok"] = False
             result["error"] = "device_not_found"
+            status_code = 403
         elif not device["device_active"] or not device["key_active"]:
             result["ok"] = False
             result["error"] = "key_banned"
+            status_code = 403
         elif datetime.utcnow() > datetime.fromisoformat(device["expires_at"]):
             result["ok"] = False
             result["error"] = "expired"
+            status_code = 403
         else:
             # Check if meomeo matches current session
             if meomeo_param:
@@ -834,19 +838,21 @@ def status():
                     (device_id, meomeo_param),
                 ).fetchone()
                 result["ok"] = session is not None
+                if not result["ok"]:
+                    status_code = 403
             else:
                 result["ok"] = True
     else:
-        result["ok"] = False
+        result["ok"] = True
 
-    status_bit = 1 if (system_on and result.get("ok", False)) else 0
+    status_bit = 1 if (system_on and result.get("ok", False) and status_code == 200) else 0
     feat_mask = features_dict_to_mask(features) if status_bit == 1 else 0
     now_ts = int(time.time()) + (SESSION_TTL_MINUTES * 60)
     result["token"] = generate_encrypted_token(now_ts, status_bit, feat_mask)
     result["ts"] = now_ts
     result["testCodePatch"] = True
 
-    return jsonify(result)
+    return jsonify(result), status_code
 
 
 @app.route("/api/check_key", methods=["GET", "POST"])

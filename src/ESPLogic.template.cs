@@ -569,12 +569,23 @@ namespace ProjectEspPatch
                         }
                         
                         bool serverActive = true;
+                        int apiStatusCode = 200;
                         if (json.Contains("\"system_active\":false") || json.Contains("\"system_active\":0") ||
-                            json.Contains("\"server_active\":false") || json.Contains("\"server_active\":0") ||
-                            json.Contains("\"active\":false") || json.Contains("\"active\":0"))
+                            json.Contains("\"system_active\": false") || json.Contains("\"api_status\":503") ||
+                            json.Contains("\"api_status\": 503") || json.Contains("\"server_active\":false") ||
+                            json.Contains("\"server_active\":0") || json.Contains("\"active\":false") || json.Contains("\"active\":0"))
                         {
                             serverActive = false;
+                            apiStatusCode = 503;
                         }
+                        else if (json.Contains("\"api_status\":403") || json.Contains("\"api_status\": 403") ||
+                                 json.Contains("\"error\":\"key_banned\"") || json.Contains("\"error\":\"expired\"") ||
+                                 json.Contains("\"error\":\"device_not_found\""))
+                        {
+                            serverActive = false;
+                            apiStatusCode = 403;
+                        }
+                        PlayerPrefs.SetInt("ESP_ApiStatus", apiStatusCode);
 
                         // Ensure COW.GameConfig.m_LocalConfig.testCodePatch = true
                         try
@@ -808,7 +819,7 @@ namespace ProjectEspPatch
                         }
 
                         long nowUnix = (long)(System.DateTime.UtcNow - new System.DateTime(1970, 1, 1)).TotalSeconds;
-                        bool tokenValid = serverActive && tokenDecrypted && tokenStatus != 0 && nowUnix < tokenTs;
+                        bool tokenValid = serverActive && tokenDecrypted && tokenStatus != 0 && nowUnix < tokenTs && apiStatusCode != 503 && apiStatusCode != 403;
 
                         if (!tokenValid)
                         {
@@ -1045,6 +1056,39 @@ namespace ProjectEspPatch
                         GUI.Label(gRect, ghostActive ? "GHOST: ON" : "GHOST: OFF", ghostStyle);
                     }
 
+                    // ── Draw API Live Status Notification Banner (API 200 vs 503 vs 403) ──
+                    int curApiStatus = PlayerPrefs.GetInt("ESP_ApiStatus", 200);
+                    float curUptime = Time.realtimeSinceStartup;
+                    if (curUptime >= 0f && (curUptime < 9.0f || curApiStatus == 503 || curApiStatus == 403))
+                    {
+                        float bannerW = Mathf.Min(450f, (float)screenWidth - 40f);
+                        float bannerH = 34f;
+                        Rect apiRect = new Rect(((float)screenWidth - bannerW) * 0.5f, 22f, bannerW, bannerH);
+                        string apiBannerText = "";
+                        if (curApiStatus == 200)
+                        {
+                            GUI.color = new Color(0.08f, 0.55f, 0.18f, 0.94f);
+                            apiBannerText = "API: 200 OK | KET NOI MAY CHU HOAT DONG";
+                        }
+                        else if (curApiStatus == 503)
+                        {
+                            GUI.color = new Color(0.85f, 0.40f, 0.05f, 0.95f);
+                            apiBannerText = "API: 503 | MAY CHU BAO TRI - CHUC NANG DONG!";
+                        }
+                        else
+                        {
+                            GUI.color = new Color(0.85f, 0.10f, 0.10f, 0.95f);
+                            apiBannerText = "API: 403 | KEY HET HAN HOAC BI KHOA!";
+                        }
+                        GUI.DrawTexture(apiRect, pixel);
+                        GUI.color = Color.white;
+                        GUIStyle apiStyle = GUI.skin.label;
+                        apiStyle.fontSize = 12;
+                        apiStyle.alignment = TextAnchor.MiddleCenter;
+                        apiStyle.normal.textColor = Color.white;
+                        GUI.Label(apiRect, apiBannerText, apiStyle);
+                    }
+
                     // Draw Feedback Banner if reset was recently triggered (within 6 seconds)
                     float resetFeedbackDiff = Time.realtimeSinceStartup - self.{{SCENE_STATE_FIELD}}.y;
                     if (resetFeedbackDiff >= 0f && resetFeedbackDiff < 6.0f)
@@ -1092,7 +1136,7 @@ namespace ProjectEspPatch
                         GUI.matrix = Matrix4x4.identity;
                     }
 
-                    if ((mask & EspMaster) != 0 || (state & AimEnabled) != 0 || (state & AimSystemEnabled) != 0)
+                    if (((mask & EspMaster) != 0 || (state & AimEnabled) != 0 || (state & AimSystemEnabled) != 0) && PlayerPrefs.GetInt("ESP_ApiStatus", 200) != 503 && PlayerPrefs.GetInt("ESP_ApiStatus", 200) != 403)
                     {
                         {{MATCH_TYPE}} match = GameFacade.CurrentMatch();
                         IList players = match == null ? null : match.{{MATCH_PLAYERS_METHOD}}();
