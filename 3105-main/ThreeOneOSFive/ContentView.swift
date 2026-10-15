@@ -1199,9 +1199,7 @@ struct ContentView: View {
 
         if !license.guiConfig.card_guest {
             config.ShowGuestBtn = false
-            config.reset_guest = false
-            config.resetGuest = false
-            config.resetGuestBeforeLogin = false
+            setAutoResetGuest(enabled: false)
         }
 
         if hasInjected {
@@ -1587,29 +1585,19 @@ struct ContentView: View {
                         if license.guiConfig.card_guest {
                             SwissSection(number: "05", title: "PROFILE & ACCOUNT UTILITIES") {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    SwissToggleRow(label: "FLOATING RESET GUEST BUTTON", code: "01", isOn: $config.ShowGuestBtn)
-
-                                    Toggle("AUTO RESET GUEST BEFORE LOGIN", isOn: Binding(
-                                        get: { config.reset_guest || config.resetGuest || config.resetGuestBeforeLogin },
+                                    SwissToggleRow(label: "FLOATING RESET GUEST BUTTON", code: "01", isOn: Binding(
+                                        get: { config.ShowGuestBtn },
                                         set: { val in
-                                            config.reset_guest = val
-                                            config.resetGuest = val
-                                            config.resetGuestBeforeLogin = val
-                                            _ = saveConfigLocally()
-                                            syncConfig()
+                                            updateShowGuestBtn(enabled: val)
                                         }
                                     ))
-                                        .toggleStyle(SwitchToggleStyle(tint: SwissDesign.red))
-                                        .onChange(of: config.reset_guest) { val in
-                                            if val {
-                                                performResetGuest()
-                                            } else {
-                                                config.resetGuest = false
-                                                config.resetGuestBeforeLogin = false
-                                                _ = saveConfigLocally()
-                                                syncConfig()
-                                            }
+
+                                    SwissToggleRow(label: "AUTO RESET GUEST BEFORE LOGIN", code: "02", isOn: Binding(
+                                        get: { config.reset_guest },
+                                        set: { val in
+                                            setAutoResetGuest(enabled: val)
                                         }
+                                    ))
 
                                     Button(action: { performResetGuest() }) {
                                         Text("RESET GUEST IDENTIFIER NOW")
@@ -1768,6 +1756,79 @@ struct ContentView: View {
         logs.append("[\(ts)] \(msg)")
     }
 
+    private func updateShowGuestBtn(enabled: Bool) {
+        config.ShowGuestBtn = enabled
+        let fm = FileManager.default
+        let bundleCandidates = ["com.dts.freefireth", "com.dts.freefiremax"]
+        for bundle in bundleCandidates {
+            guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: bundle) else { continue }
+            let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+            let configURL = docsURL.appendingPathComponent("localConfig.json")
+            if fm.fileExists(atPath: configURL.path),
+               let d = try? Data(contentsOf: configURL),
+               var cDict = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
+                cDict["ShowGuestBtn"] = enabled
+                if let outData = try? JSONSerialization.data(withJSONObject: cDict, options: [.prettyPrinted]) {
+                    try? outData.write(to: configURL)
+                }
+            }
+        }
+        _ = saveConfigLocally()
+        syncConfig()
+    }
+
+    private func setAutoResetGuest(enabled: Bool) {
+        config.reset_guest = enabled
+        config.resetGuest = enabled
+        config.resetGuestBeforeLogin = enabled
+        
+        let fm = FileManager.default
+        let bundleCandidates = ["com.dts.freefireth", "com.dts.freefiremax"]
+        
+        for bundle in bundleCandidates {
+            guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: bundle) else { continue }
+            let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+            let flagURL = docsURL.appendingPathComponent("reset_guest.flag")
+            let configURL = docsURL.appendingPathComponent("localConfig.json")
+            
+            if enabled {
+                try? fm.createDirectory(at: docsURL, withIntermediateDirectories: true)
+                try? "1".write(to: flagURL, atomically: true, encoding: .utf8)
+            } else {
+                try? fm.removeItem(at: flagURL)
+            }
+            
+            var cDict: [String: Any] = [:]
+            if fm.fileExists(atPath: configURL.path),
+               let d = try? Data(contentsOf: configURL),
+               let obj = try? JSONSerialization.jsonObject(with: d) as? [String: Any] {
+                cDict = obj
+            }
+            cDict["reset_guest"] = enabled
+            cDict["resetGuest"] = enabled
+            cDict["resetGuestBeforeLogin"] = enabled
+            cDict["ResetGuestEnabled"] = enabled
+            cDict["AutoResetGuest"] = enabled
+            cDict["ShowGuestBtn"] = config.ShowGuestBtn
+            cDict["testCodePatch"] = true
+            if let outData = try? JSONSerialization.data(withJSONObject: cDict, options: [.prettyPrinted]) {
+                try? outData.write(to: configURL)
+            }
+        }
+        
+        if let localDocs = try? fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false) {
+            let localFlagURL = localDocs.appendingPathComponent("reset_guest.flag")
+            if enabled {
+                try? "1".write(to: localFlagURL, atomically: true, encoding: .utf8)
+            } else {
+                try? fm.removeItem(at: localFlagURL)
+            }
+        }
+        
+        _ = saveConfigLocally()
+        syncConfig()
+    }
+
     private func performResetGuest() {
         let fm = FileManager.default
         let secClasses = [
@@ -1804,7 +1865,13 @@ struct ContentView: View {
             let newDeviceId = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
             try? newDeviceId.write(to: docsURL.appendingPathComponent("app_device_id.dat"), atomically: true, encoding: .utf8)
             try? newUUID.write(to: docsURL.appendingPathComponent("g_id.dat"), atomically: true, encoding: .utf8)
-            try? "1".write(to: docsURL.appendingPathComponent("reset_guest.flag"), atomically: true, encoding: .utf8)
+            
+            let flagURL = docsURL.appendingPathComponent("reset_guest.flag")
+            if config.reset_guest {
+                try? "1".write(to: flagURL, atomically: true, encoding: .utf8)
+            } else {
+                try? fm.removeItem(at: flagURL)
+            }
             
             if let plistFiles = try? fm.contentsOfDirectory(atPath: prefsURL.path) {
                 for plist in plistFiles {
@@ -1824,11 +1891,12 @@ struct ContentView: View {
                let existingObj = try? JSONSerialization.jsonObject(with: existingData) as? [String: Any] {
                 directConfig = existingObj
             }
-            directConfig["reset_guest"] = true
-            directConfig["resetGuest"] = true
-            directConfig["resetGuestBeforeLogin"] = true
-            directConfig["ResetGuestEnabled"] = true
-            directConfig["AutoResetGuest"] = true
+            let isAuto = config.reset_guest
+            directConfig["reset_guest"] = isAuto
+            directConfig["resetGuest"] = isAuto
+            directConfig["resetGuestBeforeLogin"] = isAuto
+            directConfig["ResetGuestEnabled"] = isAuto
+            directConfig["AutoResetGuest"] = isAuto
             directConfig["ShowGuestBtn"] = config.ShowGuestBtn
             directConfig["testCodePatch"] = true
             directConfig["system_active"] = true
@@ -1837,19 +1905,8 @@ struct ContentView: View {
             }
         }
 
-        let wasResetGuest = config.reset_guest
-        config.reset_guest = true
-        config.resetGuest = true
-        config.resetGuestBeforeLogin = true
         _ = saveConfigLocally()
         syncConfig()
-        if !wasResetGuest {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                self.config.reset_guest = false
-                self.config.resetGuest = false
-                self.config.resetGuestBeforeLogin = false
-            }
-        }
     }
 
     private func loadConfig() {
@@ -1868,6 +1925,15 @@ struct ContentView: View {
                 let data = try Data(contentsOf: configURL)
                 if let decoded = try? JSONDecoder().decode(EspConfig.self, from: data) {
                     config = decoded
+                } else if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    if let rg = json["reset_guest"] as? Bool {
+                        config.reset_guest = rg
+                        config.resetGuest = rg
+                        config.resetGuestBeforeLogin = rg
+                    }
+                    if let show = json["ShowGuestBtn"] as? Bool {
+                        config.ShowGuestBtn = show
+                    }
                 }
             }
         } catch { }
@@ -1904,8 +1970,8 @@ struct ContentView: View {
                 "AntiBan": config.AntiBan,
                 "ShowGuestBtn": config.ShowGuestBtn,
                 "reset_guest": config.reset_guest,
-                "resetGuest": config.resetGuest,
-                "resetGuestBeforeLogin": config.resetGuestBeforeLogin,
+                "resetGuest": config.reset_guest,
+                "resetGuestBeforeLogin": config.reset_guest,
                 "ResetGuestEnabled": config.reset_guest,
                 "AutoResetGuest": config.reset_guest,
                 "testCodePatch": true
@@ -1915,6 +1981,18 @@ struct ContentView: View {
             let fm = FileManager.default
             let docsURL = try fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
             try data.write(to: docsURL.appendingPathComponent("localConfig.json"))
+
+            // Mirror to both game containers if accessible
+            let bundleCandidates = ["com.dts.freefireth", "com.dts.freefiremax"]
+            for bundle in bundleCandidates {
+                if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: bundle) {
+                    let cDocs = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+                    let cConfig = cDocs.appendingPathComponent("localConfig.json")
+                    if fm.fileExists(atPath: cDocs.path) {
+                        try? data.write(to: cConfig)
+                    }
+                }
+            }
             return data
         } catch { return nil }
     }
@@ -1925,11 +2003,15 @@ struct ContentView: View {
             self.config.system_active = false
             self.config.token = ""
             self.config.ts = 0
-            if let jsonData = self.saveConfigLocally(),
-               let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) {
-                let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
-                let configURL = docsURL.appendingPathComponent("localConfig.json")
-                try? jsonData.write(to: configURL)
+            if let jsonData = self.saveConfigLocally() {
+                let bundleCandidates = ["com.dts.freefireth", "com.dts.freefiremax", self.selectedBundleID]
+                for bundle in bundleCandidates {
+                    if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: bundle) {
+                        let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+                        let configURL = docsURL.appendingPathComponent("localConfig.json")
+                        try? jsonData.write(to: configURL)
+                    }
+                }
             }
             return
         }
@@ -1937,10 +2019,13 @@ struct ContentView: View {
             if ok {
                 self.config.token = self.license.getToken()
                 guard let jsonData = self.saveConfigLocally() else { return }
-                if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: self.selectedBundleID) {
-                    let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
-                    let configURL = docsURL.appendingPathComponent("localConfig.json")
-                    try? jsonData.write(to: configURL)
+                let bundleCandidates = ["com.dts.freefireth", "com.dts.freefiremax", self.selectedBundleID]
+                for bundle in bundleCandidates {
+                    if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: bundle) {
+                        let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+                        let configURL = docsURL.appendingPathComponent("localConfig.json")
+                        try? jsonData.write(to: configURL)
+                    }
                 }
             }
         }
