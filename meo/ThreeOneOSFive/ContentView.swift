@@ -909,7 +909,7 @@ struct ContentView: View {
                                 .font(.system(size: 10, weight: .black, design: .monospaced))
                                 .tracking(1.8)
                                 .foregroundColor(SwissDesign.red)
-                            Text("3105.MEOMEO")
+                            Text("MeoMeoExt")
                                 .font(.system(size: 22, weight: .black, design: .default))
                                 .tracking(-0.5)
                                 .foregroundColor(SwissDesign.black)
