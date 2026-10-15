@@ -481,6 +481,13 @@ class LicenseManager: ObservableObject {
                   let gCfg = json["gui_config"] as? [String: Any] else { return }
             DispatchQueue.main.async {
                 self.guiConfig = GuiConfig(from: gCfg)
+                if let sysActive = json["system_active"] as? Bool {
+                    let oldState = self.systemActive
+                    self.systemActive = sysActive
+                    if oldState != sysActive {
+                        self.onLiveStateChanged?(sysActive)
+                    }
+                }
                 completion?(self.guiConfig)
             }
         }.resume()
@@ -748,6 +755,13 @@ class LicenseManager: ObservableObject {
                 if let gCfg = json["gui_config"] as? [String: Any] {
                     self.guiConfig = GuiConfig(from: gCfg)
                 }
+                if let sys = json["system_active"] as? Bool {
+                    let oldState = self.systemActive
+                    self.systemActive = sys
+                    if oldState != sys {
+                        self.onLiveStateChanged?(sys)
+                    }
+                }
                 self.isAuthed = ok
                 self.onTokenRefreshed?()
                 completion(ok)
@@ -840,6 +854,7 @@ struct SwissToggleRow: View {
                         .stroke(SwissDesign.black, lineWidth: 1.5)
                         .frame(width: 20, height: 20)
                         .background(SwissDesign.surface)
+                    
                     if isOn {
                         Rectangle()
                             .fill(SwissDesign.red)
@@ -847,59 +862,21 @@ struct SwissToggleRow: View {
                     }
                 }
             }
-            .padding(.vertical, 6)
+            .padding(.vertical, 8)
+            .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
     }
 }
 
-// MARK: - Swiss Slider Row
-struct SwissSliderRow: View {
-    let label: String
-    let code: String
-    @Binding var value: Float
-    let range: ClosedRange<Float>
-    let isPercent: Bool
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(code)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(SwissDesign.textSecondary)
-                    .frame(width: 24, alignment: .leading)
-                
-                Text(label)
-                    .font(.system(size: 11, weight: .bold, design: .default))
-                    .foregroundColor(SwissDesign.black)
-                
-                Spacer()
-                
-                Text(isPercent ? "\(Int(value))%" : "\(Int(value))")
-                    .font(.system(size: 13, weight: .black, design: .monospaced))
-                    .foregroundColor(SwissDesign.red)
-            }
-
-            Slider(value: $value, in: range, step: 1)
-                .accentColor(SwissDesign.black)
-        }
-        .padding(.vertical, 5)
-    }
-}
-
-// MARK: - Main View (Swiss International Style)
+// MARK: - Main Swiss UI ContentView
 struct ContentView: View {
-    @Environment(\.appLanguage) private var language
-    @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
-    @EnvironmentObject private var patchStore: PatchProjectStore
-    @EnvironmentObject private var repositoryStore: PackageRepositoryStore
-    @ObservedObject private var license = LicenseManager.shared
-
+    @ObservedObject var license = LicenseManager.shared
     @State private var config = EspConfig()
-    @State private var isInjecting = false
     @State private var hasInjected = false
-    @State private var topTab: String = "Menu"   // "Menu" | "Profile"
-    @State private var gameTab: String = "ff"    // "ff" | "ffmax"
+    @State private var isInjecting = false
+    @State private var topTab: String = "Menu"       // "Menu" | "Profile"
+    @State private var gameTab: String = "ff"        // "ff" | "ffmax"
     @State private var logs: [String] = []
     @State private var licenseKeyInput: String = ""
     @State private var isAuthenticating = false
@@ -916,6 +893,9 @@ struct ContentView: View {
     }
 
     var body: some View {
+        let isSystemLocked = !license.guiConfig.gui_enabled || !license.systemActive
+        let canInject = !isSystemLocked && license.isAuthed && license.isCryptographicallyVerified
+
         ZStack {
             // Swiss Off-white Background (#F5F5F5)
             SwissDesign.bg.ignoresSafeArea()
@@ -975,8 +955,8 @@ struct ContentView: View {
                     noticeBannerView
                 }
 
-                // ── CONTENT AREA (Expands freely without stopwatch overhead) ──
-                if !license.guiConfig.gui_enabled {
+                // ── CONTENT AREA ──
+                if isSystemLocked {
                     lockedView
                 } else {
                     if topTab == "Menu" && license.guiConfig.tab_menu {
@@ -1001,75 +981,82 @@ struct ContentView: View {
                 }
 
                 // ── DOCKED BOTTOM BAR: INJECT BUTTON & NAVIGATION TABS ──
-                VStack(spacing: 8) {
-                    // INJECT / EJECT Control Button
-                    if !hasInjected {
-                        Button(action: { injectGame() }) {
-                            HStack(spacing: 8) {
-                                if isInjecting {
-                                    ProgressView().progressViewStyle(CircularProgressViewStyle(tint: SwissDesign.white))
-                                } else {
-                                    Rectangle()
-                                        .fill(SwissDesign.red)
-                                        .frame(width: 8, height: 8)
-                                    Text("INJECT")
-                                        .font(.system(size: 13, weight: .black, design: .default))
-                                        .tracking(2.0)
-                                        .foregroundColor(SwissDesign.white)
+                // When locked: INJECT is COMPLETELY HIDDEN
+                if !isSystemLocked {
+                    VStack(spacing: 8) {
+                        // INJECT / EJECT Control Button (Only visible when authed & unlocked)
+                        if canInject {
+                            if !hasInjected {
+                                Button(action: { injectGame() }) {
+                                    HStack(spacing: 8) {
+                                        if isInjecting {
+                                            ProgressView().progressViewStyle(CircularProgressViewStyle(tint: SwissDesign.white))
+                                        } else {
+                                            Rectangle()
+                                                .fill(SwissDesign.red)
+                                                .frame(width: 8, height: 8)
+                                            Text("INJECT")
+                                                .font(.system(size: 13, weight: .black, design: .default))
+                                                .tracking(2.0)
+                                                .foregroundColor(SwissDesign.white)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 46)
+                                    .background(SwissDesign.black)
+                                }
+                                .disabled(isInjecting)
+                            } else {
+                                Button(action: { uninstallMod() }) {
+                                    HStack(spacing: 8) {
+                                        Rectangle()
+                                            .fill(SwissDesign.white)
+                                            .frame(width: 8, height: 8)
+                                        Text("UNINSTALL MOD (EJECT)")
+                                            .font(.system(size: 13, weight: .black, design: .default))
+                                            .tracking(2.0)
+                                            .foregroundColor(SwissDesign.white)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 46)
+                                    .background(SwissDesign.red)
                                 }
                             }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .background(SwissDesign.black)
                         }
-                        .disabled(isInjecting)
-                    } else {
-                        Button(action: { uninstallMod() }) {
-                            HStack(spacing: 8) {
-                                Rectangle()
-                                    .fill(SwissDesign.white)
-                                    .frame(width: 8, height: 8)
-                                Text("UNINSTALL MOD (EJECT)")
-                                    .font(.system(size: 13, weight: .black, design: .default))
-                                    .tracking(2.0)
-                                    .foregroundColor(SwissDesign.white)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .background(SwissDesign.red)
-                        }
-                    }
 
-                    // RIGID GRID TABS (MENU / PROFILE)
-                    if license.guiConfig.gui_enabled && availableTabs.count > 1 {
-                        HStack(spacing: 0) {
-                            ForEach(availableTabs, id: \.self) { tab in
-                                Button(action: { topTab = tab }) {
-                                    Text(tab.uppercased())
-                                        .font(.system(size: 11, weight: .black, design: .default))
-                                        .tracking(1.4)
-                                        .foregroundColor(topTab == tab ? SwissDesign.white : SwissDesign.black)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 40)
-                                        .background(topTab == tab ? SwissDesign.black : SwissDesign.surface)
-                                        .overlay(
-                                            Rectangle().stroke(SwissDesign.black, lineWidth: 1)
-                                        )
+                        // RIGID GRID TABS (MENU / PROFILE)
+                        if availableTabs.count > 1 {
+                            HStack(spacing: 0) {
+                                ForEach(availableTabs, id: \.self) { tab in
+                                    Button(action: { topTab = tab }) {
+                                        Text(tab.uppercased())
+                                            .font(.system(size: 11, weight: .black, design: .default))
+                                            .tracking(1.4)
+                                            .foregroundColor(topTab == tab ? SwissDesign.white : SwissDesign.black)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 40)
+                                            .background(topTab == tab ? SwissDesign.black : SwissDesign.surface)
+                                            .overlay(
+                                                Rectangle().stroke(SwissDesign.black, lineWidth: 1)
+                                            )
+                                    }
                                 }
                             }
                         }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 12)
+                    .padding(.top, 8)
+                    .background(SwissDesign.bg)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 12)
-                .padding(.top, 8)
-                .background(SwissDesign.bg)
             }
         }
         .onAppear {
             SecurityShield.enforceAntiDebug()
             loadConfig()
-            license.fetchGuiConfig()
+            license.fetchGuiConfig { _ in
+                self.applyServerFeatureLocks()
+            }
             licenseKeyInput = license.storedKey
             if let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) {
                 let patchURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents/Assembly-CSharp-patch.bytes")
@@ -1078,24 +1065,18 @@ struct ContentView: View {
                 }
             }
             license.onLiveStateChanged = { active in
-                self.syncConfig()
+                self.applyServerFeatureLocks()
             }
             license.onTokenRefreshed = {
-                self.syncConfig()
+                self.applyServerFeatureLocks()
             }
-            Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { _ in
-                if self.hasInjected && !self.license.isCryptographicallyVerified {
-                    self.uninstallMod()
+            Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+                if !self.license.guiConfig.gui_enabled || !self.license.systemActive || !self.license.isCryptographicallyVerified {
+                    self.applyServerFeatureLocks()
                 }
             }
             license.onLicenseTerminated = { reason in
-                self.config.system_active = false
-                self.config.EspMaster = false
-                self.config.AimEnabled = false
-                self.config.AimSystemEnabled = false
-                self.config.server_esp = false
-                self.config.server_aim = false
-                self.syncConfig()
+                self.applyServerFeatureLocks()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                     exit(0)
                 }
@@ -1105,17 +1086,10 @@ struct ContentView: View {
                 isAuthenticating = true
                 license.authenticate(key: license.storedKey) { ok, err in
                     isAuthenticating = false
+                    self.applyServerFeatureLocks()
                     if ok {
-                        syncConfig()
                         self.license.startHeartbeat()
                     } else {
-                        self.config.system_active = false
-                        self.config.EspMaster = false
-                        self.config.AimEnabled = false
-                        self.config.AimSystemEnabled = false
-                        self.config.server_esp = false
-                        self.config.server_aim = false
-                        self.syncConfig()
                         if err == "license_expired" || err == "key_banned" || err == "device_disabled" {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                                 exit(0)
@@ -1129,11 +1103,111 @@ struct ContentView: View {
             syncConfig()
         }
         .onChange(of: license.guiConfig) { newCfg in
+            self.applyServerFeatureLocks()
             if !newCfg.tab_menu && topTab == "Menu" && newCfg.tab_profile {
                 topTab = "Profile"
             } else if !newCfg.tab_profile && topTab == "Profile" && newCfg.tab_menu {
                 topTab = "Menu"
             }
+        }
+        .onChange(of: license.systemActive) { _ in
+            self.applyServerFeatureLocks()
+        }
+    }
+
+    // MARK: - Remote Lockout & Feature Enforcement
+    private func applyServerFeatureLocks() {
+        let isSystemLocked = !license.guiConfig.gui_enabled || !license.systemActive
+
+        if isSystemLocked || !license.isAuthed || !license.isCryptographicallyVerified {
+            // Master Lockout: Disable all cheat features in memory & disk
+            config.system_active = false
+            config.EspMaster = false
+            config.EspBox = false
+            config.EspLine = false
+            config.EspName = false
+            config.EspHealth = false
+            config.EspDistance = false
+            config.EspTracer = false
+            config.EspSkeleton = false
+            config.AimEnabled = false
+            config.AimSystemEnabled = false
+            config.EspFov = false
+            config.NoRecoil = false
+            config.BuffDame = false
+            config.GhostMode = false
+            config.CamXa = false
+            config.FastParachute = false
+            config.SpeedHack = 1
+            config.server_esp = false
+            config.server_aim = false
+            config.server_box = false
+            config.server_line = false
+            config.server_skeleton = false
+            config.server_name = false
+            config.server_distance = false
+            config.server_health = false
+            config.server_headshot = false
+            config.meomeo = ""
+            config.sig = ""
+            config.token = ""
+            config.ts = 0
+
+            // If mod was active, immediately purge binary patch & config from game
+            if hasInjected {
+                uninstallMod()
+            }
+            _ = saveConfigLocally()
+            return
+        }
+
+        // Granular feature enforcement from server
+        let espPermitted = license.guiConfig.card_esp && (license.serverFeatures["server_esp"] ?? true)
+        if !espPermitted {
+            config.EspMaster = false
+            config.EspBox = false
+            config.EspLine = false
+            config.EspName = false
+            config.EspHealth = false
+            config.EspDistance = false
+            config.EspTracer = false
+            config.EspSkeleton = false
+            config.server_esp = false
+        }
+
+        let aimPermitted = license.guiConfig.card_silent_aim && (license.serverFeatures["server_aim"] ?? true)
+        if !aimPermitted {
+            config.AimEnabled = false
+            config.server_aim = false
+        }
+
+        if !license.guiConfig.card_aim_system {
+            config.AimSystemEnabled = false
+            config.NoRecoil = false
+        }
+
+        if !license.guiConfig.card_other {
+            config.BuffDame = false
+            config.GhostMode = false
+            config.CamXa = false
+            config.SpeedHack = 1
+        }
+
+        if !license.guiConfig.card_antiban {
+            config.AntiBan = false
+        }
+
+        if !license.guiConfig.card_guest {
+            config.ShowGuestBtn = false
+            config.reset_guest = false
+            config.resetGuest = false
+            config.resetGuestBeforeLogin = false
+        }
+
+        if hasInjected {
+            syncConfig()
+        } else {
+            _ = saveConfigLocally()
         }
     }
 
@@ -1181,63 +1255,67 @@ struct ContentView: View {
                 .padding(.horizontal, 32)
 
             Button(action: {
-                license.fetchGuiConfig()
-                if !license.storedKey.isEmpty {
-                    license.authenticate(key: license.storedKey) { _, _ in }
+                license.fetchGuiConfig { _ in
+                    self.applyServerFeatureLocks()
                 }
             }) {
-                Text("REFRESH STATUS")
-                    .font(.system(size: 11, weight: .black, design: .default))
-                    .foregroundColor(SwissDesign.white)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(SwissDesign.black)
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.clockwise")
+                        .font(.system(size: 11, weight: .bold))
+                    Text("CHECK STATUS")
+                        .font(.system(size: 11, weight: .black, design: .monospaced))
+                        .tracking(1.0)
+                }
+                .foregroundColor(SwissDesign.black)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(SwissDesign.surface)
+                .overlay(Rectangle().stroke(SwissDesign.black, lineWidth: 1))
             }
+            .padding(.top, 8)
+
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Tamper Detected Trap
+    // MARK: - Tamper Detected View
     var tamperDetectedView: some View {
         VStack(spacing: 16) {
             Spacer()
             ZStack {
                 Rectangle()
-                    .fill(SwissDesign.red)
+                    .stroke(SwissDesign.red, lineWidth: 2)
                     .frame(width: 64, height: 64)
-                Image(systemName: "xmark")
-                    .font(.system(size: 32, weight: .black))
-                    .foregroundColor(SwissDesign.white)
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 28))
+                    .foregroundColor(SwissDesign.red)
             }
-            Text("INTEGRITY VIOLATION")
-                .font(.system(size: 18, weight: .black, design: .default))
-                .foregroundColor(SwissDesign.red)
-                .tracking(1.5)
-            Text("Unauthorized application tamper detected (Bypass / Proxy). Security termination triggered.")
+            Text("SECURITY SHIELD ENGAGED")
+                .font(.system(size: 16, weight: .black, design: .default))
+                .foregroundColor(SwissDesign.black)
+            Text("Cryptographic signature mismatch or proxy tampering detected. Connection suspended.")
                 .font(.system(size: 12, weight: .medium, design: .default))
                 .foregroundColor(SwissDesign.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
-            
-            Button(action: { exit(0) }) {
-                Text("EXIT APPLICATION")
+
+            Button(action: {
+                license.authenticate(key: license.storedKey) { ok, _ in
+                    self.applyServerFeatureLocks()
+                    if ok { license.startHeartbeat() }
+                }
+            }) {
+                Text("RETRY VERIFICATION")
                     .font(.system(size: 11, weight: .black, design: .default))
                     .foregroundColor(SwissDesign.white)
-                    .padding(.horizontal, 28)
-                    .padding(.vertical, 12)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 10)
                     .background(SwissDesign.black)
             }
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(SwissDesign.bg.edgesIgnoringSafeArea(.all))
-        .onAppear {
-            self.uninstallMod()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-                exit(0)
-            }
-        }
     }
 
     // MARK: - Auth View (Swiss International Style)
@@ -1278,8 +1356,8 @@ struct ContentView: View {
                             isAuthenticating = true
                             license.authenticate(key: key) { ok, err in
                                 isAuthenticating = false
+                                self.applyServerFeatureLocks()
                                 if ok {
-                                    syncConfig()
                                     self.license.startHeartbeat()
                                 }
                             }
@@ -1344,45 +1422,39 @@ struct ContentView: View {
             } else {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        // ── SILENT AIM ──
+                        // ── COMBAT ENGINE (SILENT AIM) ──
                         if license.guiConfig.card_silent_aim {
-                            SwissSection(number: "01", title: "SILENT AIM") {
+                            SwissSection(number: "01", title: "SILENT AIMBOT") {
                                 VStack(alignment: .leading, spacing: 6) {
-                                    SwissToggleRow(label: "SILENT AIM", code: "01", isOn: $config.AimEnabled)
+                                    SwissToggleRow(label: "SILENT AIM MASTER", code: "01", isOn: $config.AimEnabled)
 
                                     if config.AimEnabled {
                                         Rectangle().fill(SwissDesign.line).frame(height: 1).padding(.vertical, 4)
-                                        SwissToggleRow(label: "DRAW FOV CIRCLE", code: "02", isOn: $config.EspFov)
-                                        SwissSliderRow(label: "SILENT FOV RADIUS", code: "03", value: $config.FovSize, range: 30...400, isPercent: false)
-                                        SwissSliderRow(label: "HEADSHOT RATE", code: "04", value: $config.HeadshotRate, range: 0...100, isPercent: true)
+                                        SwissToggleRow(label: "FOV CIRCLE VISUALIZER", code: "02", isOn: $config.EspFov)
 
-                                        VStack(alignment: .leading, spacing: 6) {
+                                        if config.EspFov {
+                                            VStack(alignment: .leading, spacing: 4) {
+                                                HStack {
+                                                    Text("FIELD OF VIEW: \(Int(config.FovSize))°")
+                                                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                                        .foregroundColor(SwissDesign.black)
+                                                    Spacer()
+                                                }
+                                                Slider(value: $config.FovSize, in: 30.0...360.0, step: 5.0)
+                                                    .accentColor(SwissDesign.black)
+                                            }
+                                            .padding(.vertical, 4)
+                                        }
+
+                                        VStack(alignment: .leading, spacing: 4) {
                                             HStack {
-                                                Text("05")
-                                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                                    .foregroundColor(SwissDesign.textSecondary)
-                                                    .frame(width: 24, alignment: .leading)
-                                                Text("TARGET BONE")
-                                                    .font(.system(size: 11, weight: .bold, design: .default))
-                                                    .foregroundColor(SwissDesign.black)
+                                                Text("HEADSHOT RATIO: \(Int(config.HeadshotRate))%")
+                                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                                    .foregroundColor(SwissDesign.red)
                                                 Spacer()
                                             }
-                                            HStack(spacing: 0) {
-                                                ForEach(0..<3, id: \.self) { idx in
-                                                    let name = idx == 0 ? "HEAD" : (idx == 1 ? "NECK" : "BODY")
-                                                    Button(action: { config.AimTarget = idx }) {
-                                                        Text(name)
-                                                            .font(.system(size: 11, weight: .black, design: .default))
-                                                            .foregroundColor(config.AimTarget == idx ? SwissDesign.white : SwissDesign.black)
-                                                            .frame(maxWidth: .infinity)
-                                                            .frame(height: 34)
-                                                            .background(config.AimTarget == idx ? SwissDesign.black : SwissDesign.surface)
-                                                            .overlay(
-                                                                Rectangle().stroke(SwissDesign.black, lineWidth: 1)
-                                                            )
-                                                    }
-                                                }
-                                            }
+                                            Slider(value: $config.HeadshotRate, in: 0.0...100.0, step: 5.0)
+                                                .accentColor(SwissDesign.red)
                                         }
                                         .padding(.vertical, 4)
                                     }
@@ -1492,14 +1564,14 @@ struct ContentView: View {
                                             Spacer()
                                         }
                                         HStack(spacing: 0) {
-                                            ForEach(1..<6, id: \.self) { idx in
-                                                Button(action: { config.SpeedHack = idx }) {
-                                                    Text("\(idx)X")
+                                            ForEach(1...4, id: \.self) { spd in
+                                                Button(action: { config.SpeedHack = spd }) {
+                                                    Text("\(spd)X")
                                                         .font(.system(size: 11, weight: .black, design: .default))
-                                                        .foregroundColor(config.SpeedHack == idx ? SwissDesign.white : SwissDesign.black)
+                                                        .foregroundColor(config.SpeedHack == spd ? SwissDesign.white : SwissDesign.black)
                                                         .frame(maxWidth: .infinity)
                                                         .frame(height: 34)
-                                                        .background(config.SpeedHack == idx ? SwissDesign.red : SwissDesign.surface)
+                                                        .background(config.SpeedHack == spd ? SwissDesign.black : SwissDesign.surface)
                                                         .overlay(
                                                             Rectangle().stroke(SwissDesign.black, lineWidth: 1)
                                                         )
@@ -1507,37 +1579,29 @@ struct ContentView: View {
                                             }
                                         }
                                     }
-                                    .padding(.vertical, 4)
                                 }
                             }
                         }
 
-                        // ── ANTI-BAN ──
-                        if license.guiConfig.card_antiban {
-                            SwissSection(number: "05", title: "SECURITY & ANTI-BAN") {
-                                VStack(alignment: .leading, spacing: 6) {
-                                    SwissToggleRow(label: "ANTI-BAN MEMORY SHIELD", code: "01", isOn: $config.AntiBan)
-                                        .onChange(of: config.AntiBan) { _ in
-                                            _ = saveConfigLocally()
-                                            syncConfig()
-                                        }
-                                }
-                            }
-                        }
-
-                        // ── GUEST UTILITIES ──
+                        // ── SECURITY & RESETS ──
                         if license.guiConfig.card_guest {
-                            SwissSection(number: "06", title: "GUEST ACCOUNT UTILITIES") {
+                            SwissSection(number: "05", title: "PROFILE & ACCOUNT UTILITIES") {
                                 VStack(alignment: .leading, spacing: 8) {
-                                    SwissToggleRow(label: "SHOW LOBBY RESET BUTTON", code: "01", isOn: $config.ShowGuestBtn)
-                                        .onChange(of: config.ShowGuestBtn) { _ in
+                                    SwissToggleRow(label: "FLOATING RESET GUEST BUTTON", code: "01", isOn: $config.ShowGuestBtn)
+
+                                    Toggle("AUTO RESET GUEST BEFORE LOGIN", isOn: Binding(
+                                        get: { config.reset_guest || config.resetGuest || config.resetGuestBeforeLogin },
+                                        set: { val in
+                                            config.reset_guest = val
+                                            config.resetGuest = val
+                                            config.resetGuestBeforeLogin = val
                                             _ = saveConfigLocally()
                                             syncConfig()
                                         }
-
-                                    SwissToggleRow(label: "AUTO RESET BEFORE LOGIN", code: "02", isOn: $config.reset_guest)
-                                        .onChange(of: config.reset_guest) { newValue in
-                                            if newValue {
+                                    ))
+                                        .toggleStyle(SwitchToggleStyle(tint: SwissDesign.red))
+                                        .onChange(of: config.reset_guest) { val in
+                                            if val {
                                                 performResetGuest()
                                             } else {
                                                 config.resetGuest = false
@@ -1660,34 +1724,16 @@ struct ContentView: View {
                                     }
                                 }) {
                                     HStack {
-                                        Text("COMMUNITY CHANNEL")
+                                        Text("TELEGRAM // @CHEATMEO")
                                             .font(.system(size: 11, weight: .black, design: .default))
                                             .foregroundColor(SwissDesign.black)
                                         Spacer()
-                                        Text("@cheatmeo ->")
-                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                            .foregroundColor(SwissDesign.red)
-                                    }
-                                    .padding(10)
-                                    .background(SwissDesign.surface)
-                                    .overlay(Rectangle().stroke(SwissDesign.black, lineWidth: 1))
-                                }
-
-                                Button(action: {
-                                    if let url = URL(string: "https://t.me/truongdeptrai7") {
-                                        UIApplication.shared.open(url)
-                                    }
-                                }) {
-                                    HStack {
-                                        Text("ADMIN DIRECT")
-                                            .font(.system(size: 11, weight: .black, design: .default))
+                                        Image(systemName: "arrow.up.right")
+                                            .font(.system(size: 11, weight: .bold))
                                             .foregroundColor(SwissDesign.black)
-                                        Spacer()
-                                        Text("@truongdeptrai7 ->")
-                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                            .foregroundColor(SwissDesign.red)
                                     }
-                                    .padding(10)
+                                    .padding(.horizontal, 14)
+                                    .frame(height: 40)
                                     .background(SwissDesign.surface)
                                     .overlay(Rectangle().stroke(SwissDesign.black, lineWidth: 1))
                                 }
@@ -1696,8 +1742,7 @@ struct ContentView: View {
                                     license.storedKey = ""
                                     license.isAuthed = false
                                     license.stopHeartbeat()
-                                    config.system_active = false
-                                    syncConfig()
+                                    applyServerFeatureLocks()
                                     topTab = "Menu"
                                 }) {
                                     Text("CHANGE LICENSE KEY")
@@ -1830,7 +1875,7 @@ struct ContentView: View {
 
     private func saveConfigLocally() -> Data? {
         do {
-            if license.systemActive && license.isCryptographicallyVerified {
+            if license.systemActive && license.isCryptographicallyVerified && license.guiConfig.gui_enabled {
                 if !license.getMeomeo().isEmpty { config.meomeo = license.getMeomeo() }
                 if !license.getSig().isEmpty { config.sig = license.getSig() }
                 if !license.getToken().isEmpty { config.token = license.getToken() }
@@ -1876,7 +1921,7 @@ struct ContentView: View {
 
     private func syncConfig() {
         guard hasInjected else { return }
-        if !license.systemActive || !license.isCryptographicallyVerified {
+        if !license.systemActive || !license.guiConfig.gui_enabled || !license.isCryptographicallyVerified {
             self.config.system_active = false
             self.config.token = ""
             self.config.ts = 0
@@ -1902,20 +1947,18 @@ struct ContentView: View {
     }
 
     private func uninstallMod() {
-        guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: selectedBundleID) else {
-            hasInjected = false
-            return
-        }
-        let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+        let bundleCandidates = ["com.dts.freefireth", "com.dts.freefiremax", selectedBundleID]
         let fm = FileManager.default
-        let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
-        let configURL = docsURL.appendingPathComponent("localConfig.json")
-        do {
-            if fm.fileExists(atPath: bytesURL.path) { try fm.removeItem(at: bytesURL) }
-            if fm.fileExists(atPath: configURL.path) { try fm.removeItem(at: configURL) }
-            hasInjected = false
-            license.stopHeartbeat()
-        } catch { }
+        for b in bundleCandidates {
+            guard let containerPath = ContainerStore.resolveAppContainerPath(bundleID: b) else { continue }
+            let docsURL = URL(fileURLWithPath: containerPath).appendingPathComponent("Documents")
+            let bytesURL = docsURL.appendingPathComponent("Assembly-CSharp-patch.bytes")
+            let configURL = docsURL.appendingPathComponent("localConfig.json")
+            try? fm.removeItem(at: bytesURL)
+            try? fm.removeItem(at: configURL)
+        }
+        hasInjected = false
+        license.stopHeartbeat()
     }
 
     private func injectGame() {
@@ -1923,7 +1966,7 @@ struct ContentView: View {
             uninstallMod()
             exit(0)
         }
-        guard license.isCryptographicallyVerified else {
+        guard license.guiConfig.gui_enabled && license.systemActive && license.isAuthed && license.isCryptographicallyVerified else {
             uninstallMod()
             return
         }
@@ -1937,8 +1980,9 @@ struct ContentView: View {
             }
 
             self.license.checkStatus { ok in
-                guard ok else {
+                guard ok && self.license.systemActive && self.license.guiConfig.gui_enabled else {
                     self.isInjecting = false
+                    self.applyServerFeatureLocks()
                     return
                 }
 
