@@ -760,6 +760,7 @@ class LicenseManager: ObservableObject {
 struct SwissDesign {
     static let bg = Color(red: 245/255, green: 245/255, blue: 245/255) // #F5F5F5 Off-white
     static let surface = Color.white // Clean white
+    static let white = Color.white // Pure white
     static let black = Color.black // Pure Helvetica black
     static let red = Color(red: 224/255, green: 6/255, blue: 19/255) // International Red (#E00613)
     static let line = Color(white: 0.86) // 1px hairline divider
