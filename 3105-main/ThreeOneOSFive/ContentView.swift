@@ -756,28 +756,176 @@ class LicenseManager: ObservableObject {
     }
 }
 
-// MARK: - Custom Toggle Style (Black & White Minimalist)
-struct SlimToggleStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        Button(action: { withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) { configuration.isOn.toggle() } }) {
-            ZStack(alignment: configuration.isOn ? .trailing : .leading) {
-                Capsule()
-                    .fill(configuration.isOn ? Color.white : Color(white: 0.18))
-                    .frame(width: 46, height: 24)
-                    .overlay(
-                        Capsule().stroke(Color(white: 0.35), lineWidth: 1)
-                    )
-                Circle()
-                    .fill(configuration.isOn ? Color.black : Color(white: 0.55))
-                    .frame(width: 18, height: 18)
-                    .padding(3)
+// MARK: - Swiss International Design System
+struct SwissDesign {
+    static let bg = Color(red: 245/255, green: 245/255, blue: 245/255) // #F5F5F5 Off-white
+    static let surface = Color.white // Clean white
+    static let black = Color.black // Pure Helvetica black
+    static let red = Color(red: 224/255, green: 6/255, blue: 19/255) // International Red (#E00613)
+    static let line = Color(white: 0.86) // 1px hairline divider
+    static let lineDark = Color.black // 1.5px structural line
+    static let textSecondary = Color(white: 0.42) // Swiss neutral gray
+    static let textMuted = Color(white: 0.65)
+}
+
+// MARK: - Clean Table Row Without Borders
+struct LapRowView: View {
+    let lap: String
+    let split: String
+    let diff: String
+    let subsys: String
+    let state: String
+    let isAccent: Bool
+
+    var body: some View {
+        HStack(spacing: 0) {
+            Text(lap)
+                .font(.system(size: 11, weight: isAccent ? .black : .bold, design: .monospaced))
+                .foregroundColor(isAccent ? SwissDesign.red : SwissDesign.black)
+                .frame(width: 36, alignment: .leading)
+            Text(split)
+                .font(.system(size: 11, weight: .bold, design: .monospaced))
+                .foregroundColor(isAccent ? SwissDesign.red : SwissDesign.black)
+                .frame(width: 78, alignment: .leading)
+            Text(diff)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundColor(SwissDesign.textSecondary)
+                .frame(width: 58, alignment: .leading)
+            Text(subsys)
+                .font(.system(size: 10, weight: .bold, design: .default))
+                .foregroundColor(SwissDesign.black)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(state)
+                .font(.system(size: 9, weight: .black, design: .monospaced))
+                .foregroundColor(isAccent ? SwissDesign.white : SwissDesign.black)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(isAccent ? SwissDesign.red : Color(white: 0.90))
+                .frame(width: 60, alignment: .trailing)
+        }
+        .padding(.vertical, 3)
+    }
+}
+
+// MARK: - Swiss Section
+struct SwissSection<Content: View>: View {
+    let number: String
+    let title: String
+    let content: Content
+
+    init(number: String, title: String, @ViewBuilder content: () -> Content) {
+        self.number = number
+        self.title = title
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Rectangle()
+                .fill(SwissDesign.black)
+                .frame(height: 1.5)
+            
+            HStack(spacing: 8) {
+                Text(number)
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundColor(SwissDesign.red)
+                Text(title)
+                    .font(.system(size: 12, weight: .black, design: .default))
+                    .tracking(1.2)
+                    .foregroundColor(SwissDesign.black)
+                Spacer()
             }
+            .padding(.top, 10)
+            .padding(.bottom, 10)
+
+            content
+
+            Rectangle()
+                .fill(SwissDesign.line)
+                .frame(height: 1)
+                .padding(.top, 12)
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 14)
+    }
+}
+
+// MARK: - Swiss Toggle Row (Minimalist Geometric Square)
+struct SwissToggleRow: View {
+    let label: String
+    let code: String
+    @Binding var isOn: Bool
+
+    var body: some View {
+        Button(action: {
+            isOn.toggle()
+        }) {
+            HStack(spacing: 12) {
+                Text(code)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(SwissDesign.textSecondary)
+                    .frame(width: 24, alignment: .leading)
+                
+                Text(label)
+                    .font(.system(size: 12, weight: .bold, design: .default))
+                    .foregroundColor(SwissDesign.black)
+                
+                Spacer()
+
+                // Sharp geometric square checkbox
+                ZStack {
+                    Rectangle()
+                        .stroke(SwissDesign.black, lineWidth: 1.5)
+                        .frame(width: 20, height: 20)
+                        .background(SwissDesign.surface)
+                    if isOn {
+                        Rectangle()
+                            .fill(SwissDesign.red)
+                            .frame(width: 12, height: 12)
+                    }
+                }
+            }
+            .padding(.vertical, 6)
         }
         .buttonStyle(PlainButtonStyle())
     }
 }
 
-// MARK: - Main View
+// MARK: - Swiss Slider Row
+struct SwissSliderRow: View {
+    let label: String
+    let code: String
+    @Binding var value: Float
+    let range: ClosedRange<Float>
+    let isPercent: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(code)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(SwissDesign.textSecondary)
+                    .frame(width: 24, alignment: .leading)
+                
+                Text(label)
+                    .font(.system(size: 11, weight: .bold, design: .default))
+                    .foregroundColor(SwissDesign.black)
+                
+                Spacer()
+                
+                Text(isPercent ? "\(Int(value))%" : "\(Int(value))")
+                    .font(.system(size: 13, weight: .black, design: .monospaced))
+                    .foregroundColor(SwissDesign.red)
+            }
+
+            Slider(value: $value, in: range, step: 1)
+                .accentColor(SwissDesign.black)
+        }
+        .padding(.vertical, 5)
+    }
+}
+
+// MARK: - Main View (Swiss International Style)
 struct ContentView: View {
     @Environment(\.appLanguage) private var language
     @EnvironmentObject private var patchDraftCoordinator: PatchDraftCoordinator
@@ -794,6 +942,13 @@ struct ContentView: View {
     @State private var licenseKeyInput: String = ""
     @State private var isAuthenticating = false
 
+    // Chrono & Precision Stopwatch State
+    @State private var elapsedTimeString: String = "00:45.32"
+    @State private var stopwatchActive: Bool = false
+    @State private var startTimestamp: Date? = nil
+    @State private var accumulatedTime: TimeInterval = 45.32
+    @State private var timerSubscription: Timer? = nil
+
     private var selectedBundleID: String {
         gameTab == "ff" ? "com.dts.freefireth" : "com.dts.freefiremax"
     }
@@ -807,55 +962,200 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            // Swiss Off-white Background (#F5F5F5)
+            SwissDesign.bg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // ── HEADER: Chỉ hiển thị Hoá iOS Cheat sạch sẽ, không live gì cả ──
-                VStack(spacing: 2) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "pawprint.fill")
-                            .font(.system(size: 19, weight: .bold))
-                            .foregroundColor(.white)
-                        Text("MeoMeoExt")
-                            .font(.system(size: 21, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-                }
-                .padding(.top, 14)
-                .padding(.bottom, 8)
-
-                // ── GAME SELECTOR ─────────────────────────────────────
-                HStack(spacing: 0) {
-                    ForEach(["ff", "ffmax"], id: \.self) { id in
-                        let label = (id == "ff") ? "Free Fire" : "Free Fire MAX"
-                        Button(action: {
-                            gameTab = id
-                            if hasInjected { syncConfig() }
-                        }) {
-                            Text(label)
-                                .font(.system(size: 13, weight: .bold, design: .rounded))
-                                .foregroundColor(gameTab == id ? Color.black : Color(white: 0.65))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 36)
-                                .background(gameTab == id ? Color.white : Color.clear)
+                // ── HEADER: Swiss Precision Grid ──
+                VStack(spacing: 0) {
+                    HStack(alignment: .lastTextBaseline) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("SWISS INTERNATIONAL // MOD")
+                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                .tracking(1.8)
+                                .foregroundColor(SwissDesign.red)
+                            Text("3105.MEOMEO")
+                                .font(.system(size: 22, weight: .black, design: .default))
+                                .tracking(-0.5)
+                                .foregroundColor(SwissDesign.black)
                         }
+                        Spacer()
+                        // Game Selector as rigid geometric toggle
+                        HStack(spacing: 0) {
+                            Button(action: {
+                                gameTab = "ff"
+                                if hasInjected { syncConfig() }
+                            }) {
+                                Text("FF")
+                                    .font(.system(size: 11, weight: .black, design: .default))
+                                    .foregroundColor(gameTab == "ff" ? SwissDesign.white : SwissDesign.black)
+                                    .frame(width: 44, height: 28)
+                                    .background(gameTab == "ff" ? SwissDesign.black : Color.clear)
+                            }
+                            Rectangle().fill(SwissDesign.black).frame(width: 1, height: 28)
+                            Button(action: {
+                                gameTab = "ffmax"
+                                if hasInjected { syncConfig() }
+                            }) {
+                                Text("MAX")
+                                    .font(.system(size: 11, weight: .black, design: .default))
+                                    .foregroundColor(gameTab == "ffmax" ? SwissDesign.white : SwissDesign.black)
+                                    .frame(width: 44, height: 28)
+                                    .background(gameTab == "ffmax" ? SwissDesign.black : Color.clear)
+                            }
+                        }
+                        .overlay(Rectangle().stroke(SwissDesign.black, lineWidth: 1.5))
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 12)
+                    
+                    Rectangle()
+                        .fill(SwissDesign.black)
+                        .frame(height: 1.5)
                 }
-                .background(Color(white: 0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(Color(white: 0.25), lineWidth: 1)
-                )
-                .padding(.horizontal, 16)
-                .padding(.bottom, 12)
 
-                // ── REMOTE NOTICE BANNER ──────────────────────────────
+                // ── REMOTE NOTICE BANNER ──
                 if license.guiConfig.notice_active && !license.guiConfig.notice_text.isEmpty {
                     noticeBannerView
                 }
 
-                // ── CONTENT AREA ──────────────────────────────────────
+                // ── CHRONO HERO: STOPWATCH & TIMER ──
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text("CHRONOMETER // 01")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .tracking(1.6)
+                            .foregroundColor(SwissDesign.textSecondary)
+                        Spacer()
+                        HStack(spacing: 6) {
+                            Rectangle()
+                                .fill(stopwatchActive ? SwissDesign.red : SwissDesign.black)
+                                .frame(width: 8, height: 8)
+                            Text(stopwatchActive ? "RUNNING" : "STOPPED")
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundColor(SwissDesign.black)
+                        }
+                    }
+                    
+                    // Elapsed time dominates the screen in bold black text
+                    Text(elapsedTimeString)
+                        .font(.system(size: 54, weight: .black, design: .default))
+                        .tracking(-1.5)
+                        .foregroundColor(SwissDesign.black)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    // Structural line
+                    Rectangle()
+                        .fill(SwissDesign.black)
+                        .frame(height: 1.5)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+
+                // ── 'START' & 'STOP' CONTROLS: SIMPLE RED AND BLACK GEOMETRIC SQUARES ──
+                HStack(spacing: 12) {
+                    // START square (Black geometric square)
+                    Button(action: {
+                        startStopwatch()
+                        injectGame()
+                    }) {
+                        VStack(spacing: 4) {
+                            if isInjecting {
+                                ProgressView().progressViewStyle(CircularProgressViewStyle(tint: SwissDesign.white))
+                            } else {
+                                Image(systemName: "play.fill")
+                                    .font(.system(size: 16, weight: .black))
+                                    .foregroundColor(SwissDesign.white)
+                                Text("START")
+                                    .font(.system(size: 11, weight: .black, design: .default))
+                                    .tracking(1.0)
+                                    .foregroundColor(SwissDesign.white)
+                            }
+                        }
+                        .frame(width: 68, height: 68)
+                        .background(SwissDesign.black)
+                    }
+                    .disabled(isInjecting)
+
+                    // STOP square (International Red geometric square)
+                    Button(action: {
+                        stopStopwatch()
+                        uninstallMod()
+                    }) {
+                        VStack(spacing: 4) {
+                            Image(systemName: "stop.fill")
+                                .font(.system(size: 16, weight: .black))
+                                .foregroundColor(SwissDesign.white)
+                            Text("STOP")
+                                .font(.system(size: 11, weight: .black, design: .default))
+                                .tracking(1.0)
+                                .foregroundColor(SwissDesign.white)
+                        }
+                        .frame(width: 68, height: 68)
+                        .background(SwissDesign.red)
+                    }
+
+                    // Precision telemetry info
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("CONTROL // MATRIX")
+                            .font(.system(size: 9, weight: .black, design: .monospaced))
+                            .foregroundColor(SwissDesign.textSecondary)
+                        Text(hasInjected ? "MOD HOOK: ACTIVE" : "MOD HOOK: STANDBY")
+                            .font(.system(size: 13, weight: .black, design: .default))
+                            .foregroundColor(hasInjected ? SwissDesign.red : SwissDesign.black)
+                        Text("RIGID GRID 1000HZ // FLAT DESIGN")
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .foregroundColor(SwissDesign.textSecondary)
+                    }
+                    .padding(.leading, 6)
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 10)
+
+                // ── LAP TIMES TABLE WITHOUT BORDERS ──
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("LAP TIMES // TELEMETRY SPLITS")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .tracking(1.4)
+                        .foregroundColor(SwissDesign.textSecondary)
+                    
+                    // Header Row (without borders)
+                    HStack(spacing: 0) {
+                        Text("LAP")
+                            .frame(width: 36, alignment: .leading)
+                        Text("SPLIT")
+                            .frame(width: 78, alignment: .leading)
+                        Text("DIFF")
+                            .frame(width: 58, alignment: .leading)
+                        Text("SUBSYSTEM")
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        Text("STATE")
+                            .frame(width: 60, alignment: .trailing)
+                    }
+                    .font(.system(size: 9, weight: .black, design: .monospaced))
+                    .foregroundColor(SwissDesign.black)
+                    .padding(.vertical, 2)
+
+                    // Data Rows (clean without borders)
+                    VStack(spacing: 3) {
+                        LapRowView(lap: "01", split: "00:12.44", diff: "+12.44", subsys: "KERNEL_ARM64", state: "OK", isAccent: false)
+                        LapRowView(lap: "02", split: "00:23.18", diff: "+10.74", subsys: "ESP_OVERLAY", state: "PASS", isAccent: false)
+                        LapRowView(lap: "03", split: "00:34.90", diff: "+11.72", subsys: "AIM_MATRIX", state: "LOCKED", isAccent: false)
+                        LapRowView(lap: "04", split: "00:45.32", diff: "+10.42", subsys: "SYNC_LOCAL", state: "ACTIVE", isAccent: true)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 10)
+
+                Rectangle()
+                    .fill(SwissDesign.line)
+                    .frame(height: 1)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 6)
+
+                // ── CONTENT AREA ──
                 if !license.guiConfig.gui_enabled {
                     lockedView
                 } else {
@@ -880,31 +1180,25 @@ struct ContentView: View {
                     }
                 }
 
-                // ── DYNAMIC BOTTOM TAB BAR (Remote on / off) ───────────
+                // ── RIGID GRID BOTTOM TABS ──
                 if license.guiConfig.gui_enabled && availableTabs.count > 1 {
                     HStack(spacing: 0) {
                         ForEach(availableTabs, id: \.self) { tab in
-                            Button(action: { withAnimation(.easeInOut(duration: 0.2)) { topTab = tab } }) {
-                                VStack(spacing: 4) {
-                                    Image(systemName: tab == "Menu" ? "list.bullet.rectangle" : "person.crop.circle")
-                                        .font(.system(size: 20))
-                                    Text(tab)
-                                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                                }
-                                .foregroundColor(topTab == tab ? Color.black : Color(white: 0.5))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 55)
-                                .background(topTab == tab ? Color.white : Color.clear)
+                            Button(action: { topTab = tab }) {
+                                Text(tab.uppercased())
+                                    .font(.system(size: 11, weight: .black, design: .default))
+                                    .tracking(1.4)
+                                    .foregroundColor(topTab == tab ? SwissDesign.white : SwissDesign.black)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 42)
+                                    .background(topTab == tab ? SwissDesign.black : SwissDesign.surface)
+                                    .overlay(
+                                        Rectangle().stroke(SwissDesign.black, lineWidth: 1)
+                                    )
                             }
                         }
                     }
-                    .background(Color(white: 0.10))
-                    .clipShape(RoundedRectangle(cornerRadius: 15))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 15)
-                            .stroke(Color(white: 0.25), lineWidth: 1)
-                    )
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 20)
                     .padding(.bottom, 12)
                 }
             }
@@ -920,14 +1214,12 @@ struct ContentView: View {
                     hasInjected = true
                 }
             }
-            // Setup server listener
             license.onLiveStateChanged = { active in
                 self.syncConfig()
             }
             license.onTokenRefreshed = {
                 self.syncConfig()
             }
-            // Background Anti-Tamper Purge Watchdog (Runs every 4s)
             Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { _ in
                 if self.hasInjected && !self.license.isCryptographicallyVerified {
                     self.uninstallMod()
@@ -946,7 +1238,6 @@ struct ContentView: View {
                 }
             }
 
-            // Auto-auth if key is stored
             if !license.storedKey.isEmpty {
                 isAuthenticating = true
                 license.authenticate(key: license.storedKey) { ok, err in
@@ -983,56 +1274,74 @@ struct ContentView: View {
         }
     }
 
+    // MARK: - Chrono / Timer Logic
+    private func startStopwatch() {
+        stopwatchActive = true
+        startTimestamp = Date()
+        timerSubscription?.invalidate()
+        timerSubscription = Timer.scheduledTimer(withTimeInterval: 0.03, repeats: true) { _ in
+            guard self.stopwatchActive, let start = self.startTimestamp else { return }
+            let currentElapsed = self.accumulatedTime + Date().timeIntervalSince(start)
+            let totalHundredths = Int(currentElapsed * 100)
+            let mins = (totalHundredths / 6000) % 60
+            let secs = (totalHundredths / 100) % 60
+            let hundredths = totalHundredths % 100
+            self.elapsedTimeString = String(format: "%02d:%02d.%02d", mins, secs, hundredths)
+        }
+    }
+
+    private func stopStopwatch() {
+        if let start = startTimestamp {
+            accumulatedTime += Date().timeIntervalSince(start)
+        }
+        stopwatchActive = false
+        timerSubscription?.invalidate()
+        timerSubscription = nil
+        startTimestamp = nil
+    }
+
     // MARK: - Remote Notice Banner
     var noticeBannerView: some View {
         HStack(spacing: 10) {
-            Image(systemName: "bell.badge.fill")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.yellow)
+            Rectangle()
+                .fill(SwissDesign.red)
+                .frame(width: 4)
             Text(license.guiConfig.notice_text)
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
+                .font(.system(size: 11, weight: .bold, design: .default))
+                .foregroundColor(SwissDesign.black)
                 .lineLimit(2)
             Spacer()
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(
-            RoundedRectangle(cornerRadius: 10)
-                .fill(Color(white: 0.12))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.yellow.opacity(0.4), lineWidth: 1)
-                )
+        .padding(10)
+        .background(SwissDesign.surface)
+        .overlay(
+            Rectangle().stroke(SwissDesign.line, lineWidth: 1)
         )
-        .padding(.horizontal, 16)
-        .padding(.bottom, 10)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 8)
     }
 
     // MARK: - Remote Master Lock View
     var lockedView: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             Spacer()
             ZStack {
-                Circle()
-                    .fill(Color.red.opacity(0.12))
-                    .frame(width: 84, height: 84)
-                Circle()
-                    .stroke(Color.red.opacity(0.35), lineWidth: 2)
-                    .frame(width: 84, height: 84)
-                Image(systemName: "lock.shield.fill")
-                    .font(.system(size: 38))
-                    .foregroundColor(.red)
+                Rectangle()
+                    .stroke(SwissDesign.red, lineWidth: 2)
+                    .frame(width: 64, height: 64)
+                Image(systemName: "lock.fill")
+                    .font(.system(size: 28))
+                    .foregroundColor(SwissDesign.red)
             }
-            Text("HỆ THỐNG ĐANG TẠM KHÓA")
-                .font(.system(size: 18, weight: .black, design: .rounded))
-                .foregroundColor(.white)
-                .tracking(1.0)
-            Text(license.guiConfig.notice_text.isEmpty ? "Menu đang được quản trị viên tạm dừng để bảo trì và nâng cấp. Vui lòng quay lại sau ít phút." : license.guiConfig.notice_text)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(Color(white: 0.65))
+            Text("SYSTEM LOCKED")
+                .font(.system(size: 18, weight: .black, design: .default))
+                .tracking(1.5)
+                .foregroundColor(SwissDesign.black)
+            Text(license.guiConfig.notice_text.isEmpty ? "Menu is currently locked by administrator for maintenance." : license.guiConfig.notice_text)
+                .font(.system(size: 12, weight: .medium, design: .default))
+                .foregroundColor(SwissDesign.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 28)
+                .padding(.horizontal, 32)
 
             Button(action: {
                 license.fetchGuiConfig()
@@ -1040,52 +1349,52 @@ struct ContentView: View {
                     license.authenticate(key: license.storedKey) { _, _ in }
                 }
             }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 13, weight: .bold))
-                    Text("LÀM MỚI TRẠNG THÁI")
-                        .font(.system(size: 13, weight: .bold, design: .rounded))
-                }
-                .foregroundColor(.black)
-                .padding(.horizontal, 22)
-                .padding(.vertical, 12)
-                .background(Color.white)
-                .clipShape(Capsule())
+                Text("REFRESH STATUS")
+                    .font(.system(size: 11, weight: .black, design: .default))
+                    .foregroundColor(SwissDesign.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(SwissDesign.black)
             }
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
-    // MARK: - Tamper Detected Trap (Anti-Crack / Anti-Bypass Screen)
+    // MARK: - Tamper Detected Trap
     var tamperDetectedView: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             Spacer()
-            Image(systemName: "shield.slash.fill")
-                .font(.system(size: 64))
-                .foregroundColor(.red)
-            Text("PHÁT HIỆN CAN THIỆP BẢN QUYỀN")
-                .font(.system(size: 18, weight: .bold, design: .rounded))
-                .foregroundColor(.red)
-            Text("Phát hiện can thiệp cấu trúc ứng dụng trái phép (Crack / Bypass Detected)!\nMọi tệp mod đã bị huỷ và ứng dụng sẽ tự động đóng.")
-                .font(.system(size: 13, weight: .medium))
-                .foregroundColor(Color(white: 0.8))
+            ZStack {
+                Rectangle()
+                    .fill(SwissDesign.red)
+                    .frame(width: 64, height: 64)
+                Image(systemName: "xmark")
+                    .font(.system(size: 32, weight: .black))
+                    .foregroundColor(SwissDesign.white)
+            }
+            Text("INTEGRITY VIOLATION")
+                .font(.system(size: 18, weight: .black, design: .default))
+                .foregroundColor(SwissDesign.red)
+                .tracking(1.5)
+            Text("Unauthorized application tamper detected (Bypass / Proxy). Security termination triggered.")
+                .font(.system(size: 12, weight: .medium, design: .default))
+                .foregroundColor(SwissDesign.textSecondary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, 30)
+                .padding(.horizontal, 32)
             
             Button(action: { exit(0) }) {
-                Text("ĐÓNG ỨNG DỤNG")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.white)
+                Text("EXIT APPLICATION")
+                    .font(.system(size: 11, weight: .black, design: .default))
+                    .foregroundColor(SwissDesign.white)
                     .padding(.horizontal, 28)
                     .padding(.vertical, 12)
-                    .background(Color.red)
-                    .clipShape(Capsule())
+                    .background(SwissDesign.black)
             }
             Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black.edgesIgnoringSafeArea(.all))
+        .background(SwissDesign.bg.edgesIgnoringSafeArea(.all))
         .onAppear {
             self.uninstallMod()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
@@ -1094,37 +1403,35 @@ struct ContentView: View {
         }
     }
 
-    // MARK: - Auth View (Đen Trắng Tối Giản)
+    // MARK: - Auth View (Swiss International Style)
     var authView: some View {
         ScrollView(showsIndicators: false) {
-            VStack(spacing: 16) {
-                CardView(title: "KÍCH HOẠT BẢN QUYỀN", icon: "key.fill") {
-                    VStack(spacing: 12) {
+            VStack(spacing: 0) {
+                SwissSection(number: "01", title: "LICENSE AUTHENTICATION") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("ENTER LICENSE KEY")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .foregroundColor(SwissDesign.textSecondary)
+
                         HStack {
-                            Image(systemName: "key")
-                                .foregroundColor(.white)
-                                .frame(width: 20)
                             TextField("XXXX-XXXX-XXXX-XXXX", text: $licenseKeyInput)
-                                .font(.system(size: 15, weight: .bold, design: .monospaced))
-                                .foregroundColor(.white)
+                                .font(.system(size: 14, weight: .black, design: .monospaced))
+                                .foregroundColor(SwissDesign.black)
                                 .autocapitalization(.allCharacters)
                                 .disableAutocorrection(true)
                         }
-                        .padding(12)
-                        .background(Color(white: 0.05))
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .padding(10)
+                        .background(SwissDesign.surface)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color(white: 0.25), lineWidth: 1)
+                            Rectangle().stroke(SwissDesign.black, lineWidth: 1.5)
                         )
 
                         if let err = license.authError {
-                            HStack {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundColor(.red)
+                            HStack(spacing: 6) {
+                                Rectangle().fill(SwissDesign.red).frame(width: 4, height: 16)
                                 Text(err)
-                                    .font(.system(size: 12, weight: .medium))
-                                    .foregroundColor(.red)
+                                    .font(.system(size: 11, weight: .bold, design: .default))
+                                    .foregroundColor(SwissDesign.red)
                             }
                         }
 
@@ -1142,35 +1449,32 @@ struct ContentView: View {
                         }) {
                             HStack {
                                 if isAuthenticating {
-                                    ProgressView().progressViewStyle(CircularProgressViewStyle(tint: Color.black))
+                                    ProgressView().progressViewStyle(CircularProgressViewStyle(tint: SwissDesign.white))
                                 } else {
-                                    Image(systemName: "checkmark.shield.fill")
-                                        .foregroundColor(Color.black)
-                                    Text("KÍCH HOẠT LICENSE")
-                                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                                        .foregroundColor(Color.black)
+                                    Text("VALIDATE LICENSE")
+                                        .font(.system(size: 12, weight: .black, design: .default))
+                                        .tracking(1.2)
+                                        .foregroundColor(SwissDesign.white)
                                 }
                             }
                             .frame(maxWidth: .infinity)
-                            .frame(height: 46)
-                            .background(Color.white)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .frame(height: 44)
+                            .background(SwissDesign.black)
                         }
                         .disabled(isAuthenticating || licenseKeyInput.trimmingCharacters(in: .whitespaces).isEmpty)
                     }
                 }
 
-                // Device Info
-                CardView(title: "THIẾT BỊ CỦA BẠN (HWID)", icon: "iphone") {
-                    VStack(alignment: .leading, spacing: 10) {
+                SwissSection(number: "02", title: "DEVICE TELEMETRY (HWID)") {
+                    VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("MÃ HWID")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color(white: 0.65))
+                            Text("HARDWARE ID")
+                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                .foregroundColor(SwissDesign.textSecondary)
                             Spacer()
                             Text(license.deviceId)
-                                .font(.system(size: 10, design: .monospaced))
-                                .foregroundColor(.white)
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundColor(SwissDesign.black)
                                 .lineLimit(1)
                                 .truncationMode(.middle)
                         }
@@ -1178,530 +1482,409 @@ struct ContentView: View {
                         Button(action: {
                             UIPasteboard.general.string = license.deviceId
                         }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "doc.on.doc.fill")
-                                    .font(.system(size: 12))
-                                Text("COPY HWID THIẾT BỊ")
-                                    .font(.system(size: 12, weight: .bold))
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 38)
-                            .background(Color(white: 0.15))
-                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                            Text("COPY HARDWARE ID")
+                                .font(.system(size: 11, weight: .black, design: .default))
+                                .foregroundColor(SwissDesign.black)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 36)
+                                .background(SwissDesign.surface)
+                                .overlay(
+                                    Rectangle().stroke(SwissDesign.black, lineWidth: 1)
+                                )
                         }
                     }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 40)
+            .padding(.bottom, 24)
         }
     }
 
-    // MARK: - Menu Tab (Đen Trắng)
+    // MARK: - Menu Tab (Swiss International Style)
     var menuView: some View {
         Group {
             if !license.isCryptographicallyVerified {
                 tamperDetectedView
             } else {
                 ScrollView(showsIndicators: false) {
-            VStack(spacing: 14) {
+                    VStack(spacing: 0) {
+                        // ── SILENT AIM ──
+                        if license.guiConfig.card_silent_aim {
+                            SwissSection(number: "01", title: "SILENT AIM") {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    SwissToggleRow(label: "SILENT AIM", code: "01", isOn: $config.AimEnabled)
 
-                // ── SILENT AIM ─────────────────────────────────────────
-                if license.guiConfig.card_silent_aim {
-                    CardView(title: "SILENT AIM", icon: "scope") {
-                    VStack(spacing: 14) {
-                        ToggleRow(label: "Silent Aim", icon: "wind", on: $config.AimEnabled)
+                                    if config.AimEnabled {
+                                        Rectangle().fill(SwissDesign.line).frame(height: 1).padding(.vertical, 4)
+                                        SwissToggleRow(label: "DRAW FOV CIRCLE", code: "02", isOn: $config.EspFov)
+                                        SwissSliderRow(label: "SILENT FOV RADIUS", code: "03", value: $config.FovSize, range: 30...400, isPercent: false)
+                                        SwissSliderRow(label: "HEADSHOT RATE", code: "04", value: $config.HeadshotRate, range: 0...100, isPercent: true)
 
-                        if config.AimEnabled {
-                            Divider().background(Color(white: 0.20))
-                            ToggleRow(label: "Hiện Vòng FOV", icon: "circle.dashed", on: $config.EspFov)
-                            SliderRow(label: "Silent FOV", value: $config.FovSize, range: 30...400, isPercent: false)
-                            SliderRow(label: "Tỉ Lệ Headshot", value: $config.HeadshotRate, range: 0...100, isPercent: true)
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Vị Trí Ngắm (Target Bone)")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(Color(white: 0.65))
-
-                                HStack(spacing: 8) {
-                                    ForEach(0..<3, id: \.self) { idx in
-                                        let name = idx == 0 ? "Đầu (Head)" : (idx == 1 ? "Cổ (Neck)" : "Người (Body)")
-                                        Button(action: { config.AimTarget = idx }) {
-                                            Text(name)
-                                                .font(.system(size: 13, weight: .bold))
-                                                .foregroundColor(config.AimTarget == idx ? Color.black : Color.white)
-                                                .frame(maxWidth: .infinity)
-                                                .frame(height: 36)
-                                                .background(config.AimTarget == idx ? Color.white : Color(white: 0.05))
-                                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 8)
-                                                        .stroke(Color(white: 0.25), lineWidth: 1)
-                                                )
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            HStack {
+                                                Text("05")
+                                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                                    .foregroundColor(SwissDesign.textSecondary)
+                                                    .frame(width: 24, alignment: .leading)
+                                                Text("TARGET BONE")
+                                                    .font(.system(size: 11, weight: .bold, design: .default))
+                                                    .foregroundColor(SwissDesign.black)
+                                                Spacer()
+                                            }
+                                            HStack(spacing: 0) {
+                                                ForEach(0..<3, id: \.self) { idx in
+                                                    let name = idx == 0 ? "HEAD" : (idx == 1 ? "NECK" : "BODY")
+                                                    Button(action: { config.AimTarget = idx }) {
+                                                        Text(name)
+                                                            .font(.system(size: 11, weight: .black, design: .default))
+                                                            .foregroundColor(config.AimTarget == idx ? SwissDesign.white : SwissDesign.black)
+                                                            .frame(maxWidth: .infinity)
+                                                            .frame(height: 34)
+                                                            .background(config.AimTarget == idx ? SwissDesign.black : SwissDesign.surface)
+                                                            .overlay(
+                                                                Rectangle().stroke(SwissDesign.black, lineWidth: 1)
+                                                            )
+                                                    }
+                                                }
+                                            }
                                         }
+                                        .padding(.vertical, 4)
                                     }
                                 }
                             }
                         }
-                    }
-                }
 
-                } // end card_silent_aim
+                        // ── AIM SYSTEM ──
+                        if license.guiConfig.card_aim_system {
+                            SwissSection(number: "02", title: "AIMBOT ENGINE") {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    SwissToggleRow(label: "AIMBOT SYSTEM", code: "01", isOn: $config.AimSystemEnabled)
 
-                // ── AIM SYSTEM ─────────────────────────────────────────
-                if license.guiConfig.card_aim_system {
-                    CardView(title: "AIM SYSTEM", icon: "target") {
-                    VStack(spacing: 14) {
-                        ToggleRow(label: "Hệ Thống Aimbot", icon: "flame", on: $config.AimSystemEnabled)
-
-                        if config.AimSystemEnabled {
-                            Divider().background(Color(white: 0.20))
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Vị Trí Ngắm")
-                                    .font(.system(size: 12, weight: .bold))
-                                    .foregroundColor(Color(white: 0.65))
-
-                                HStack(spacing: 8) {
-                                    ForEach(0..<3, id: \.self) { idx in
-                                        let name = idx == 0 ? "Đầu (Head)" : (idx == 1 ? "Cổ (Neck)" : "Người (Body)")
-                                        Button(action: { config.AimTarget = idx }) {
-                                            Text(name)
-                                                .font(.system(size: 13, weight: .bold))
-                                                .foregroundColor(config.AimTarget == idx ? Color.black : Color.white)
-                                                .frame(maxWidth: .infinity)
-                                                .frame(height: 36)
-                                                .background(config.AimTarget == idx ? Color.white : Color(white: 0.05))
-                                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 8)
-                                                        .stroke(Color(white: 0.25), lineWidth: 1)
-                                                )
+                                    if config.AimSystemEnabled {
+                                        Rectangle().fill(SwissDesign.line).frame(height: 1).padding(.vertical, 4)
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            HStack {
+                                                Text("02")
+                                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                                    .foregroundColor(SwissDesign.textSecondary)
+                                                    .frame(width: 24, alignment: .leading)
+                                                Text("TARGET BONE")
+                                                    .font(.system(size: 11, weight: .bold, design: .default))
+                                                    .foregroundColor(SwissDesign.black)
+                                                Spacer()
+                                            }
+                                            HStack(spacing: 0) {
+                                                ForEach(0..<3, id: \.self) { idx in
+                                                    let name = idx == 0 ? "HEAD" : (idx == 1 ? "NECK" : "BODY")
+                                                    Button(action: { config.AimTarget = idx }) {
+                                                        Text(name)
+                                                            .font(.system(size: 11, weight: .black, design: .default))
+                                                            .foregroundColor(config.AimTarget == idx ? SwissDesign.white : SwissDesign.black)
+                                                            .frame(maxWidth: .infinity)
+                                                            .frame(height: 34)
+                                                            .background(config.AimTarget == idx ? SwissDesign.black : SwissDesign.surface)
+                                                            .overlay(
+                                                                Rectangle().stroke(SwissDesign.black, lineWidth: 1)
+                                                            )
+                                                    }
+                                                }
+                                            }
                                         }
+                                        .padding(.vertical, 4)
+
+                                        SwissToggleRow(label: "NO RECOIL STABILIZER", code: "03", isOn: $config.NoRecoil)
                                     }
                                 }
                             }
-
-                            ToggleRow(label: "Giảm Giật (No Recoil)", icon: "minus.circle", on: $config.NoRecoil)
-
                         }
-                    }
-                }
 
-
-                } // end card_aim_system
-
-                // ── VISUALS ────────────────────────────────────────────
-                if license.guiConfig.card_esp {
-                    CardView(title: "VISUALS (ESP)", icon: "eye") {
-                    VStack(spacing: 14) {
-                        ToggleRow(label: "Bật ESP Tổng", icon: "eye.fill", on: $config.EspMaster)
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Khung (Box)", icon: "person.crop.square", on: $config.EspBox)
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Dây Kẻ (Line)", icon: "line.diagonal", on: $config.EspLine)
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Tên (Name)", icon: "textformat", on: $config.EspName)
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Thanh Máu (Health)", icon: "heart.fill", on: $config.EspHealth)
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Khoảng Cách (Distance)", icon: "ruler", on: $config.EspDistance)
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Hiện Khung Xương (Skeleton)", icon: "figure.walk", on: $config.EspSkeleton)
-                    }
-                }
-
-                
-                                
-                } // end card_esp
-
-                // ── TÍNH NĂNG KHÁC ────────────────────
-                if license.guiConfig.card_other {
-                    CardView(title: "TÍNH NĂNG KHÁC", icon: "star.fill") {
-                    VStack(spacing: 14) {
-                        ToggleRow(label: "Tăng Sát Thương (Buff Dame)", icon: "bolt.fill", on: $config.BuffDame)
-                        Divider().background(Color(white: 0.20))
-                        Divider().background(Color(white: 0.20))
-                        ToggleRow(label: "Tàng Hình (Ghost Mode)", icon: "eye.slash.fill", on: $config.GhostMode)
-                        Divider().background(Color(white: 0.20))
-
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                ToggleRow(label: "Góc Nhìn Rộng (CamXa)", icon: "camera.fill", on: $config.CamXa)
-                            }
-                            if config.CamXa {
-                                HStack {
-                                    Text("Tầm nhìn: \(String(format: "%.1f", config.CamXaFloat))x")
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundColor(.white)
-                                    Slider(value: $config.CamXaFloat, in: 1.0...10.0, step: 0.1)
-                                        .accentColor(.white)
+                        // ── VISUALS (ESP) ──
+                        if license.guiConfig.card_esp {
+                            SwissSection(number: "03", title: "VISUALS (ESP)") {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    SwissToggleRow(label: "ESP MASTER SWITCH", code: "01", isOn: $config.EspMaster)
+                                    Rectangle().fill(SwissDesign.line).frame(height: 1).padding(.vertical, 2)
+                                    SwissToggleRow(label: "2D BOUNDING BOX", code: "02", isOn: $config.EspBox)
+                                    Rectangle().fill(SwissDesign.line).frame(height: 1).padding(.vertical, 2)
+                                    SwissToggleRow(label: "SNAPLINE TRACER", code: "03", isOn: $config.EspLine)
+                                    Rectangle().fill(SwissDesign.line).frame(height: 1).padding(.vertical, 2)
+                                    SwissToggleRow(label: "PLAYER IDENTITY (NAME)", code: "04", isOn: $config.EspName)
+                                    Rectangle().fill(SwissDesign.line).frame(height: 1).padding(.vertical, 2)
+                                    SwissToggleRow(label: "HEALTH BAR INDICATOR", code: "05", isOn: $config.EspHealth)
+                                    Rectangle().fill(SwissDesign.line).frame(height: 1).padding(.vertical, 2)
+                                    SwissToggleRow(label: "DISTANCE TELEMETRY", code: "06", isOn: $config.EspDistance)
+                                    Rectangle().fill(SwissDesign.line).frame(height: 1).padding(.vertical, 2)
+                                    SwissToggleRow(label: "SKELETON WIREFRAME", code: "07", isOn: $config.EspSkeleton)
                                 }
                             }
                         }
-                        Divider().background(Color(white: 0.20))
 
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Tốc Độ (Speed Hack)")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(Color.white.opacity(0.8))
-                            HStack(spacing: 8) {
-                                ForEach(1..<6, id: \.self) { idx in
-                                    Button(action: { config.SpeedHack = idx }) {
-                                        Text("x\(idx)")
-                                            .font(.system(size: 13, weight: .bold))
-                                            .foregroundColor(config.SpeedHack == idx ? Color.black : Color.white)
+                        // ── COMBAT MODIFIERS ──
+                        if license.guiConfig.card_other {
+                            SwissSection(number: "04", title: "COMBAT MODIFIERS") {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    SwissToggleRow(label: "DAMAGE MULTIPLIER (BUFF DAME)", code: "01", isOn: $config.BuffDame)
+                                    Rectangle().fill(SwissDesign.line).frame(height: 1).padding(.vertical, 2)
+                                    SwissToggleRow(label: "GHOST OCCLUSION (GHOST MODE)", code: "02", isOn: $config.GhostMode)
+                                    Rectangle().fill(SwissDesign.line).frame(height: 1).padding(.vertical, 2)
+
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        SwissToggleRow(label: "EXPANDED FOV (CAMXA)", code: "03", isOn: $config.CamXa)
+                                        if config.CamXa {
+                                            HStack {
+                                                Text("SCALE: \(String(format: "%.1f", config.CamXaFloat))X")
+                                                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                                                    .foregroundColor(SwissDesign.red)
+                                                Spacer()
+                                                Slider(value: $config.CamXaFloat, in: 1.0...10.0, step: 0.1)
+                                                    .accentColor(SwissDesign.black)
+                                                    .frame(width: 180)
+                                            }
+                                        }
+                                    }
+                                    Rectangle().fill(SwissDesign.line).frame(height: 1).padding(.vertical, 2)
+
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack {
+                                            Text("04")
+                                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                                .foregroundColor(SwissDesign.textSecondary)
+                                                .frame(width: 24, alignment: .leading)
+                                            Text("SPEED MULTIPLIER")
+                                                .font(.system(size: 11, weight: .bold, design: .default))
+                                                .foregroundColor(SwissDesign.black)
+                                            Spacer()
+                                        }
+                                        HStack(spacing: 0) {
+                                            ForEach(1..<6, id: \.self) { idx in
+                                                Button(action: { config.SpeedHack = idx }) {
+                                                    Text("\(idx)X")
+                                                        .font(.system(size: 11, weight: .black, design: .default))
+                                                        .foregroundColor(config.SpeedHack == idx ? SwissDesign.white : SwissDesign.black)
+                                                        .frame(maxWidth: .infinity)
+                                                        .frame(height: 34)
+                                                        .background(config.SpeedHack == idx ? SwissDesign.red : SwissDesign.surface)
+                                                        .overlay(
+                                                            Rectangle().stroke(SwissDesign.black, lineWidth: 1)
+                                                        )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    .padding(.vertical, 4)
+                                }
+                            }
+                        }
+
+                        // ── ANTI-BAN ──
+                        if license.guiConfig.card_antiban {
+                            SwissSection(number: "05", title: "SECURITY & ANTI-BAN") {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    SwissToggleRow(label: "ANTI-BAN MEMORY SHIELD", code: "01", isOn: $config.AntiBan)
+                                        .onChange(of: config.AntiBan) { _ in
+                                            _ = saveConfigLocally()
+                                            syncConfig()
+                                        }
+                                }
+                            }
+                        }
+
+                        // ── GUEST UTILITIES ──
+                        if license.guiConfig.card_guest {
+                            SwissSection(number: "06", title: "GUEST ACCOUNT UTILITIES") {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    SwissToggleRow(label: "SHOW LOBBY RESET BUTTON", code: "01", isOn: $config.ShowGuestBtn)
+                                        .onChange(of: config.ShowGuestBtn) { _ in
+                                            _ = saveConfigLocally()
+                                            syncConfig()
+                                        }
+
+                                    SwissToggleRow(label: "AUTO RESET BEFORE LOGIN", code: "02", isOn: $config.reset_guest)
+                                        .onChange(of: config.reset_guest) { newValue in
+                                            if newValue {
+                                                performResetGuest()
+                                            } else {
+                                                config.resetGuest = false
+                                                config.resetGuestBeforeLogin = false
+                                                _ = saveConfigLocally()
+                                                syncConfig()
+                                            }
+                                        }
+
+                                    Button(action: { performResetGuest() }) {
+                                        Text("RESET GUEST IDENTIFIER NOW")
+                                            .font(.system(size: 11, weight: .black, design: .default))
+                                            .tracking(1.0)
+                                            .foregroundColor(SwissDesign.white)
                                             .frame(maxWidth: .infinity)
-                                            .frame(height: 36)
-                                            .background(config.SpeedHack == idx ? Color.white : Color(white: 0.05))
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                            )
+                                            .frame(height: 40)
+                                            .background(SwissDesign.black)
                                     }
+                                    .padding(.top, 4)
                                 }
                             }
                         }
                     }
-                }
-
-                } // end card_other
-
-                // ── BẢO VỆ ANTI-BAN ───────────────────────────────────
-                if license.guiConfig.card_antiban {
-                    CardView(title: "BẢO VỆ ANTI-BAN", icon: "shield.lefthalf.fill") {
-                    VStack(spacing: 8) {
-                        ToggleRow(label: "Kích Hoạt Anti-Ban", icon: "shield.fill", on: $config.AntiBan)
-                            .onChange(of: config.AntiBan) { _ in
-                                _ = saveConfigLocally()
-                                syncConfig()
-                            }
-                    }
-                }
-
-                } // end card_antiban
-
-                // ── TIỆN ÍCH TÀI KHOẢN (RESET GUEST) ────────────────────
-                if license.guiConfig.card_guest {
-                    CardView(title: "TIỆN ÍCH TÀI KHOẢN", icon: "person.crop.circle.badge.exclamationmark") {
-                    VStack(spacing: 12) {
-                        HStack(spacing: 10) {
-                            Image(systemName: "arrow.counterclockwise.circle.fill")
-                                .font(.system(size: 18, weight: .bold))
-                                .foregroundColor(.white)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Reset Acc Khách (Guest)")
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundColor(.white)
-                                Text("Xoá acc khách bị khoá, đổi Device ID & làm mới MSDK")
-                                    .font(.system(size: 11, weight: .medium))
-                                    .foregroundColor(Color(white: 0.45))
-                            }
-                            Spacer()
-                        }
-
-                        Toggle(isOn: $config.ShowGuestBtn) {
-                            Text("Hiện Nút Reset Ngoài Sảnh")
-                                .font(.system(size: 13, weight: .semibold, design: .rounded))
-                                .foregroundColor(Color(white: 0.8))
-                        }
-                        .toggleStyle(SwitchToggleStyle(tint: .white))
-                        .padding(.vertical, 4)
-                        .onChange(of: config.ShowGuestBtn) { _ in
-                            _ = saveConfigLocally()
-                            syncConfig()
-                        }
-
-                        ToggleRow(label: "Tự Động Xóa Khách (Auto Reset)", icon: "trash.circle.fill", on: $config.reset_guest)
-                            .onChange(of: config.reset_guest) { newValue in
-                                if newValue {
-                                    performResetGuest()
-                                } else {
-                                    config.resetGuest = false
-                                    config.resetGuestBeforeLogin = false
-                                    _ = saveConfigLocally()
-                                    syncConfig()
-                                }
-                            }
-
-                        Button(action: {
-                            performResetGuest()
-                        }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "arrow.counterclockwise.circle.fill")
-                                    .font(.system(size: 14, weight: .bold))
-                                Text("XOÁ ACC KHÁCH NGAY BÂY GIỜ")
-                                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 38)
-                            .background(Color(white: 0.18))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color(white: 0.3), lineWidth: 1)
-                            )
-                        }
-                        .padding(.top, 4)
-                    }
-                }
-
-                } // end card_guest
-
-                // ── INJECT / UNINSTALL ─────────────────────────────────
-                if !hasInjected {
-                    Button(action: { injectGame() }) {
-                        HStack {
-                            if isInjecting {
-                                ProgressView().progressViewStyle(CircularProgressViewStyle(tint: Color.black))
-                            } else {
-                                Image(systemName: "bolt.fill")
-                                    .foregroundColor(Color.black)
-                                Text("CÀI ĐẶT MOD VÀO GAME")
-                                    .font(.system(size: 14, weight: .bold, design: .rounded))
-                                    .foregroundColor(Color.black)
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(Color.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                    .disabled(isInjecting)
-                } else {
-                    Button(action: { uninstallMod() }) {
-                        HStack {
-                            Image(systemName: "trash.fill").foregroundColor(.white)
-                            Text("GỠ BỎ MOD KHỎI GAME")
-                                .font(.system(size: 14, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 48)
-                        .background(Color(white: 0.15))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color(white: 0.35), lineWidth: 1)
-                        )
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 40)
+                    .padding(.bottom, 24)
                 }
             }
         }
     }
 
-    // MARK: - Profile Tab (Đen Trắng)
+    // MARK: - Profile Tab (Swiss International Style)
     var profileView: some View {
         Group {
             if !license.isCryptographicallyVerified {
                 tamperDetectedView
             } else {
                 ScrollView(showsIndicators: false) {
-            VStack(spacing: 16) {
-                CardView(title: "THÔNG TIN BẢN QUYỀN", icon: "person.crop.circle.badge.checkmark") {
-                    VStack(alignment: .leading, spacing: 14) {
-                        // Key Row
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("LICENSE KEY")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color(white: 0.65))
-                            HStack {
-                                Text(license.storedKey.isEmpty ? "Chưa kích hoạt" : license.storedKey)
-                                    .font(.system(size: 13, weight: .bold, design: .monospaced))
-                                    .foregroundColor(.white)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.8)
-                                Spacer()
+                    VStack(spacing: 0) {
+                        SwissSection(number: "01", title: "LICENSE SPECIFICATION") {
+                            VStack(alignment: .leading, spacing: 10) {
+                                // License Key
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("KEY IDENTIFIER")
+                                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                                        .foregroundColor(SwissDesign.textSecondary)
+                                    HStack {
+                                        Text(license.storedKey.isEmpty ? "UNAUTHORIZED" : license.storedKey)
+                                            .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                            .foregroundColor(SwissDesign.black)
+                                            .lineLimit(1)
+                                        Spacer()
+                                        Button(action: { UIPasteboard.general.string = license.storedKey }) {
+                                            Text("COPY")
+                                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                                .foregroundColor(SwissDesign.black)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(SwissDesign.surface)
+                                                .overlay(Rectangle().stroke(SwissDesign.black, lineWidth: 1))
+                                        }
+                                    }
+                                }
+
+                                Rectangle().fill(SwissDesign.line).frame(height: 1)
+
+                                // HWID
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("HARDWARE HASH (HWID)")
+                                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                                        .foregroundColor(SwissDesign.textSecondary)
+                                    HStack {
+                                        Text(license.deviceId)
+                                            .font(.system(size: 11, weight: .medium, design: .monospaced))
+                                            .foregroundColor(SwissDesign.black)
+                                            .lineLimit(1)
+                                        Spacer()
+                                        Button(action: { UIPasteboard.general.string = license.deviceId }) {
+                                            Text("COPY")
+                                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                                .foregroundColor(SwissDesign.black)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(SwissDesign.surface)
+                                                .overlay(Rectangle().stroke(SwissDesign.black, lineWidth: 1))
+                                        }
+                                    }
+                                }
+
+                                Rectangle().fill(SwissDesign.line).frame(height: 1)
+
+                                // Expiration
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("EXPIRATION TELEMETRY")
+                                        .font(.system(size: 9, weight: .black, design: .monospaced))
+                                        .foregroundColor(SwissDesign.textSecondary)
+                                    Text(license.deviceExpires.isEmpty ? "PERPETUAL / UNRESTRICTED" : license.deviceExpires)
+                                        .font(.system(size: 12, weight: .bold, design: .monospaced))
+                                        .foregroundColor(SwissDesign.black)
+                                }
+
+                                Rectangle().fill(SwissDesign.line).frame(height: 1)
+
+                                // Status Indicator
+                                HStack {
+                                    Rectangle()
+                                        .fill(license.isAuthed ? SwissDesign.red : SwissDesign.black)
+                                        .frame(width: 8, height: 8)
+                                    Text(license.isAuthed ? "STATUS: CRYPTO_VERIFIED // ACTIVE" : "STATUS: INACTIVE")
+                                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                                        .foregroundColor(license.isAuthed ? SwissDesign.red : SwissDesign.black)
+                                    Spacer()
+                                }
+                            }
+                        }
+
+                        SwissSection(number: "02", title: "SUPPORT CHANNELS") {
+                            VStack(spacing: 8) {
                                 Button(action: {
-                                    UIPasteboard.general.string = license.storedKey
+                                    if let url = URL(string: "https://t.me/cheatmeo") {
+                                        UIApplication.shared.open(url)
+                                    }
                                 }) {
-                                    Image(systemName: "doc.on.doc")
-                                        .foregroundColor(.white)
-                                        .padding(6)
-                                        .background(Color(white: 0.15))
-                                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    HStack {
+                                        Text("COMMUNITY CHANNEL")
+                                            .font(.system(size: 11, weight: .black, design: .default))
+                                            .foregroundColor(SwissDesign.black)
+                                        Spacer()
+                                        Text("@cheatmeo ->")
+                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                            .foregroundColor(SwissDesign.red)
+                                    }
+                                    .padding(10)
+                                    .background(SwissDesign.surface)
+                                    .overlay(Rectangle().stroke(SwissDesign.black, lineWidth: 1))
                                 }
-                            }
-                            .padding(10)
-                            .background(Color(white: 0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
 
-                        // HWID Row
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("MÃ THIẾT BỊ (HWID)")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color(white: 0.65))
-                            HStack {
-                                Text(license.deviceId)
-                                    .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                    .foregroundColor(Color(white: 0.85))
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                                Spacer()
                                 Button(action: {
-                                    UIPasteboard.general.string = license.deviceId
+                                    if let url = URL(string: "https://t.me/truongdeptrai7") {
+                                        UIApplication.shared.open(url)
+                                    }
                                 }) {
-                                    Image(systemName: "doc.on.doc")
-                                        .foregroundColor(.white)
-                                        .padding(6)
-                                        .background(Color(white: 0.15))
-                                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    HStack {
+                                        Text("ADMIN DIRECT")
+                                            .font(.system(size: 11, weight: .black, design: .default))
+                                            .foregroundColor(SwissDesign.black)
+                                        Spacer()
+                                        Text("@truongdeptrai7 ->")
+                                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                            .foregroundColor(SwissDesign.red)
+                                    }
+                                    .padding(10)
+                                    .background(SwissDesign.surface)
+                                    .overlay(Rectangle().stroke(SwissDesign.black, lineWidth: 1))
                                 }
-                            }
-                            .padding(10)
-                            .background(Color(white: 0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
 
-                        // Expiry Row
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("HẠN SỬ DỤNG")
-                                .font(.system(size: 11, weight: .bold))
-                                .foregroundColor(Color(white: 0.65))
-                            HStack {
-                                Image(systemName: "calendar.badge.clock")
-                                    .foregroundColor(.white)
-                                Text(license.deviceExpires.isEmpty ? "Vĩnh viễn / Theo key" : license.deviceExpires)
-                                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                                    .foregroundColor(.white)
-                                Spacer()
-                            }
-                            .padding(10)
-                            .background(Color(white: 0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                        }
-
-                        // Status Row
-                        HStack {
-                            Circle()
-                                .fill(license.isAuthed ? Color.white : Color.red)
-                                .frame(width: 8, height: 8)
-                            Text(license.isAuthed ? "TRẠNG THÁI: HOẠT ĐỘNG" : "TRẠNG THÁI: HẾT HẠN")
-                                .font(.system(size: 12, weight: .bold, design: .rounded))
-                                .foregroundColor(license.isAuthed ? .white : .red)
-                            Spacer()
-                        }
-                        .padding(.top, 4)
-                    }
-                }
-
-                // Telegram Support Channels Card
-                CardView(title: "KÊNH LIÊN HỆ & HỖ TRỢ", icon: "paperplane.fill") {
-                    VStack(spacing: 12) {
-                        Button(action: {
-                            if let url = URL(string: "https://t.me/cheatmeo") {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "megaphone.fill")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.black)
-                                    .frame(width: 32, height: 32)
-                                    .background(Color.white)
-                                    .clipShape(Circle())
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Channel Telegram")
-                                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                                        .foregroundColor(.white)
-                                    Text("@cheatmeo")
-                                        .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                        .foregroundColor(Color(white: 0.70))
+                                Button(action: {
+                                    license.storedKey = ""
+                                    license.isAuthed = false
+                                    license.stopHeartbeat()
+                                    config.system_active = false
+                                    syncConfig()
+                                    topTab = "Menu"
+                                }) {
+                                    Text("CHANGE LICENSE KEY")
+                                        .font(.system(size: 11, weight: .black, design: .default))
+                                        .foregroundColor(SwissDesign.white)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 38)
+                                        .background(SwissDesign.black)
                                 }
-                                Spacer()
-                                Image(systemName: "arrow.up.right.square")
-                                    .foregroundColor(.white)
+                                .padding(.top, 4)
                             }
-                            .padding(12)
-                            .background(Color(white: 0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color(white: 0.20), lineWidth: 1)
-                            )
-                        }
-
-                        Button(action: {
-                            if let url = URL(string: "https://t.me/truongdeptrai7") {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "person.crop.circle.badge.checkmark")
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.black)
-                                    .frame(width: 32, height: 32)
-                                    .background(Color.white)
-                                    .clipShape(Circle())
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Admin Hỗ Trợ")
-                                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                                        .foregroundColor(.white)
-                                    Text("@truongdeptrai7")
-                                        .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                        .foregroundColor(Color(white: 0.70))
-                                }
-                                Spacer()
-                                Image(systemName: "arrow.up.right.square")
-                                    .foregroundColor(.white)
-                            }
-                            .padding(12)
-                            .background(Color(white: 0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color(white: 0.20), lineWidth: 1)
-                            )
                         }
                     }
-                }
-
-                // Change Key Button
-                Button(action: {
-                    license.storedKey = ""
-                    license.isAuthed = false
-                    license.stopHeartbeat()
-                    config.system_active = false
-                    syncConfig()
-                    topTab = "Menu"
-                }) {
-                    HStack {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                        Text("ĐỔI LICENSE KEY KHÁC")
-                            .font(.system(size: 13, weight: .bold, design: .rounded))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .foregroundColor(Color(white: 0.85))
-                    .background(Color(white: 0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(white: 0.25), lineWidth: 1)
-                    )
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 40)
+                    .padding(.bottom, 24)
                 }
             }
         }
     }
 
-
-    // MARK: - Logic
+    // MARK: - Logic & Engine Operations
     private func log(_ msg: String) {
         let ts = DateFormatter.localizedString(from: Date(), dateStyle: .none, timeStyle: .medium)
         logs.append("[\(ts)] \(msg)")
     }
-
 
     private func performResetGuest() {
         let fm = FileManager.default
@@ -1725,7 +1908,6 @@ struct ContentView: View {
             let prefsURL = libURL.appendingPathComponent("Preferences")
             let cachesURL = libURL.appendingPathComponent("Caches")
             
-            // 1. Delete all guest/device/account data in Documents
             if let files = try? fm.contentsOfDirectory(atPath: docsURL.path) {
                 for file in files {
                     let lower = file.lowercased()
@@ -1736,16 +1918,12 @@ struct ContentView: View {
                 }
             }
             
-            // 2. Generate and write fresh device UUIDs
             let newUUID = UUID().uuidString.lowercased()
             let newDeviceId = UUID().uuidString.replacingOccurrences(of: "-", with: "").lowercased()
             try? newDeviceId.write(to: docsURL.appendingPathComponent("app_device_id.dat"), atomically: true, encoding: .utf8)
             try? newUUID.write(to: docsURL.appendingPathComponent("g_id.dat"), atomically: true, encoding: .utf8)
-            
-            // 3. Create reset flag for in-game C# detection
             try? "1".write(to: docsURL.appendingPathComponent("reset_guest.flag"), atomically: true, encoding: .utf8)
             
-            // 4. Wipe MSDK Preferences plist
             if let plistFiles = try? fm.contentsOfDirectory(atPath: prefsURL.path) {
                 for plist in plistFiles {
                     let pLower = plist.lowercased()
@@ -1755,11 +1933,8 @@ struct ContentView: View {
                 }
             }
             try? fm.removeItem(at: prefsURL.appendingPathComponent("\(bundle).plist"))
-            
-            // 5. Clear Caches
             try? fm.removeItem(at: cachesURL.appendingPathComponent(bundle))
             
-            // 6. Direct write localConfig.json immediately into container
             let configURL = docsURL.appendingPathComponent("localConfig.json")
             var directConfig: [String: Any] = [:]
             if fm.fileExists(atPath: configURL.path),
@@ -1780,15 +1955,12 @@ struct ContentView: View {
             }
         }
 
-        // Temporarily force reset flags true so saveConfigLocally exports them correctly
-        // (Direct write above already set them, but saveConfigLocally would overwrite with struct values)
         let wasResetGuest = config.reset_guest
         config.reset_guest = true
         config.resetGuest = true
         config.resetGuestBeforeLogin = true
         _ = saveConfigLocally()
         syncConfig()
-        // Restore original toggle state in struct (C# will self-clear after executing)
         if !wasResetGuest {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 self.config.reset_guest = false
@@ -1806,7 +1978,6 @@ struct ContentView: View {
             }
         }
         
-        // Migration from old version
         do {
             let fm = FileManager.default
             let docsURL = try fm.url(for: .documentDirectory, in: .userDomainMask, appropriateFor: nil, create: false)
@@ -1836,12 +2007,10 @@ struct ContentView: View {
                 config.system_active = false
             }
 
-            // Save full config to UserDefaults for UI persistence
             if let fullData = try? JSONEncoder().encode(config) {
                 UserDefaults.standard.set(fullData, forKey: "saved_esp_config")
             }
 
-            // Export security state and token to target game localConfig.json
             let minimalConfig: [String: Any] = [
                 "token": config.system_active ? config.token : "",
                 "system_active": config.system_active,
@@ -1983,77 +2152,6 @@ struct ContentView: View {
                     }
                 }.resume()
             }
-        }
-    }
-}
-
-// MARK: - Reusable Components (Đen Trắng)
-struct CardView<Content: View>: View {
-    var title: String
-    var icon: String
-    var content: Content
-    init(title: String, icon: String, @ViewBuilder content: () -> Content) {
-        self.title = title; self.icon = icon; self.content = content()
-    }
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .foregroundColor(.white)
-                    .font(.system(size: 13, weight: .bold))
-                Text(title)
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
-                    .tracking(1.0)
-            }
-            content
-        }
-        .padding(16)
-        .background(Color(white: 0.10))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color(white: 0.22), lineWidth: 1)
-        )
-    }
-}
-
-struct ToggleRow: View {
-    var label: String
-    var icon: String
-    @Binding var on: Bool
-    var body: some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .foregroundColor(on ? .white : Color(white: 0.55))
-                .frame(width: 20)
-            Text(label)
-                .font(.system(size: 15, weight: .medium, design: .rounded))
-                .foregroundColor(.white)
-            Spacer()
-            Toggle("", isOn: $on).toggleStyle(SlimToggleStyle()).labelsHidden()
-        }
-    }
-}
-
-struct SliderRow: View {
-    var label: String
-    @Binding var value: Float
-    var range: ClosedRange<Float>
-    var isPercent: Bool
-    var body: some View {
-        VStack(spacing: 6) {
-            HStack {
-                Text(label)
-                    .font(.system(size: 13, weight: .medium, design: .rounded))
-                    .foregroundColor(Color(white: 0.70))
-                Spacer()
-                Text(isPercent ? "\(Int(value))%" : "\(Int(value))")
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
-                    .foregroundColor(.white)
-            }
-            Slider(value: $value, in: range, step: 1)
-                .accentColor(.white)
         }
     }
 }
