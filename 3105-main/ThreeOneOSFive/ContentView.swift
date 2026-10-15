@@ -769,45 +769,6 @@ struct SwissDesign {
     static let textMuted = Color(white: 0.65)
 }
 
-// MARK: - Clean Table Row Without Borders
-struct LapRowView: View {
-    let lap: String
-    let split: String
-    let diff: String
-    let subsys: String
-    let state: String
-    let isAccent: Bool
-
-    var body: some View {
-        HStack(spacing: 0) {
-            Text(lap)
-                .font(.system(size: 11, weight: isAccent ? .black : .bold, design: .monospaced))
-                .foregroundColor(isAccent ? SwissDesign.red : SwissDesign.black)
-                .frame(width: 36, alignment: .leading)
-            Text(split)
-                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                .foregroundColor(isAccent ? SwissDesign.red : SwissDesign.black)
-                .frame(width: 78, alignment: .leading)
-            Text(diff)
-                .font(.system(size: 10, weight: .medium, design: .monospaced))
-                .foregroundColor(SwissDesign.textSecondary)
-                .frame(width: 58, alignment: .leading)
-            Text(subsys)
-                .font(.system(size: 10, weight: .bold, design: .default))
-                .foregroundColor(SwissDesign.black)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            Text(state)
-                .font(.system(size: 9, weight: .black, design: .monospaced))
-                .foregroundColor(isAccent ? SwissDesign.white : SwissDesign.black)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(isAccent ? SwissDesign.red : Color(white: 0.90))
-                .frame(width: 60, alignment: .trailing)
-        }
-        .padding(.vertical, 3)
-    }
-}
-
 // MARK: - Swiss Section
 struct SwissSection<Content: View>: View {
     let number: String
@@ -943,13 +904,6 @@ struct ContentView: View {
     @State private var licenseKeyInput: String = ""
     @State private var isAuthenticating = false
 
-    // Chrono & Precision Stopwatch State
-    @State private var elapsedTimeString: String = "00:45.32"
-    @State private var stopwatchActive: Bool = false
-    @State private var startTimestamp: Date? = nil
-    @State private var accumulatedTime: TimeInterval = 45.32
-    @State private var timerSubscription: Timer? = nil
-
     private var selectedBundleID: String {
         gameTab == "ff" ? "com.dts.freefireth" : "com.dts.freefiremax"
     }
@@ -1008,7 +962,7 @@ struct ContentView: View {
                         .overlay(Rectangle().stroke(SwissDesign.black, lineWidth: 1.5))
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 12)
+                    .padding(.top, 14)
                     .padding(.bottom, 12)
                     
                     Rectangle()
@@ -1021,142 +975,7 @@ struct ContentView: View {
                     noticeBannerView
                 }
 
-                // ── CHRONO HERO: STOPWATCH & TIMER ──
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text("CHRONOMETER // 01")
-                            .font(.system(size: 10, weight: .black, design: .monospaced))
-                            .tracking(1.6)
-                            .foregroundColor(SwissDesign.textSecondary)
-                        Spacer()
-                        HStack(spacing: 6) {
-                            Rectangle()
-                                .fill(stopwatchActive ? SwissDesign.red : SwissDesign.black)
-                                .frame(width: 8, height: 8)
-                            Text(stopwatchActive ? "RUNNING" : "STOPPED")
-                                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                .foregroundColor(SwissDesign.black)
-                        }
-                    }
-                    
-                    // Elapsed time dominates the screen in bold black text
-                    Text(elapsedTimeString)
-                        .font(.system(size: 54, weight: .black, design: .default))
-                        .tracking(-1.5)
-                        .foregroundColor(SwissDesign.black)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    // Structural line
-                    Rectangle()
-                        .fill(SwissDesign.black)
-                        .frame(height: 1.5)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 10)
-
-                // ── 'START' & 'STOP' CONTROLS: SIMPLE RED AND BLACK GEOMETRIC SQUARES ──
-                HStack(spacing: 12) {
-                    // START square (Black geometric square)
-                    Button(action: {
-                        startStopwatch()
-                        injectGame()
-                    }) {
-                        VStack(spacing: 4) {
-                            if isInjecting {
-                                ProgressView().progressViewStyle(CircularProgressViewStyle(tint: SwissDesign.white))
-                            } else {
-                                Image(systemName: "play.fill")
-                                    .font(.system(size: 16, weight: .black))
-                                    .foregroundColor(SwissDesign.white)
-                                Text("START")
-                                    .font(.system(size: 11, weight: .black, design: .default))
-                                    .tracking(1.0)
-                                    .foregroundColor(SwissDesign.white)
-                            }
-                        }
-                        .frame(width: 68, height: 68)
-                        .background(SwissDesign.black)
-                    }
-                    .disabled(isInjecting)
-
-                    // STOP square (International Red geometric square)
-                    Button(action: {
-                        stopStopwatch()
-                        uninstallMod()
-                    }) {
-                        VStack(spacing: 4) {
-                            Image(systemName: "stop.fill")
-                                .font(.system(size: 16, weight: .black))
-                                .foregroundColor(SwissDesign.white)
-                            Text("STOP")
-                                .font(.system(size: 11, weight: .black, design: .default))
-                                .tracking(1.0)
-                                .foregroundColor(SwissDesign.white)
-                        }
-                        .frame(width: 68, height: 68)
-                        .background(SwissDesign.red)
-                    }
-
-                    // Precision telemetry info
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("CONTROL // MATRIX")
-                            .font(.system(size: 9, weight: .black, design: .monospaced))
-                            .foregroundColor(SwissDesign.textSecondary)
-                        Text(hasInjected ? "MOD HOOK: ACTIVE" : "MOD HOOK: STANDBY")
-                            .font(.system(size: 13, weight: .black, design: .default))
-                            .foregroundColor(hasInjected ? SwissDesign.red : SwissDesign.black)
-                        Text("RIGID GRID 1000HZ // FLAT DESIGN")
-                            .font(.system(size: 8, weight: .bold, design: .monospaced))
-                            .foregroundColor(SwissDesign.textSecondary)
-                    }
-                    .padding(.leading, 6)
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 10)
-
-                // ── LAP TIMES TABLE WITHOUT BORDERS ──
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("LAP TIMES // TELEMETRY SPLITS")
-                        .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .tracking(1.4)
-                        .foregroundColor(SwissDesign.textSecondary)
-                    
-                    // Header Row (without borders)
-                    HStack(spacing: 0) {
-                        Text("LAP")
-                            .frame(width: 36, alignment: .leading)
-                        Text("SPLIT")
-                            .frame(width: 78, alignment: .leading)
-                        Text("DIFF")
-                            .frame(width: 58, alignment: .leading)
-                        Text("SUBSYSTEM")
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        Text("STATE")
-                            .frame(width: 60, alignment: .trailing)
-                    }
-                    .font(.system(size: 9, weight: .black, design: .monospaced))
-                    .foregroundColor(SwissDesign.black)
-                    .padding(.vertical, 2)
-
-                    // Data Rows (clean without borders)
-                    VStack(spacing: 3) {
-                        LapRowView(lap: "01", split: "00:12.44", diff: "+12.44", subsys: "KERNEL_ARM64", state: "OK", isAccent: false)
-                        LapRowView(lap: "02", split: "00:23.18", diff: "+10.74", subsys: "ESP_OVERLAY", state: "PASS", isAccent: false)
-                        LapRowView(lap: "03", split: "00:34.90", diff: "+11.72", subsys: "AIM_MATRIX", state: "LOCKED", isAccent: false)
-                        LapRowView(lap: "04", split: "00:45.32", diff: "+10.42", subsys: "SYNC_LOCAL", state: "ACTIVE", isAccent: true)
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 10)
-
-                Rectangle()
-                    .fill(SwissDesign.line)
-                    .frame(height: 1)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 6)
-
-                // ── CONTENT AREA ──
+                // ── CONTENT AREA (Expands freely without stopwatch overhead) ──
                 if !license.guiConfig.gui_enabled {
                     lockedView
                 } else {
@@ -1181,27 +1000,70 @@ struct ContentView: View {
                     }
                 }
 
-                // ── RIGID GRID BOTTOM TABS ──
-                if license.guiConfig.gui_enabled && availableTabs.count > 1 {
-                    HStack(spacing: 0) {
-                        ForEach(availableTabs, id: \.self) { tab in
-                            Button(action: { topTab = tab }) {
-                                Text(tab.uppercased())
-                                    .font(.system(size: 11, weight: .black, design: .default))
-                                    .tracking(1.4)
-                                    .foregroundColor(topTab == tab ? SwissDesign.white : SwissDesign.black)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 42)
-                                    .background(topTab == tab ? SwissDesign.black : SwissDesign.surface)
-                                    .overlay(
-                                        Rectangle().stroke(SwissDesign.black, lineWidth: 1)
-                                    )
+                // ── DOCKED BOTTOM BAR: INJECT BUTTON & NAVIGATION TABS ──
+                VStack(spacing: 8) {
+                    // INJECT / EJECT Control Button
+                    if !hasInjected {
+                        Button(action: { injectGame() }) {
+                            HStack(spacing: 8) {
+                                if isInjecting {
+                                    ProgressView().progressViewStyle(CircularProgressViewStyle(tint: SwissDesign.white))
+                                } else {
+                                    Rectangle()
+                                        .fill(SwissDesign.red)
+                                        .frame(width: 8, height: 8)
+                                    Text("INJECT")
+                                        .font(.system(size: 13, weight: .black, design: .default))
+                                        .tracking(2.0)
+                                        .foregroundColor(SwissDesign.white)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                            .background(SwissDesign.black)
+                        }
+                        .disabled(isInjecting)
+                    } else {
+                        Button(action: { uninstallMod() }) {
+                            HStack(spacing: 8) {
+                                Rectangle()
+                                    .fill(SwissDesign.white)
+                                    .frame(width: 8, height: 8)
+                                Text("UNINSTALL MOD (EJECT)")
+                                    .font(.system(size: 13, weight: .black, design: .default))
+                                    .tracking(2.0)
+                                    .foregroundColor(SwissDesign.white)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 46)
+                            .background(SwissDesign.red)
+                        }
+                    }
+
+                    // RIGID GRID TABS (MENU / PROFILE)
+                    if license.guiConfig.gui_enabled && availableTabs.count > 1 {
+                        HStack(spacing: 0) {
+                            ForEach(availableTabs, id: \.self) { tab in
+                                Button(action: { topTab = tab }) {
+                                    Text(tab.uppercased())
+                                        .font(.system(size: 11, weight: .black, design: .default))
+                                        .tracking(1.4)
+                                        .foregroundColor(topTab == tab ? SwissDesign.white : SwissDesign.black)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 40)
+                                        .background(topTab == tab ? SwissDesign.black : SwissDesign.surface)
+                                        .overlay(
+                                            Rectangle().stroke(SwissDesign.black, lineWidth: 1)
+                                        )
+                                }
                             }
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 12)
                 }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
+                .padding(.top, 8)
+                .background(SwissDesign.bg)
             }
         }
         .onAppear {
@@ -1273,32 +1135,6 @@ struct ContentView: View {
                 topTab = "Menu"
             }
         }
-    }
-
-    // MARK: - Chrono / Timer Logic
-    private func startStopwatch() {
-        stopwatchActive = true
-        startTimestamp = Date()
-        timerSubscription?.invalidate()
-        timerSubscription = Timer.scheduledTimer(withTimeInterval: 0.03, repeats: true) { _ in
-            guard self.stopwatchActive, let start = self.startTimestamp else { return }
-            let currentElapsed = self.accumulatedTime + Date().timeIntervalSince(start)
-            let totalHundredths = Int(currentElapsed * 100)
-            let mins = (totalHundredths / 6000) % 60
-            let secs = (totalHundredths / 100) % 60
-            let hundredths = totalHundredths % 100
-            self.elapsedTimeString = String(format: "%02d:%02d.%02d", mins, secs, hundredths)
-        }
-    }
-
-    private func stopStopwatch() {
-        if let start = startTimestamp {
-            accumulatedTime += Date().timeIntervalSince(start)
-        }
-        stopwatchActive = false
-        timerSubscription?.invalidate()
-        timerSubscription = nil
-        startTimestamp = nil
     }
 
     // MARK: - Remote Notice Banner
